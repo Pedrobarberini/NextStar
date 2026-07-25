@@ -93,7 +93,7 @@ Status: Concluído em modo de pré-lançamento em 2026-07-25.
 
 Tipo: Engenharia
 
-Status: Em andamento nesta entrega.
+Status: Concluído em 2026-07-25, com validação visual manual ainda recomendada.
 
 - [x] Atualizar o README para o posicionamento de publicidade.
 - [x] Reescrever o backlog para o novo objetivo do produto.
@@ -101,8 +101,8 @@ Status: Em andamento nesta entrega.
 - [x] Executar `pnpm run typecheck`.
 - [x] Executar `pnpm test` com 68 testes aprovados.
 - [x] Executar build web de produção.
-- [ ] Validar visualmente em mobile e desktop.
-- [ ] Criar commit, enviar ao GitHub e verificar o deploy.
+- [ ] Validar visualmente em mobile e desktop após a publicação. O navegador automatizado ficou indisponível nesta sessão.
+- [x] Criar commit, enviar ao GitHub e verificar o deploy.
 
 ## P0 - Backend público
 
