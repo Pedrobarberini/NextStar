@@ -1,9 +1,9 @@
 import { buildPlayerFromSubmission } from "../actions/appActions.ts";
 import type {
   AppUser,
-  AthleteFund,
-  Investment,
   Player,
+  ProfessionalSettingsByUser,
+  PromotionCampaign,
   VideoSubmission
 } from "../types.ts";
 import { getPlayerContentKey } from "../utils/feedEngagement.ts";
@@ -52,11 +52,15 @@ export function selectAvailablePlayers(
 export function selectOrderedFeedPlayers(
   availablePlayers: Player[],
   followingProfileSet: Set<string>,
-  interestedContentKeySet = new Set<string>()
+  interestedContentKeySet = new Set<string>(),
+  activeCampaignPlayerIdSet = new Set<string>()
 ) {
   return availablePlayers
     .map((player, index) => ({ index, player }))
     .sort((left, right) => {
+      const campaignDifference =
+        Number(activeCampaignPlayerIdSet.has(right.player.id)) -
+        Number(activeCampaignPlayerIdSet.has(left.player.id));
       const followDifference =
         Number(followingProfileSet.has(right.player.profileId)) -
         Number(followingProfileSet.has(left.player.profileId));
@@ -68,7 +72,12 @@ export function selectOrderedFeedPlayers(
           interestedContentKeySet.has(getPlayerContentKey(left.player))
         );
 
-      return followDifference || interestDifference || left.index - right.index;
+      return (
+        campaignDifference ||
+        followDifference ||
+        interestDifference ||
+        left.index - right.index
+      );
     })
     .map(({ player }) => player);
 }
@@ -78,13 +87,30 @@ export function selectPendingReviews(submissions: VideoSubmission[]) {
     .length;
 }
 
-export function selectCurrentUserInvestments(
-  investments: Investment[],
+export function selectCurrentUserCampaigns(
+  campaigns: PromotionCampaign[],
   user: AppUser | null
 ) {
   return user
-    ? investments.filter((investment) => investment.investorUserId === user.id)
+    ? campaigns.filter((campaign) => campaign.ownerUserId === user.id)
     : [];
+}
+
+export function selectActiveCampaignPlayerIds(
+  campaigns: PromotionCampaign[]
+) {
+  return new Set(
+    campaigns
+      .filter((campaign) => campaign.status === "active")
+      .map((campaign) => campaign.playerId)
+  );
+}
+
+export function selectProfessionalSettings(
+  settingsByUser: ProfessionalSettingsByUser,
+  userId?: string | null
+) {
+  return userId ? settingsByUser[userId] : undefined;
 }
 
 export function selectProfileAccount(
@@ -110,15 +136,6 @@ export function selectProfileVideos(
         (player) => player.profileId === selectedPlayer.profileId
       )
     : [];
-}
-
-export function selectProfileFund(
-  selectedPlayer: Player | null,
-  athleteFunds: AthleteFund[]
-) {
-  return selectedPlayer
-    ? athleteFunds.find((fund) => fund.profileId === selectedPlayer.profileId)
-    : undefined;
 }
 
 export function selectProfileFollowers(
@@ -155,22 +172,6 @@ export function selectProfileFollowing(
   });
 
   return selectedAccounts;
-}
-
-export function selectFundByOwner(
-  athleteFunds: AthleteFund[],
-  ownerUserId: string
-) {
-  return athleteFunds.find((fund) => fund.ownerUserId === ownerUserId);
-}
-
-export function selectInvestmentFund(
-  investmentPlayer: Player | null,
-  athleteFunds: AthleteFund[]
-) {
-  return investmentPlayer
-    ? athleteFunds.find((fund) => fund.profileId === investmentPlayer.profileId)
-    : undefined;
 }
 
 export function selectProfileId(
@@ -223,6 +224,13 @@ export function selectPlayerByOwner(
   ownerUserId: string
 ) {
   return players.find((player) => player.ownerUserId === ownerUserId);
+}
+
+export function selectPlayersByOwner(
+  players: Player[],
+  ownerUserId: string
+) {
+  return players.filter((player) => player.ownerUserId === ownerUserId);
 }
 
 export function selectApprovedPlayerForSubmission(

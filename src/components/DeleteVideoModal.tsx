@@ -29,26 +29,26 @@ export function DeleteVideoModal({
       transparent
       visible={visible}
     >
-      <View style={styles.depositModalRoot}>
+      <View style={styles.confirmationModalRoot}>
         <Pressable
           accessibilityLabel="Cancelar exclusão"
           disabled={isDeleting}
           onPress={onClose}
-          style={styles.depositModalBackdrop}
+          style={styles.confirmationModalBackdrop}
         />
         <View accessibilityViewIsModal style={styles.deleteVideoDialog}>
-          <View style={styles.depositDialogHeader}>
+          <View style={styles.confirmationDialogHeader}>
             <View style={styles.deleteVideoTitleRow}>
               <View style={styles.deleteVideoIcon}>
                 <Trash2 color={colors.danger} size={20} />
               </View>
-              <View style={styles.depositDialogTitleBlock}>
+              <View style={styles.confirmationDialogTitleBlock}>
                 <Text style={styles.deleteVideoTitle}>
                   {isBatch
                     ? `Apagar ${itemCount} publicações?`
                     : "Excluir publicação?"}
                 </Text>
-                <Text numberOfLines={2} style={styles.depositDialogSubtitle}>
+                <Text numberOfLines={2} style={styles.confirmationDialogSubtitle}>
                   {videoTitle}
                 </Text>
               </View>
@@ -58,7 +58,7 @@ export function DeleteVideoModal({
               disabled={isDeleting}
               hitSlop={8}
               onPress={onClose}
-              style={styles.depositCloseButton}
+              style={styles.confirmationCloseButton}
             >
               <X color={colors.muted} size={20} />
             </Pressable>
@@ -70,13 +70,13 @@ export function DeleteVideoModal({
               : "A publicação será removida do Início e do seu perfil. Esta ação não pode ser desfeita."}
           </Text>
 
-          <View style={styles.depositDialogActions}>
+          <View style={styles.confirmationDialogActions}>
             <Pressable
               disabled={isDeleting}
               onPress={onClose}
-              style={styles.depositCancelButton}
+              style={styles.confirmationCancelButton}
             >
-              <Text style={styles.depositCancelText}>Cancelar</Text>
+              <Text style={styles.confirmationCancelText}>Cancelar</Text>
             </Pressable>
             <Pressable
               accessibilityLabel="Confirmar exclusão"

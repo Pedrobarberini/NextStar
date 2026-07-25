@@ -130,15 +130,3 @@ export function getCardPaletteFromId(id: string) {
 
   return getCardPalette(total);
 }
-
-export function getScoreColor(score: number) {
-  if (score >= 85) {
-    return colors.primary;
-  }
-
-  if (score >= 78) {
-    return colors.warning;
-  }
-
-  return colors.danger;
-}

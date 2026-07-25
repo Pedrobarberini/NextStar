@@ -442,24 +442,4 @@ export const accountAvatarSettingsStyles = {
     lineHeight: 16,
     marginTop: 2
   },
-  settingsFundComplete: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.border,
-    borderRadius: 6,
-    borderWidth: 1,
-    marginBottom: 12,
-    marginTop: 8,
-    padding: 12
-  },
-  settingsFundCompleteTitle: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: "900"
-  },
-  settingsFundCompleteBody: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 3
-  }
 } as const;

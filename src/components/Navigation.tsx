@@ -19,36 +19,27 @@ import {
   View,
   type ViewStyle
 } from "react-native";
-import {
-  XOLOT_HORIZONTAL_WORDMARK,
-  XOLOT_SYMBOL
-} from "../constants/assets";
+import { XOLOT_HORIZONTAL_WORDMARK } from "../constants/assets";
 import { USE_CENTERED_WEB_LAYOUT } from "../constants/layout";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
 import { AppUser, UserRole } from "../types";
 import { Tab } from "../ui/types";
-import { formatBRL } from "../utils/investment";
 
 export function Header({
   onSignOut,
   pendingReviews,
-  showBalance,
   showSignOut = true,
-  user,
-  walletBalance
+  user
 }: {
   onSignOut: () => void;
   pendingReviews: number;
-  showBalance: boolean;
   showSignOut?: boolean;
   user: AppUser;
-  walletBalance: number;
 }) {
   const { width } = useWindowDimensions();
   const isCompact = USE_CENTERED_WEB_LAYOUT || width < 520;
-  const hasHeaderActions =
-    showBalance || user.role === "Admin" || showSignOut;
+  const hasHeaderActions = user.role === "Admin" || showSignOut;
 
   return (
     <View style={[styles.header, isCompact ? styles.headerCompact : null]}>
@@ -83,7 +74,6 @@ export function Header({
             isCompact ? styles.headerActionsCompact : null
           ]}
         >
-          {showBalance ? <BalanceLine balance={walletBalance} /> : null}
           {user.role === "Admin" ? (
             <Text style={styles.headerReviewLine}>{pendingReviews} pend.</Text>
           ) : null}
@@ -101,31 +91,6 @@ export function Header({
           ) : null}
         </View>
       ) : null}
-    </View>
-  );
-}
-
-export function BalanceLine({
-  balance,
-  overlay = false
-}: {
-  balance: number;
-  overlay?: boolean;
-}) {
-  return (
-    <View
-      accessibilityLabel={`Saldo disponível ${formatBRL(balance)}`}
-      style={[styles.balanceLine, overlay ? styles.balanceLineOverlay : null]}
-    >
-      <Text
-        numberOfLines={1}
-        style={[
-          styles.balanceLineValue,
-          overlay ? styles.balanceLineValueOverlay : null
-        ]}
-      >
-        {formatBRL(balance)}
-      </Text>
     </View>
   );
 }
@@ -168,34 +133,14 @@ export function BackButton({
 
 export function DetailHud({
   backLabel,
-  onBack,
-  walletBalance
+  onBack
 }: {
   backLabel: string;
   onBack: () => void;
-  walletBalance: number;
 }) {
   return (
     <View style={styles.detailFixedHud}>
-      <View style={styles.detailHudLeading}>
-        <BackButton
-          accessibilityLabel={backLabel}
-          onPress={onBack}
-        />
-        <Image
-          accessibilityLabel="Logo Xolot"
-          resizeMode="contain"
-          source={XOLOT_SYMBOL}
-          style={styles.detailHudLogo}
-        />
-      </View>
-      <Text
-        accessibilityLabel={`Saldo disponível ${formatBRL(walletBalance)}`}
-        numberOfLines={1}
-        style={styles.detailHudBalance}
-      >
-        {formatBRL(walletBalance)}
-      </Text>
+      <BackButton accessibilityLabel={backLabel} onPress={onBack} />
     </View>
   );
 }

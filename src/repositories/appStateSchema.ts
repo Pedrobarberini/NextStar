@@ -1,7 +1,12 @@
 import type {
   AppUser,
-  AthleteFund,
-  Investment,
+  CampaignObjective,
+  CampaignStatus,
+  ProfessionalCategory,
+  ProfessionalPlanId,
+  ProfessionalSettings,
+  ProfessionalSettingsByUser,
+  PromotionCampaign,
   VideoSubmission
 } from "../types";
 import {
@@ -10,16 +15,15 @@ import {
 } from "../utils/userIdentity.ts";
 import { migrateSubmissionToDirectPublication } from "../utils/publication.ts";
 
-export const APP_STATE_SCHEMA_VERSION = 4;
+export const APP_STATE_SCHEMA_VERSION = 5;
 
 export type LocalAppState = {
   activeUser: AppUser | null;
-  athleteFunds: AthleteFund[];
-  investments: Investment[];
+  campaigns: PromotionCampaign[];
+  professionalSettingsByUser: ProfessionalSettingsByUser;
   registeredUsers: AppUser[];
   submissions: VideoSubmission[];
   version: typeof APP_STATE_SCHEMA_VERSION;
-  walletBalances: Record<string, number>;
 };
 
 export type LocalStateStorage = {
@@ -28,38 +32,19 @@ export type LocalStateStorage = {
   setItem: (key: string, value: string) => Promise<void>;
 };
 
-export function createDefaultLocalAppState(
-  athleteFunds: AthleteFund[] = []
-): LocalAppState {
+export function createDefaultLocalAppState(): LocalAppState {
   return {
     activeUser: null,
-    athleteFunds,
-    investments: [],
+    campaigns: [],
+    professionalSettingsByUser: {},
     registeredUsers: [],
     submissions: [],
-    version: APP_STATE_SCHEMA_VERSION,
-    walletBalances: {}
+    version: APP_STATE_SCHEMA_VERSION
   };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function normalizeWalletBalances(value: unknown) {
-  if (!isRecord(value)) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).filter(
-      ([userId, balance]) =>
-        userId.trim().length > 0 &&
-        typeof balance === "number" &&
-        Number.isFinite(balance) &&
-        balance >= 0
-    )
-  ) as Record<string, number>;
 }
 
 function normalizeArray<T>(value: unknown, fallback: T[]) {
@@ -124,10 +109,6 @@ function normalizeAppUser(value: unknown): AppUser | null {
     email,
     ...(googleUid ? { googleUid } : {}),
     id,
-    kycStatus:
-      value.kycStatus === "Pendente" || value.kycStatus === "Aprovado"
-        ? value.kycStatus
-        : "Não iniciado",
     name:
       normalizeString(value.name) ||
       (role === "Admin" ? "Admin Xolot" : email.split("@")[0]),
@@ -143,19 +124,6 @@ function normalizeAppUser(value: unknown): AppUser | null {
       id
     )
   };
-}
-
-function normalizeAthleteFundStatus(value: unknown): AthleteFund["status"] {
-  return value === "Concluída" || value === "Concluida"
-    ? "Concluída"
-    : "Captando";
-}
-
-function normalizeAthleteFunds(value: unknown, fallback: AthleteFund[]) {
-  return normalizeArray(value, fallback).map((fund) => ({
-    ...fund,
-    status: normalizeAthleteFundStatus(fund.status)
-  }));
 }
 
 function normalizeUsers(value: unknown) {
@@ -179,6 +147,127 @@ function assignUniqueUsernames(users: AppUser[]) {
       account.id
     )
   }));
+}
+
+const PROFESSIONAL_CATEGORIES: ProfessionalCategory[] = [
+  "talent",
+  "creator",
+  "business",
+  "brand",
+  "project",
+  "service"
+];
+const PROFESSIONAL_PLANS: ProfessionalPlanId[] = ["free", "pro", "business"];
+const CAMPAIGN_OBJECTIVES: CampaignObjective[] = [
+  "reach",
+  "profile_visits",
+  "messages"
+];
+const CAMPAIGN_STATUSES: CampaignStatus[] = [
+  "active",
+  "paused",
+  "completed"
+];
+
+function normalizeProfessionalSettings(
+  value: unknown
+): ProfessionalSettings | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const category = PROFESSIONAL_CATEGORIES.includes(
+    value.category as ProfessionalCategory
+  )
+    ? (value.category as ProfessionalCategory)
+    : "talent";
+  const plan = PROFESSIONAL_PLANS.includes(value.plan as ProfessionalPlanId)
+    ? (value.plan as ProfessionalPlanId)
+    : "free";
+
+  return {
+    category,
+    enabled: value.enabled === true,
+    externalLink: normalizeString(value.externalLink),
+    plan,
+    updatedAt: normalizeString(value.updatedAt) || new Date(0).toISOString()
+  };
+}
+
+function normalizeProfessionalSettingsByUser(
+  value: unknown
+): ProfessionalSettingsByUser {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([userId, settings]) => [
+        userId.trim(),
+        normalizeProfessionalSettings(settings)
+      ] as const)
+      .filter(
+        (entry): entry is readonly [string, ProfessionalSettings] =>
+          Boolean(entry[0] && entry[1])
+      )
+  );
+}
+
+function normalizeCampaign(value: unknown): PromotionCampaign | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = normalizeString(value.id);
+  const ownerUserId = normalizeString(value.ownerUserId);
+  const playerId = normalizeString(value.playerId);
+  const profileId = normalizeString(value.profileId);
+  const title = normalizeString(value.title);
+  const objective = CAMPAIGN_OBJECTIVES.includes(
+    value.objective as CampaignObjective
+  )
+    ? (value.objective as CampaignObjective)
+    : "reach";
+  const status = CAMPAIGN_STATUSES.includes(value.status as CampaignStatus)
+    ? (value.status as CampaignStatus)
+    : "paused";
+
+  if (!id || !ownerUserId || !playerId || !profileId || !title) {
+    return null;
+  }
+
+  const normalizeMetric = (metric: unknown) =>
+    typeof metric === "number" && Number.isFinite(metric) && metric >= 0
+      ? metric
+      : 0;
+
+  return {
+    budget: normalizeMetric(value.budget),
+    clicks: normalizeMetric(value.clicks),
+    createdAt: normalizeString(value.createdAt) || new Date(0).toISOString(),
+    durationDays: Math.max(1, Math.round(normalizeMetric(value.durationDays))),
+    estimatedReach: normalizeMetric(value.estimatedReach),
+    id,
+    impressions: normalizeMetric(value.impressions),
+    messages: normalizeMetric(value.messages),
+    objective,
+    ownerUserId,
+    playerId,
+    profileId,
+    status,
+    title
+  };
+}
+
+function normalizeCampaigns(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(normalizeCampaign)
+    .filter((campaign): campaign is PromotionCampaign => Boolean(campaign));
 }
 
 export function migrateLocalAppState(
@@ -212,16 +301,17 @@ export function migrateLocalAppState(
 
   return {
     activeUser,
-    athleteFunds: normalizeAthleteFunds(value.athleteFunds, fallback.athleteFunds),
-    investments: normalizeArray(value.investments, fallback.investments),
+    campaigns: normalizeCampaigns(value.campaigns),
+    professionalSettingsByUser: normalizeProfessionalSettingsByUser(
+      value.professionalSettingsByUser
+    ),
     registeredUsers:
       registeredUsers.length > 0 ? registeredUsers : fallback.registeredUsers,
     submissions: normalizeArray(
       value.submissions,
       fallback.submissions
     ).map(migrateSubmissionToDirectPublication),
-    version: APP_STATE_SCHEMA_VERSION,
-    walletBalances: normalizeWalletBalances(value.walletBalances)
+    version: APP_STATE_SCHEMA_VERSION
   };
 }
 

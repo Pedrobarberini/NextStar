@@ -5,21 +5,17 @@ import {
   isOwnAccountProfile,
   isOwnPlayerProfile,
   selectApprovedPlayerForSubmission,
-  selectFundByOwner,
-  selectPlayerByOwner,
   selectProfileFollowers,
-  selectProfileFollowing,
-  selectProfileFund,
-  selectUserSubmissions
+  selectProfileFollowing
 } from "./appSelectors";
 import { BrandLaunchOverlay } from "./AppEntryShells";
 import { ScreenFrame } from "../components/AppShell";
 import { BottomTabs, Header } from "../components/Navigation";
 import { AdminScreen } from "../screens/AdminScreen";
 import { FeedScreen } from "../screens/FeedScreen";
-import { InvestmentScreen } from "../screens/InvestmentScreen";
 import { MessagesScreen } from "../screens/MessagesScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { PromotePostScreen } from "../screens/PromotePostScreen";
 import { PublicProfileScreen } from "../screens/PublicProfileScreen";
 import { SearchScreen } from "../screens/SearchScreen";
 import { SubmitVideoScreen } from "../screens/SubmissionScreen";
@@ -27,13 +23,15 @@ import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
 import type {
   AppUser,
-  AthleteFund,
+  CampaignObjective,
   DirectMessage,
-  Investment,
   MessageContact,
   Player,
+  ProfessionalSettings,
+  ProfessionalSettingsByUser,
   ProfileAvatar,
   ProfileAvatarsByProfile,
+  PromotionCampaign,
   VideoSubmission,
   VideoSubmissionStatus
 } from "../types";
@@ -42,16 +40,18 @@ import type { ReelReturnTarget } from "./useAppNavigation";
 import { getPlayerContentKey } from "../utils/feedEngagement";
 
 type AppRoutesProps = {
+  activeCampaignPlayerIds: Set<string>;
   activeMessageContactId: string | null;
   approvedSubmissionPlayers: Player[];
-  athleteFunds: AthleteFund[];
   availablePlayers: Player[];
   blockedProfileIdSet: Set<string>;
+  campaignPlayer: Player | null;
   clearSelectedProfile: () => void;
-  closeInvestment: () => void;
+  closeCampaign: () => void;
   currentMessageContacts: MessageContact[];
+  currentProfessionalSettings: ProfessionalSettings;
+  currentUserCampaigns: PromotionCampaign[];
   deleteConversation: (contactId: string) => void;
-  currentUserInvestments: Investment[];
   directMessages: DirectMessage[];
   feedFocusPlayerId: string | null;
   focusFeedPlayer: (playerId: string) => void;
@@ -61,20 +61,23 @@ type AppRoutesProps = {
   followingProfileSet: Set<string>;
   hiddenPlayerIdSet: Set<string>;
   interestedContentKeySet: Set<string>;
-  handleDeleteVideo: (submission: VideoSubmission) => Promise<boolean>;
-  handleDeposit: (amount: number) => void;
-  handleInvest: (player: Player, amount: number) => void;
-  handleOpenFund: (
+  handleCreateCampaign: (
     player: Player,
-    goalAmount: number,
-    minimumContribution: number
-  ) => void;
+    input: {
+      budget: number;
+      durationDays: number;
+      objective: CampaignObjective;
+    }
+  ) => boolean;
+  handleDeleteVideo: (submission: VideoSubmission) => Promise<boolean>;
   handleReviewSubmission: (
     submissionId: string,
     status: VideoSubmissionStatus,
     reviewNote: string
   ) => void;
   handleSubmitVideo: (submission: VideoSubmission) => void;
+  handleToggleCampaign: (campaignId: string) => void;
+  handleUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
   handleUpdateProfile: (profile: {
     age: number | null;
     bio: string;
@@ -84,47 +87,39 @@ type AppRoutesProps = {
     position: string;
     username: string;
   }) => void;
-  handleWithdraw: (amount: number) => void;
-  investmentFund?: AthleteFund;
-  investmentPlayer: Player | null;
   isBrandLaunchVisible: boolean;
   likedPlayerIdSet: Set<string>;
   likeCountsByPlayer: Record<string, number>;
+  mutedContactIds: string[];
+  mutedContentKeySet: Set<string>;
   onBrandLaunchFinish: () => void;
   onOpenMessagesForSelectedProfile: () => void;
-  openInvestment: (player: Player) => void;
+  openCampaign: (player: Player) => void;
   openPlayerProfile: (player: Player) => void;
   openReel: (player: Player, returnTarget?: ReelReturnTarget | null) => void;
   openTab: (tab: Tab) => void;
   openUserProfile: (account: AppUser) => void;
   orderedFeedPlayers: Player[];
   ownProfileId?: string | null;
+  ownProfilePlayers: Player[];
   pendingReviews: number;
-  mutedContactIds: string[];
-  mutedContentKeySet: Set<string>;
   pinnedContactIds: string[];
+  professionalSettingsByUser: ProfessionalSettingsByUser;
   profileAvatars: ProfileAvatarsByProfile;
   recordPlayerView: (playerId: string) => void;
   registeredUsers: AppUser[];
   reelReturnTarget: ReelReturnTarget | null;
   returnToReelOrigin: () => void;
   selectedProfileAccount?: AppUser;
-  selectedProfileFund?: AthleteFund;
   selectedProfileId?: string;
   selectedProfilePlayer?: Player;
+  selectedProfileProfessionalSettings?: ProfessionalSettings;
   selectedProfileVideos: Player[];
   sendDirectMessage: (contactId: string, body: string) => void;
-  sendSharedPost: (
-    contact: MessageContact,
-    player: Player,
-    message?: string
-  ) => void;
+  sendSharedPost: (contact: MessageContact, player: Player, message?: string) => void;
   setPlayerHidden: (playerId: string, hidden: boolean) => void;
   setActiveMessageContactId: Dispatch<SetStateAction<string | null>>;
-  setProfileAvatar: (
-    profileId: string,
-    avatar: ProfileAvatar | null
-  ) => void;
+  setProfileAvatar: (profileId: string, avatar: ProfileAvatar | null) => void;
   shareContacts: MessageContact[];
   signOutSession: () => void;
   submissions: VideoSubmission[];
@@ -138,91 +133,91 @@ type AppRoutesProps = {
   togglePinConversation: (contactId: string) => void;
   user: AppUser;
   viewCountsByPlayer: Record<string, number>;
-  walletBalance: number;
 };
 
-export function AppRoutes({
-  activeMessageContactId,
-  approvedSubmissionPlayers,
-  athleteFunds,
-  availablePlayers,
-  blockedProfileIdSet,
-  clearSelectedProfile,
-  closeInvestment,
-  currentMessageContacts,
-  deleteConversation,
-  currentUserInvestments,
-  directMessages,
-  feedFocusPlayerId,
-  focusFeedPlayer,
-  followersByProfile,
-  followerUserIdsByProfile,
-  followingProfileIds,
-  followingProfileSet,
-  hiddenPlayerIdSet,
-  interestedContentKeySet,
-  handleDeleteVideo,
-  handleDeposit,
-  handleInvest,
-  handleOpenFund,
-  handleReviewSubmission,
-  handleSubmitVideo,
-  handleUpdateProfile,
-  handleWithdraw,
-  investmentFund,
-  investmentPlayer,
-  isBrandLaunchVisible,
-  likedPlayerIdSet,
-  likeCountsByPlayer,
-  onBrandLaunchFinish,
-  onOpenMessagesForSelectedProfile,
-  openInvestment,
-  openPlayerProfile,
-  openReel,
-  openTab,
-  openUserProfile,
-  orderedFeedPlayers,
-  ownProfileId,
-  pendingReviews,
-  mutedContactIds,
-  mutedContentKeySet,
-  pinnedContactIds,
-  profileAvatars,
-  recordPlayerView,
-  registeredUsers,
-  reelReturnTarget,
-  returnToReelOrigin,
-  selectedProfileAccount,
-  selectedProfileFund,
-  selectedProfileId,
-  selectedProfilePlayer,
-  selectedProfileVideos,
-  sendDirectMessage,
-  sendSharedPost,
-  setPlayerHidden,
-  setActiveMessageContactId,
-  setProfileAvatar,
-  shareContacts,
-  signOutSession,
-  submissions,
-  tab,
-  toggleFollowProfile,
-  toggleBlockedProfile,
-  toggleInterestedContent,
-  toggleLikePlayer,
-  toggleMuteConversation,
-  toggleMutedContent,
-  togglePinConversation,
-  user,
-  viewCountsByPlayer,
-  walletBalance
-}: AppRoutesProps) {
+export function AppRoutes(props: AppRoutesProps) {
+  const {
+    activeCampaignPlayerIds,
+    activeMessageContactId,
+    approvedSubmissionPlayers,
+    availablePlayers,
+    blockedProfileIdSet,
+    campaignPlayer,
+    clearSelectedProfile,
+    closeCampaign,
+    currentMessageContacts,
+    currentProfessionalSettings,
+    currentUserCampaigns,
+    deleteConversation,
+    directMessages,
+    feedFocusPlayerId,
+    focusFeedPlayer,
+    followersByProfile,
+    followerUserIdsByProfile,
+    followingProfileIds,
+    followingProfileSet,
+    hiddenPlayerIdSet,
+    interestedContentKeySet,
+    handleCreateCampaign,
+    handleDeleteVideo,
+    handleReviewSubmission,
+    handleSubmitVideo,
+    handleToggleCampaign,
+    handleUpdateProfessionalSettings,
+    handleUpdateProfile,
+    isBrandLaunchVisible,
+    likedPlayerIdSet,
+    likeCountsByPlayer,
+    mutedContactIds,
+    mutedContentKeySet,
+    onBrandLaunchFinish,
+    onOpenMessagesForSelectedProfile,
+    openCampaign,
+    openPlayerProfile,
+    openReel,
+    openTab,
+    openUserProfile,
+    orderedFeedPlayers,
+    ownProfileId,
+    ownProfilePlayers,
+    pendingReviews,
+    pinnedContactIds,
+    professionalSettingsByUser,
+    profileAvatars,
+    recordPlayerView,
+    registeredUsers,
+    reelReturnTarget,
+    returnToReelOrigin,
+    selectedProfileAccount,
+    selectedProfileId,
+    selectedProfilePlayer,
+    selectedProfileProfessionalSettings,
+    selectedProfileVideos,
+    sendDirectMessage,
+    sendSharedPost,
+    setPlayerHidden,
+    setActiveMessageContactId,
+    setProfileAvatar,
+    shareContacts,
+    signOutSession,
+    submissions,
+    tab,
+    toggleFollowProfile,
+    toggleBlockedProfile,
+    toggleInterestedContent,
+    toggleLikePlayer,
+    toggleMuteConversation,
+    toggleMutedContent,
+    togglePinConversation,
+    user,
+    viewCountsByPlayer
+  } = props;
+
   const openAccountProfile = (account: AppUser) => {
     if (isOwnAccountProfile(account, user.id)) {
       openTab("profile");
       return;
     }
-
     openUserProfile(account);
   };
 
@@ -231,114 +226,56 @@ export function AppRoutes({
       openTab("profile");
       return;
     }
-
     openPlayerProfile(player);
   };
 
   return (
     <View style={styles.appRoot}>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar
-          backgroundColor={colors.background}
-          barStyle="dark-content"
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.keyboardView}
-        >
-          {investmentPlayer && investmentFund ? (
+        <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboardView}>
+          {campaignPlayer ? (
             <>
-              <ScreenFrame key={`investment-${investmentPlayer.id}`}>
-                <InvestmentScreen
-                  avatar={profileAvatars[investmentPlayer.profileId]}
-                  fund={investmentFund}
-                  onBack={closeInvestment}
-                  onInvest={(player, amount) => {
-                    handleInvest(player, amount);
-                    closeInvestment();
-                  }}
-                  player={investmentPlayer}
-                  walletBalance={walletBalance}
+              <ScreenFrame key={`campaign-${campaignPlayer.id}`}>
+                <PromotePostScreen
+                  onBack={closeCampaign}
+                  onCreate={(input) => handleCreateCampaign(campaignPlayer, input)}
+                  player={campaignPlayer}
                 />
               </ScreenFrame>
-              <BottomTabs
-                activeTab={tab}
-                onChange={openTab}
-                role={user.role}
-              />
+              <BottomTabs activeTab={tab} onChange={openTab} role={user.role} />
             </>
           ) : selectedProfilePlayer || selectedProfileAccount ? (
             <>
-              <ScreenFrame
-                key={`public-profile-${
-                  selectedProfilePlayer?.profileId ?? selectedProfileAccount?.id
-                }`}
-              >
+              <ScreenFrame key={`public-profile-${selectedProfilePlayer?.profileId ?? selectedProfileAccount?.id}`}>
                 <PublicProfileScreen
                   account={selectedProfileAccount}
-                  avatar={
-                    selectedProfileId
-                      ? profileAvatars[selectedProfileId]
-                      : undefined
-                  }
-                  canInvest={Boolean(
-                    user.role === "Usuário" &&
-                      selectedProfilePlayer &&
-                      selectedProfilePlayer.ownerUserId !== user.id
-                  )}
-                  fund={selectedProfileFund}
-                  followersCount={
-                    selectedProfileId
-                      ? followersByProfile[selectedProfileId] ?? 0
-                      : 0
-                  }
+                  avatar={selectedProfileId ? profileAvatars[selectedProfileId] : undefined}
+                  followersCount={selectedProfileId ? followersByProfile[selectedProfileId] ?? 0 : 0}
                   hiddenPlayerIds={hiddenPlayerIdSet}
-                  isFollowing={Boolean(
-                    selectedProfileId &&
-                      followingProfileSet.has(selectedProfileId)
-                  )}
+                  isFollowing={Boolean(selectedProfileId && followingProfileSet.has(selectedProfileId))}
                   onBack={clearSelectedProfile}
-                  onInvest={() => {
-                    if (
-                      selectedProfilePlayer &&
-                      selectedProfileFund?.status === "Captando"
-                    ) {
-                      openInvestment(selectedProfilePlayer);
-                    }
-                  }}
                   onMessage={onOpenMessagesForSelectedProfile}
                   onToggleFollow={() => {
-                    if (selectedProfileId) {
-                      toggleFollowProfile(selectedProfileId);
-                    }
+                    if (selectedProfileId) toggleFollowProfile(selectedProfileId);
                   }}
-                  onOpenVideo={(player) =>
-                    openReel(player, {
-                      account: selectedProfileAccount,
-                      player: selectedProfilePlayer ?? player,
-                      type: "public-profile"
-                    })
-                  }
+                  onOpenVideo={(player) => openReel(player, {
+                    account: selectedProfileAccount,
+                    player: selectedProfilePlayer ?? player,
+                    type: "public-profile"
+                  })}
                   onSetVideoHidden={setPlayerHidden}
-                  onShareVideo={(player, contact, message) =>
-                    sendSharedPost(contact, player, message)
-                  }
+                  onShareVideo={(player, contact, message) => sendSharedPost(contact, player, message)}
                   player={selectedProfilePlayer}
+                  professionalSettings={selectedProfileProfessionalSettings}
                   profileAvatars={profileAvatars}
                   shareContacts={shareContacts}
-                  showFollow={Boolean(
-                    selectedProfileId && selectedProfileId !== ownProfileId
-                  )}
+                  showFollow={Boolean(selectedProfileId && selectedProfileId !== ownProfileId)}
                   videos={selectedProfileVideos}
                   viewCountsByPlayer={viewCountsByPlayer}
-                  walletBalance={walletBalance}
                 />
               </ScreenFrame>
-              <BottomTabs
-                activeTab={tab}
-                onChange={openTab}
-                role={user.role}
-              />
+              <BottomTabs activeTab={tab} onChange={openTab} role={user.role} />
             </>
           ) : (
             <>
@@ -346,52 +283,33 @@ export function AppRoutes({
                 <Header
                   onSignOut={signOutSession}
                   pendingReviews={pendingReviews}
-                  showBalance={user.role === "Usuário" && tab === "profile"}
                   showSignOut={user.role === "Admin" && tab !== "profile"}
                   user={user}
-                  walletBalance={walletBalance}
                 />
               ) : null}
+
               {tab === "feed" ? (
                 <FeedScreen
-                  backLabel={
-                    reelReturnTarget?.type === "messages"
-                      ? "Voltar para mensagens"
-                      : "Voltar ao perfil"
-                  }
-                  balance={user.role === "Usuário" ? walletBalance : null}
+                  activeCampaignPlayerIds={activeCampaignPlayerIds}
+                  backLabel={reelReturnTarget?.type === "messages" ? "Voltar para mensagens" : "Voltar ao perfil"}
                   blockedProfileIds={blockedProfileIdSet}
                   currentUserId={user.id}
                   focusPlayerId={feedFocusPlayerId}
                   followingProfileIds={followingProfileIds}
-                  funds={athleteFunds}
                   interestedContentKeys={interestedContentKeySet}
                   likedPlayerIds={likedPlayerIdSet}
                   likeCountsByPlayer={likeCountsByPlayer}
                   mutedContentKeys={mutedContentKeySet}
-                  onBackToProfile={
-                    reelReturnTarget ? returnToReelOrigin : undefined
-                  }
+                  onBackToProfile={reelReturnTarget ? returnToReelOrigin : undefined}
                   onOpenPlayer={openAthleteProfile}
                   onOpenTaggedUser={openAccountProfile}
                   onRecordView={recordPlayerView}
-                  onShare={(player, contact, message) =>
-                    sendSharedPost(contact, player, message)
-                  }
-                  onOpenInvestment={(player) => {
-                    const fund = selectProfileFund(player, athleteFunds);
-
-                    if (fund?.status === "Captando") {
-                      openInvestment(player);
-                    }
-                  }}
+                  onShare={(player, contact, message) => sendSharedPost(contact, player, message)}
                   onToggleFollow={(player) => {
                     focusFeedPlayer(player.id);
                     toggleFollowProfile(player.profileId);
                   }}
-                  onToggleBlockProfile={(player) =>
-                    toggleBlockedProfile(player.profileId)
-                  }
+                  onToggleBlockProfile={(player) => toggleBlockedProfile(player.profileId)}
                   onToggleInterest={(player) => {
                     focusFeedPlayer(player.id);
                     toggleInterestedContent(getPlayerContentKey(player));
@@ -404,22 +322,22 @@ export function AppRoutes({
                   users={registeredUsers}
                 />
               ) : null}
+
               {tab === "search" ? (
                 <ScreenFrame key="search">
                   <SearchScreen
-                    funds={athleteFunds}
                     onOpenPlayer={openAthleteProfile}
                     onOpenUser={openAccountProfile}
                     players={availablePlayers}
+                    professionalSettingsByUser={professionalSettingsByUser}
                     profileAvatars={profileAvatars}
                     users={registeredUsers}
                   />
                 </ScreenFrame>
               ) : null}
+
               {tab === "messages" ? (
-                <ScreenFrame
-                  key={`messages-${activeMessageContactId ?? "list"}`}
-                >
+                <ScreenFrame key={`messages-${activeMessageContactId ?? "list"}`}>
                   <MessagesScreen
                     activeContactId={activeMessageContactId}
                     contacts={currentMessageContacts}
@@ -430,22 +348,14 @@ export function AppRoutes({
                     onDeleteConversation={deleteConversation}
                     onFindProfiles={() => openTab("search")}
                     onOpenSharedPost={(playerId) => {
-                      const sharedPlayer = availablePlayers.find(
-                        (player) => player.id === playerId
-                      );
-
+                      const sharedPlayer = availablePlayers.find((player) => player.id === playerId);
                       if (sharedPlayer && activeMessageContactId) {
-                        openReel(sharedPlayer, {
-                          contactId: activeMessageContactId,
-                          type: "messages"
-                        });
+                        openReel(sharedPlayer, { contactId: activeMessageContactId, type: "messages" });
                       }
                     }}
                     onSelectContact={setActiveMessageContactId}
                     onSendMessage={sendDirectMessage}
-                    onToggleFollow={(profileId) =>
-                      toggleFollowProfile(profileId)
-                    }
+                    onToggleFollow={toggleFollowProfile}
                     onToggleMute={toggleMuteConversation}
                     onTogglePin={togglePinConversation}
                     pinnedContactIds={pinnedContactIds}
@@ -454,83 +364,53 @@ export function AppRoutes({
                   />
                 </ScreenFrame>
               ) : null}
+
               {tab === "submit" ? (
                 <ScreenFrame backgroundColor={colors.media} key="submit">
-                  <SubmitVideoScreen
-                    accounts={registeredUsers}
-                    onBack={() => openTab("feed")}
-                    onSubmit={handleSubmitVideo}
-                    user={user}
-                  />
+                  <SubmitVideoScreen accounts={registeredUsers} onBack={() => openTab("feed")} onSubmit={handleSubmitVideo} user={user} />
                 </ScreenFrame>
               ) : null}
+
               {tab === "admin" ? (
                 <ScreenFrame key="admin">
-                  <AdminScreen
-                    onReview={handleReviewSubmission}
-                    submissions={submissions}
-                  />
+                  <AdminScreen onReview={handleReviewSubmission} submissions={submissions} />
                 </ScreenFrame>
               ) : null}
+
               {tab === "profile" ? (
                 <ScreenFrame animated={false} key="profile">
                   <ProfileScreen
                     accounts={registeredUsers}
-                    avatar={
-                      ownProfileId ? profileAvatars[ownProfileId] : undefined
-                    }
-                    balance={walletBalance}
-                    followers={selectProfileFollowers(
-                      ownProfileId,
-                      followerUserIdsByProfile,
-                      registeredUsers
-                    )}
-                    following={selectProfileFollowing(
-                      followingProfileIds,
-                      registeredUsers
-                    )}
-                    fund={selectFundByOwner(athleteFunds, user.id)}
-                    investments={currentUserInvestments}
-                    followersCount={
-                      ownProfileId ? followersByProfile[ownProfileId] ?? 0 : 0
-                    }
+                    avatar={ownProfileId ? profileAvatars[ownProfileId] : undefined}
+                    campaigns={currentUserCampaigns}
+                    followers={selectProfileFollowers(ownProfileId, followerUserIdsByProfile, registeredUsers)}
+                    following={selectProfileFollowing(followingProfileIds, registeredUsers)}
+                    followersCount={ownProfileId ? followersByProfile[ownProfileId] ?? 0 : 0}
                     followingCount={followingProfileIds.length}
                     hiddenPlayerIds={hiddenPlayerIdSet}
                     likeCountsByPlayer={likeCountsByPlayer}
+                    messagesCount={directMessages.filter((message) => message.recipientUserId === user.id).length}
                     onDeleteVideo={handleDeleteVideo}
-                    onOpenFund={handleOpenFund}
                     onOpenProfile={openAccountProfile}
                     onOpenVideo={(submission) => {
-                      const reelPlayer = selectApprovedPlayerForSubmission(
-                        approvedSubmissionPlayers,
-                        submission.id
-                      );
-
-                      if (reelPlayer) {
-                        openReel(reelPlayer, { type: "own-profile" });
-                      }
+                      const reelPlayer = selectApprovedPlayerForSubmission(approvedSubmissionPlayers, submission.id);
+                      if (reelPlayer) openReel(reelPlayer, { type: "own-profile" });
                     }}
+                    onPromotePost={openCampaign}
                     onSetVideoHidden={setPlayerHidden}
                     onShareVideo={(submission, contact, message) => {
-                      const sharedPlayer = selectApprovedPlayerForSubmission(
-                        approvedSubmissionPlayers,
-                        submission.id
-                      );
-
-                      if (sharedPlayer) {
-                        sendSharedPost(contact, sharedPlayer, message);
-                      }
+                      const sharedPlayer = selectApprovedPlayerForSubmission(approvedSubmissionPlayers, submission.id);
+                      if (sharedPlayer) sendSharedPost(contact, sharedPlayer, message);
                     }}
-                    onDeposit={handleDeposit}
                     onChangeAvatar={(avatar) => {
-                      if (ownProfileId) {
-                        setProfileAvatar(ownProfileId, avatar);
-                      }
+                      if (ownProfileId) setProfileAvatar(ownProfileId, avatar);
                     }}
                     onSignOut={signOutSession}
+                    onToggleCampaign={handleToggleCampaign}
+                    onUpdateProfessionalSettings={handleUpdateProfessionalSettings}
                     onUpdateProfile={handleUpdateProfile}
-                    onWithdraw={handleWithdraw}
-                    player={selectPlayerByOwner(availablePlayers, user.id)}
+                    professionalPosts={ownProfilePlayers}
+                    professionalSettings={currentProfessionalSettings}
                     profileAvatars={profileAvatars}
                     shareContacts={shareContacts}
                     submissions={submissions}
@@ -539,21 +419,13 @@ export function AppRoutes({
                   />
                 </ScreenFrame>
               ) : null}
-              {tab !== "submit" ? (
-                <BottomTabs
-                  activeTab={tab}
-                  onChange={openTab}
-                  role={user.role}
-                />
-              ) : null}
+
+              {tab !== "submit" ? <BottomTabs activeTab={tab} onChange={openTab} role={user.role} /> : null}
             </>
           )}
         </KeyboardAvoidingView>
       </SafeAreaView>
-      <BrandLaunchOverlay
-        isVisible={isBrandLaunchVisible}
-        onFinish={onBrandLaunchFinish}
-      />
+      <BrandLaunchOverlay isVisible={isBrandLaunchVisible} onFinish={onBrandLaunchFinish} />
     </View>
   );
 }

@@ -68,24 +68,6 @@ export const profileStyles = {
     marginBottom: 14,
     padding: 18
   },
-  profileFundAlert: {
-    backgroundColor: colors.primary,
-    borderRadius: 6,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13
-  },
-  profileFundAlertTitle: {
-    color: colors.onPrimary,
-    fontSize: 16,
-    fontWeight: "900"
-  },
-  profileFundAlertBody: {
-    color: "rgba(255, 255, 255, 0.86)",
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 3
-  },
   profileHeroTopRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -597,6 +579,58 @@ export const profileStyles = {
     fontSize: 13,
     fontWeight: "900"
   },
+  confirmationModalRoot: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    padding: 20
+  },
+  confirmationModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(5, 18, 12, 0.56)"
+  },
+  confirmationDialogHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between"
+  },
+  confirmationDialogTitleBlock: {
+    flex: 1,
+    minWidth: 0
+  },
+  confirmationDialogSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4
+  },
+  confirmationCloseButton: {
+    alignItems: "center",
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  confirmationDialogActions: {
+    flexDirection: "row",
+    gap: 9,
+    marginTop: 18
+  },
+  confirmationCancelButton: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 6,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: 12
+  },
+  confirmationCancelText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "900"
+  },
   deleteVideoDialog: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
@@ -850,7 +884,7 @@ export const profileStyles = {
   publicProfileMeta: {
     lineHeight: 16
   },
-  publicProfileInvestButton: {
+  publicProfileLinkButton: {
     alignItems: "center",
     backgroundColor: colors.primary,
     borderRadius: 6,
@@ -861,25 +895,9 @@ export const profileStyles = {
     minHeight: 44,
     paddingHorizontal: 14
   },
-  publicProfileInvestButtonDisabled: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderWidth: 1
-  },
-  publicProfileInvestButtonText: {
+  publicProfileLinkButtonText: {
     color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "900"
   },
-  publicProfileInvestButtonTextDisabled: {
-    color: colors.muted
-  },
-  publicProfileInvestmentHint: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: "700",
-    lineHeight: 16,
-    marginTop: 7,
-    textAlign: "center"
-  }
 } as const;

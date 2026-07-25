@@ -163,23 +163,6 @@ export const sharedContentStyles = {
     fontWeight: "600",
     marginTop: 4
   },
-  scoreBadge: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 2,
-    minWidth: 56,
-    paddingVertical: 5
-  },
-  scoreValue: {
-    color: colors.primary,
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  scoreLabel: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: "800"
-  },
   highlight: {
     color: colors.text,
     fontSize: 14,

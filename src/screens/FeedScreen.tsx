@@ -19,11 +19,10 @@ import { Alert, Animated, Easing, Image, PanResponder, Platform, Pressable, Scro
 import {
   formatPlaybackTime,
   getCardPalette,
-  getPointerLocationX,
-  getScoreColor
+  getPointerLocationX
 } from "../actions/appActions";
 import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
-import { BackButton, BalanceLine } from "../components/Navigation";
+import { BackButton } from "../components/Navigation";
 import { FeedPostOptionsModal } from "../components/FeedPostOptionsModal";
 import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import {
@@ -36,35 +35,31 @@ import { XOLOT_SYMBOL } from "../constants/assets";
 import { FEED_TEXT_LIMIT_COMPACT, FEED_TEXT_LIMIT_WIDE, USE_CENTERED_WEB_LAYOUT } from "../constants/layout";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import {
+import type {
   AppUser,
-  AthleteFund,
   MessageContact,
   Player,
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
 import { CardPalette } from "../ui/types";
-import { formatBRL, formatPercent } from "../utils/investment";
 import {
   getPlayerContentKey,
   getPlayerContentLabel
 } from "../utils/feedEngagement";
 
 export function FeedScreen({
+  activeCampaignPlayerIds,
   backLabel = "Voltar ao perfil",
-  balance,
   blockedProfileIds,
   currentUserId,
   focusPlayerId,
   followingProfileIds,
-  funds,
   interestedContentKeys,
   likedPlayerIds,
   likeCountsByPlayer,
   mutedContentKeys,
   onBackToProfile,
-  onOpenInvestment,
   onOpenPlayer,
   onOpenTaggedUser,
   onRecordView,
@@ -79,19 +74,17 @@ export function FeedScreen({
   shareContacts,
   users
 }: {
+  activeCampaignPlayerIds: Set<string>;
   backLabel?: string;
-  balance: number | null;
   blockedProfileIds: Set<string>;
   currentUserId: string;
   focusPlayerId?: string | null;
   followingProfileIds: string[];
-  funds: AthleteFund[];
   interestedContentKeys: Set<string>;
   likedPlayerIds: Set<string>;
   likeCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
   onBackToProfile?: () => void;
-  onOpenInvestment: (player: Player) => void;
   onOpenPlayer: (player: Player) => void;
   onOpenTaggedUser: (user: AppUser) => void;
   onRecordView: (playerId: string) => void;
@@ -323,12 +316,11 @@ export function FeedScreen({
             <FeedReel
               avatar={profileAvatars[player.profileId]}
               currentUserId={currentUserId}
-              fund={funds.find((item) => item.profileId === player.profileId)}
               isFollowing={followingProfileIds.includes(player.profileId)}
               isActive={index === activeFeedIndex}
               isLiked={likedPlayerIds.has(player.id)}
+              isSponsored={activeCampaignPlayerIds.has(player.id)}
               likeCount={likeCountsByPlayer[player.id] ?? 0}
-              onInvest={() => onOpenInvestment(player)}
               onMore={() => setPreferencePlayer(player)}
               onOpenMentions={() => setMentionedPlayer(player)}
               onOpen={() => onOpenPlayer(player)}
@@ -358,7 +350,6 @@ export function FeedScreen({
           />
         </View>
       </View>
-      {balance !== null ? <BalanceLine balance={balance} overlay /> : null}
       <FeedPostOptionsModal
         blocked={Boolean(
           preferencePlayer &&
@@ -439,12 +430,11 @@ export function FeedScreen({
 function FeedReel({
   avatar,
   currentUserId,
-  fund,
   isFollowing,
   isActive,
   isLiked,
+  isSponsored,
   likeCount,
-  onInvest,
   onMore,
   onOpen,
   onOpenMentions,
@@ -457,12 +447,11 @@ function FeedReel({
 }: {
   avatar?: ProfileAvatar;
   currentUserId: string;
-  fund?: AthleteFund;
   isFollowing: boolean;
   isActive: boolean;
   isLiked: boolean;
+  isSponsored: boolean;
   likeCount: number;
-  onInvest: () => void;
   onMore: () => void;
   onOpen: () => void;
   onOpenMentions: () => void;
@@ -478,16 +467,9 @@ function FeedReel({
   const expansionProgress = useRef(new Animated.Value(0)).current;
   const revealProgress = useRef(new Animated.Value(0)).current;
   const isWide = !USE_CENTERED_WEB_LAYOUT && width >= 900;
-  const evaluation = player.evaluation;
   const canFollow =
     player.ownerUserId !== currentUserId &&
     player.profileId !== `profile-${currentUserId}`;
-  const progress = evaluation
-    ? Math.min(evaluation.funded / evaluation.fundingGoal, 1)
-    : 0;
-  const scoreColor = evaluation
-    ? getScoreColor(evaluation.score)
-    : colors.muted;
   const presentationText = player.highlight.trim();
   const textLimit = isWide ? FEED_TEXT_LIMIT_WIDE : FEED_TEXT_LIMIT_COMPACT;
   const hasMoreText = presentationText.length > textLimit;
@@ -499,20 +481,7 @@ function FeedReel({
     presentationText.length > FEED_TEXT_LIMIT_COMPACT
       ? `${presentationText.slice(0, FEED_TEXT_LIMIT_COMPACT).trim()}...`
       : presentationText;
-  const fundingProgressLabel = evaluation
-    ? `${Math.round(progress * 100)}%`
-    : null;
-  const fundProgress = fund
-    ? Math.min(Math.max(fund.fundedAmount / fund.goalAmount, 0), 1)
-    : 0;
-  const canInvest = fund?.status === "Captando";
   const hasMentions = Boolean(player.mentions?.length);
-  const minimumTicketLabel = evaluation
-    ? formatBRL(evaluation.minimumTicket)
-    : null;
-  const projectedMonthlyLabel = evaluation
-    ? formatBRL(evaluation.projectedMonthlyEarnings)
-    : null;
   const initials = player.name
     .split(" ")
     .slice(0, 2)
@@ -526,10 +495,7 @@ function FeedReel({
 
   function animateDescription(nextExpanded: boolean) {
     expansionProgress.stopAnimation();
-
-    if (nextExpanded) {
-      setIsExpanded(true);
-    }
+    if (nextExpanded) setIsExpanded(true);
 
     Animated.timing(expansionProgress, {
       duration: nextExpanded ? 320 : 240,
@@ -539,15 +505,12 @@ function FeedReel({
       toValue: nextExpanded ? 1 : 0,
       useNativeDriver: false
     }).start(({ finished }) => {
-      if (finished && !nextExpanded) {
-        setIsExpanded(false);
-      }
+      if (finished && !nextExpanded) setIsExpanded(false);
     });
   }
 
   useEffect(() => {
     revealProgress.setValue(0);
-
     Animated.timing(revealProgress, {
       duration: 420,
       easing: Easing.out(Easing.cubic),
@@ -591,151 +554,60 @@ function FeedReel({
           ]}
         >
           <View style={styles.feedVideoBackground} />
-
           <FeedVideoBox
-            fundingProgressLabel={fundingProgressLabel}
             isActive={isActive}
             isWide={isWide}
             palette={palette}
             player={player}
-            scoreColor={scoreColor}
           />
 
-          <View
-            style={[
-              styles.feedSocialActionRail,
-              isWide ? styles.feedSocialActionRailWide : null
-            ]}
-          >
+          <View style={[styles.feedSocialActionRail, isWide ? styles.feedSocialActionRailWide : null]}>
             <Pressable
-              accessibilityLabel={
-                isLiked
-                  ? `Remover curtida de ${player.videoTitle}`
-                  : `Curtir ${player.videoTitle}`
-              }
+              accessibilityLabel={isLiked ? `Remover curtida de ${player.videoTitle}` : `Curtir ${player.videoTitle}`}
               accessibilityRole="button"
               hitSlop={5}
               onPress={onToggleLike}
               style={styles.feedSocialAction}
             >
               <View style={styles.feedSocialActionIcon}>
-                <Heart
-                  color={isLiked ? colors.like : colors.onPrimary}
-                  fill={isLiked ? colors.like : "transparent"}
-                  size={25}
-                  strokeWidth={2.2}
-                />
+                <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
               </View>
               <Text style={styles.feedSocialActionCount}>{likeCount}</Text>
             </Pressable>
-            <Pressable
-              accessibilityLabel={`Compartilhar ${player.videoTitle}`}
-              accessibilityRole="button"
-              hitSlop={5}
-              onPress={onShare}
-              style={styles.feedSocialAction}
-            >
+            <Pressable accessibilityLabel={`Compartilhar ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onShare} style={styles.feedSocialAction}>
               <View style={styles.feedSocialActionIcon}>
                 <Share2 color={colors.onPrimary} size={24} strokeWidth={2.2} />
               </View>
             </Pressable>
-            <Pressable
-              accessibilityLabel={`Mais opções de ${player.videoTitle}`}
-              accessibilityRole="button"
-              hitSlop={5}
-              onPress={onMore}
-              style={styles.feedSocialAction}
-            >
+            <Pressable accessibilityLabel={`Mais opções de ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onMore} style={styles.feedSocialAction}>
               <View style={styles.feedSocialActionIcon}>
-                <MoreVertical
-                  color={colors.onPrimary}
-                  size={25}
-                  strokeWidth={2.3}
-                />
+                <MoreVertical color={colors.onPrimary} size={25} strokeWidth={2.3} />
               </View>
             </Pressable>
           </View>
-
-          {!isWide && evaluation ? (
-            <View style={styles.feedReelHeaderOverlay}>
-              <View
-                style={[
-                  styles.scoreBadge,
-                  styles.feedScoreBadge,
-                  { borderColor: scoreColor }
-                ]}
-              >
-                <Text style={[styles.scoreValue, { color: scoreColor }]}>
-                  {evaluation.score}
-                </Text>
-                <Text style={[styles.scoreLabel, { color: palette.muted }]}>
-                  score
-                </Text>
-              </View>
-            </View>
-          ) : null}
 
           <Animated.View
             style={[
               styles.feedTextOverlay,
               isWide
-                ? [
-                    styles.feedTextOverlayWide,
-                    { right: Math.max(300, canvasWidth - 360) }
-                  ]
+                ? [styles.feedTextOverlayWide, { right: Math.max(300, canvasWidth - 360) }]
                 : [
                     styles.feedTextOverlayCompact,
                     {
-                      minHeight: expansionProgress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 270]
-                      }),
-                      paddingTop: expansionProgress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [14, 78]
-                      })
+                      minHeight: expansionProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 230] }),
+                      paddingTop: expansionProgress.interpolate({ inputRange: [0, 1], outputRange: [14, 62] })
                     }
                   ]
             ]}
           >
             {!isWide && isExpanded ? (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.feedCompactBackdropAnimation,
-                  { opacity: expansionProgress }
-                ]}
-              >
-                <BlurView
-                  experimentalBlurMethod={
-                    Platform.OS === "android" ? "dimezisBlurView" : "none"
-                  }
-                  intensity={24}
-                  pointerEvents="none"
-                  style={styles.feedCompactBlur}
-                  tint="dark"
-                />
-                <LinearGradient
-                  colors={["rgba(5, 18, 12, 0)", "rgba(5, 18, 12, 1)"]}
-                  end={{ x: 0.5, y: 1 }}
-                  locations={[0, 1]}
-                  pointerEvents="none"
-                  start={{ x: 0.5, y: 0 }}
-                  style={styles.feedCompactGradient}
-                />
+              <Animated.View pointerEvents="none" style={[styles.feedCompactBackdropAnimation, { opacity: expansionProgress }]}>
+                <BlurView experimentalBlurMethod={Platform.OS === "android" ? "dimezisBlurView" : "none"} intensity={24} pointerEvents="none" style={styles.feedCompactBlur} tint="dark" />
+                <LinearGradient colors={["rgba(5, 18, 12, 0)", "rgba(5, 18, 12, 1)"]} end={{ x: 0.5, y: 1 }} locations={[0, 1]} pointerEvents="none" start={{ x: 0.5, y: 0 }} style={styles.feedCompactGradient} />
               </Animated.View>
             ) : null}
-            {isWide ? (
-              <Text style={[styles.feedOverlayEyebrow, { color: palette.accent }]}>
-                Ficha de observacao
-              </Text>
-            ) : null}
-            <View
-              style={[
-                styles.feedProfileRow,
-                !isWide ? styles.feedProfileRowCompact : null
-              ]}
-            >
+
+            <View style={[styles.feedProfileRow, !isWide ? styles.feedProfileRowCompact : null]}>
               <Pressable
                 accessibilityLabel={`Abrir perfil de ${player.name}`}
                 accessibilityRole="button"
@@ -743,485 +615,125 @@ function FeedReel({
                 onPress={onOpen}
                 style={({ pressed }) => [
                   styles.feedProfileButton,
-                  isWide
-                    ? [styles.feedAvatar, { borderColor: palette.accent }]
-                    : styles.feedProfileButtonCompact,
+                  isWide ? [styles.feedAvatar, { borderColor: palette.accent }] : styles.feedProfileButtonCompact,
                   pressed ? styles.buttonPressed : null
                 ]}
               >
                 {avatar ? (
                   <ProfileAvatarImage avatar={avatar} />
                 ) : isWide ? (
-                  <Text
-                    style={[styles.feedAvatarText, { color: palette.accent }]}
-                  >
-                    {initials}
-                  </Text>
+                  <Text style={[styles.feedAvatarText, { color: palette.accent }]}>{initials}</Text>
                 ) : (
                   <UserRound color={colors.onPrimary} size={20} strokeWidth={2.2} />
                 )}
               </Pressable>
-              <Pressable
-                accessibilityLabel={`Abrir perfil de ${player.name}`}
-                accessibilityRole="button"
-                hitSlop={4}
-                onPress={onOpen}
-                style={styles.feedProfileTextBlock}
-              >
+              <Pressable accessibilityLabel={`Abrir perfil de ${player.name}`} accessibilityRole="button" hitSlop={4} onPress={onOpen} style={styles.feedProfileTextBlock}>
                 {!isWide ? (
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.feedSponsorLabel,
-                      styles.feedSponsorLabelCompact,
-                      { color: "rgba(255, 255, 255, 0.82)" }
-                    ]}
-                  >
-                    {player.username ? `${player.name} | ` : ""}
-                    {player.position} | {player.city}
+                  <Text numberOfLines={1} style={[styles.feedSponsorLabel, styles.feedSponsorLabelCompact, { color: "rgba(255, 255, 255, 0.82)" }]}>
+                    {player.username ? `${player.name} | ` : ""}{player.position} | {player.city}
                   </Text>
                 ) : null}
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.feedProfileName,
-                    !isWide ? styles.feedProfileNameCompact : null,
-                    { color: isWide ? palette.text : colors.onPrimary }
-                  ]}
-                >
+                <Text numberOfLines={1} style={[styles.feedProfileName, !isWide ? styles.feedProfileNameCompact : null, { color: isWide ? palette.text : colors.onPrimary }]}>
                   {player.username ? `@${player.username}` : player.name}
                 </Text>
                 {isWide ? (
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.feedSponsorLabel,
-                      { color: palette.muted }
-                    ]}
-                  >
-                    {player.username ? `${player.name} | ` : ""}
-                    {player.position} | {player.city}
+                  <Text numberOfLines={1} style={[styles.feedSponsorLabel, { color: palette.muted }]}>
+                    {player.username ? `${player.name} | ` : ""}{player.position} | {player.city}
                   </Text>
                 ) : null}
               </Pressable>
               {canFollow ? (
                 <Pressable
-                  accessibilityLabel={
-                    isFollowing
-                      ? `Deixar de seguir ${player.name}`
-                      : `Seguir ${player.name}`
-                  }
+                  accessibilityLabel={isFollowing ? `Deixar de seguir ${player.name}` : `Seguir ${player.name}`}
                   accessibilityRole="button"
                   onPress={onToggleFollow}
                   style={({ pressed }) => [
                     styles.feedFollowButton,
                     !isWide ? styles.feedFollowButtonCompact : null,
                     isFollowing ? styles.feedFollowButtonActive : null,
-                    isFollowing && !isWide
-                      ? styles.feedFollowButtonActiveCompact
-                      : null,
+                    isFollowing && !isWide ? styles.feedFollowButtonActiveCompact : null,
                     pressed ? styles.buttonPressed : null
                   ]}
                 >
-                  {isFollowing ? (
-                    <UserCheck
-                      color={isWide ? colors.primary : colors.onPrimary}
-                      size={15}
-                      strokeWidth={2.4}
-                    />
-                  ) : (
-                    <UserPlus
-                      color={colors.onPrimary}
-                      size={15}
-                      strokeWidth={2.4}
-                    />
-                  )}
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.feedFollowButtonText,
-                      isFollowing && isWide
-                        ? styles.feedFollowButtonTextActiveWide
-                        : null
-                    ]}
-                  >
-                    {isFollowing ? "Seguindo" : "Seguir"}
-                  </Text>
+                  {isFollowing ? <UserCheck color={isWide ? colors.primary : colors.onPrimary} size={15} strokeWidth={2.4} /> : <UserPlus color={colors.onPrimary} size={15} strokeWidth={2.4} />}
+                  <Text numberOfLines={1} style={[styles.feedFollowButtonText, isFollowing && isWide ? styles.feedFollowButtonTextActiveWide : null]}>{isFollowing ? "Seguindo" : "Seguir"}</Text>
                 </Pressable>
               ) : null}
               {isWide ? (
-                <View
-                  style={[styles.feedStatusPill, { borderColor: palette.border }]}
-                >
-                  <Text style={[styles.feedStatusText, { color: palette.accent }]}>
-                    {player.isDemo ? "Demonstracao" : "Publicado"}
-                  </Text>
+                <View style={[styles.feedStatusPill, { borderColor: palette.border }]}>
+                  <Text style={[styles.feedStatusText, { color: palette.accent }]}>{isSponsored ? "Patrocinado" : player.isDemo ? "Demonstração" : "Publicado"}</Text>
                 </View>
               ) : null}
             </View>
 
+            {isSponsored && !isWide ? (
+              <Text style={{ color: "rgba(255,255,255,0.76)", fontSize: 11, fontWeight: "800", marginBottom: 4 }}>Patrocinado</Text>
+            ) : null}
+
             {isWide ? (
               <>
-                <Text
-                  numberOfLines={2}
-                  style={[
-                    styles.feedReelVideoTitle,
-                    styles.feedReelVideoTitleWide,
-                    { color: palette.text }
-                  ]}
-                >
-                  {player.videoTitle}
-                </Text>
-                <Text style={[styles.feedReelHighlight, { color: palette.text }]}>
-                  {visibleText}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.feedReelMeta, { color: palette.muted }]}
-                >
-                  {player.age} anos | {player.club}
-                  {evaluation ? ` | risco ${evaluation.riskLevel}` : ""}
-                </Text>
+                <Text numberOfLines={2} style={[styles.feedReelVideoTitle, styles.feedReelVideoTitleWide, { color: palette.text }]}>{player.videoTitle}</Text>
+                <Text style={[styles.feedReelHighlight, { color: palette.text }]}>{visibleText}</Text>
+                <Text numberOfLines={1} style={[styles.feedReelMeta, { color: palette.muted }]}>{player.age} anos | {player.club}</Text>
                 <View style={styles.feedTagRow}>
                   {player.tags.slice(0, 3).map((tag) => (
-                    <Text
-                      key={`tag-${tag}`}
-                      numberOfLines={1}
-                      style={[
-                        styles.feedTag,
-                        { borderColor: palette.border, color: palette.text }
-                      ]}
-                    >
-                      #{tag}
-                    </Text>
+                    <Text key={`tag-${tag}`} numberOfLines={1} style={[styles.feedTag, { borderColor: palette.border, color: palette.text }]}>#{tag}</Text>
                   ))}
                 </View>
                 <View style={styles.feedReadMoreRow}>
                   {hasMoreText || hasMentions ? (
-                    <Pressable
-                      onPress={() => animateDescription(!isExpanded)}
-                      style={styles.feedReadMoreButton}
-                    >
-                      <Text
-                        style={[styles.feedReadMoreText, { color: palette.accent }]}
-                      >
-                        {isExpanded ? "Ver menos" : "Ver mais"}
-                      </Text>
+                    <Pressable onPress={() => animateDescription(!isExpanded)} style={styles.feedReadMoreButton}>
+                      <Text style={[styles.feedReadMoreText, { color: palette.accent }]}>{isExpanded ? "Ver menos" : "Ver mais"}</Text>
                     </Pressable>
                   ) : null}
-                  {isExpanded && hasMentions ? (
-                    <FeedMentionsButton
-                      color={palette.accent}
-                      count={player.mentions?.length ?? 0}
-                      onPress={onOpenMentions}
-                    />
+                  {isExpanded && hasMentions ? <FeedMentionsButton color={palette.accent} count={player.mentions?.length ?? 0} onPress={onOpenMentions} /> : null}
+                </View>
+                <Pressable onPress={onOpen} style={({ pressed }) => [styles.feedLearnMoreButton, pressed ? styles.feedReelButtonPressed : null]}>
+                  <Text style={styles.feedLearnMoreText}>Abrir perfil</Text>
+                </Pressable>
+              </>
+            ) : !isExpanded ? (
+              <View>
+                <Text style={[styles.feedCompactDescription, styles.feedCompactDescriptionTitle]}>{player.videoTitle}</Text>
+                <Text style={[styles.feedCompactDescription, styles.feedCompactDescriptionBody]}>
+                  {compactPreview}
+                  {(hasMoreText || hasMentions) ? (
+                    <Text accessibilityRole="button" onPress={() => animateDescription(true)} style={styles.feedCompactInlineAction}>{"  "}mais</Text>
                   ) : null}
-                </View>
-              </>
+                </Text>
+              </View>
             ) : (
-              <>
-                {!isExpanded ? (
-                  <View>
-                    <Text
-                      style={[
-                        styles.feedCompactDescription,
-                        styles.feedCompactDescriptionTitle
-                      ]}
-                    >
-                      {player.videoTitle}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.feedCompactDescription,
-                        styles.feedCompactDescriptionBody
-                      ]}
-                    >
-                      {compactPreview}
-                      <Text
-                        accessibilityRole="button"
-                        onPress={() => animateDescription(true)}
-                        style={styles.feedCompactInlineAction}
-                      >
-                        {"  "}mais
-                      </Text>
-                    </Text>
-                  </View>
-                ) : (
-                  <Animated.View
-                    style={[
-                      styles.feedCompactExpandedContent,
-                      {
-                        opacity: expansionProgress,
-                        transform: [
-                          {
-                            translateY: expansionProgress.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [10, 0]
-                            })
-                          }
-                        ]
-                      }
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.feedCompactDescription,
-                        styles.feedCompactDescriptionTitle
-                      ]}
-                    >
-                      {player.videoTitle}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.feedCompactDescription,
-                        styles.feedCompactDescriptionBody
-                      ]}
-                    >
-                      {presentationText}
-                    </Text>
-                    <Text style={styles.feedCompactExpandedMeta}>
-                      {player.age} anos | {player.club}
-                    </Text>
-                    {player.tags.length > 0 ? (
-                      <View style={styles.feedCompactHashtagRow}>
-                        {player.tags.slice(0, 4).map((tag) => (
-                          <Text key={tag} style={styles.feedCompactHashtag}>
-                            #{tag}
-                          </Text>
-                        ))}
-                      </View>
-                    ) : null}
-                    {fund ? (
-                      <View style={styles.feedCompactFundSection}>
-                        <Text style={styles.feedCompactFundTitle}>
-                          {fund.status === "Captando"
-                            ? "Bolsa de investimento aberta"
-                            : "Bolsa de investimento concluída"}
-                        </Text>
-                        <View style={styles.feedCompactFundValues}>
-                          <Text style={styles.feedCompactFundValue}>
-                            {formatBRL(fund.fundedAmount)} captados
-                          </Text>
-                          <Text style={styles.feedCompactFundGoal}>
-                            Meta {formatBRL(fund.goalAmount)}
-                          </Text>
-                        </View>
-                        <View style={styles.feedCompactFundTrack}>
-                          <View
-                            style={[
-                              styles.feedCompactFundFill,
-                              { width: `${fundProgress * 100}%` }
-                            ]}
-                          />
-                        </View>
-                      </View>
-                    ) : (
-                      <Text style={styles.feedCompactFundEmpty}>
-                        Este perfil não possui um investimento aberto.
-                      </Text>
-                    )}
-                    <View style={styles.feedCompactExpandedActions}>
-                      <Pressable
-                        accessibilityLabel={`Investir no perfil de ${player.name}`}
-                        accessibilityRole="button"
-                        disabled={!canInvest}
-                        hitSlop={8}
-                        onPress={onInvest}
-                        style={[
-                          styles.feedCompactTextButton,
-                          !canInvest
-                            ? styles.feedCompactTextButtonDisabled
-                            : null
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.feedCompactTextButtonLabel,
-                            !canInvest
-                              ? styles.feedCompactTextButtonLabelDisabled
-                              : null
-                          ]}
-                        >
-                          Investir
-                        </Text>
-                      </Pressable>
-                      <View style={styles.feedCompactExpandedActionGroup}>
-                        {hasMentions ? (
-                          <FeedMentionsButton
-                            compact
-                            color={colors.onPrimary}
-                            count={player.mentions?.length ?? 0}
-                            onPress={onOpenMentions}
-                          />
-                        ) : null}
-                        <Pressable
-                          accessibilityLabel="Recolher descrição"
-                          accessibilityRole="button"
-                          hitSlop={8}
-                          onPress={() => animateDescription(false)}
-                          style={styles.feedCompactTextButton}
-                        >
-                          <Text style={styles.feedCompactTextButtonLabel}>
-                            menos
-                          </Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  </Animated.View>
-                )}
-              </>
-            )}
-
-            {isWide && evaluation ? (
-              <View style={styles.feedInsightStrip}>
-                <View style={styles.feedInsightItem}>
-                  <Text style={[styles.feedInsightValue, { color: scoreColor }]}>
-                    {evaluation.score}
-                  </Text>
-                  <Text
-                    style={[styles.feedInsightLabel, { color: palette.muted }]}
-                  >
-                    score
-                  </Text>
-                </View>
-                <View style={styles.feedInsightItem}>
-                  <Text
-                    style={[styles.feedInsightValue, { color: palette.accent }]}
-                  >
-                    {fundingProgressLabel}
-                  </Text>
-                  <Text
-                    style={[styles.feedInsightLabel, { color: palette.muted }]}
-                  >
-                    captado
-                  </Text>
-                </View>
-                <View style={styles.feedInsightItem}>
-                  <Text
-                    style={[styles.feedInsightValue, { color: palette.accent }]}
-                  >
-                    {minimumTicketLabel}
-                  </Text>
-                  <Text
-                    style={[styles.feedInsightLabel, { color: palette.muted }]}
-                  >
-                    ticket
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-
-            {isWide && evaluation ? (
-              <View style={styles.feedReelMetricRow}>
-                {evaluation.metrics.slice(0, 3).map((metric) => (
-                  <View
-                    key={metric.label}
-                    style={[
-                      styles.feedReelMetric,
-                      {
-                        backgroundColor: palette.accentSoft,
-                        borderColor: palette.border
-                      }
-                    ]}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.feedReelMetricValue,
-                        { color: palette.accent }
-                      ]}
-                    >
-                      {metric.value}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.feedReelMetricLabel,
-                        { color: palette.muted }
-                      ]}
-                    >
-                      {metric.label}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-
-            {isWide && evaluation ? (
-              <View style={styles.progressLabelRow}>
-                <Text style={[styles.progressText, { color: palette.muted }]}>
-                  {formatBRL(evaluation.funded)}
-                </Text>
-                <Text style={[styles.progressText, { color: palette.muted }]}>
-                  {formatBRL(evaluation.fundingGoal)}
-                </Text>
-              </View>
-            ) : null}
-            {isWide && evaluation ? (
-              <View
+              <Animated.View
                 style={[
-                  styles.progressTrack,
-                  { backgroundColor: palette.progressTrack }
+                  styles.feedCompactExpandedContent,
+                  {
+                    opacity: expansionProgress,
+                    transform: [{ translateY: expansionProgress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
+                  }
                 ]}
               >
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      backgroundColor: palette.accent,
-                      width: `${progress * 100}%`
-                    }
-                  ]}
-                />
-              </View>
-            ) : null}
-
-            {isWide ? (
-              <Pressable
-                onPress={onOpen}
-                style={({ pressed }) => [
-                  styles.feedLearnMoreButton,
-                  pressed ? styles.feedReelButtonPressed : null
-                ]}
-              >
-                <Text style={styles.feedLearnMoreText}>
-                  {player.isDemo
-                    ? "Abrir perfil demonstrativo"
-                    : "Abrir ficha completa"}
-                </Text>
-              </Pressable>
-            ) : null}
+                <Text style={[styles.feedCompactDescription, styles.feedCompactDescriptionTitle]}>{player.videoTitle}</Text>
+                <Text style={[styles.feedCompactDescription, styles.feedCompactDescriptionBody]}>{presentationText}</Text>
+                <Text style={styles.feedCompactExpandedMeta}>{player.age} anos | {player.club}</Text>
+                {player.tags.length > 0 ? (
+                  <View style={styles.feedCompactHashtagRow}>
+                    {player.tags.slice(0, 4).map((tag) => <Text key={tag} style={styles.feedCompactHashtag}>#{tag}</Text>)}
+                  </View>
+                ) : null}
+                <View style={styles.feedCompactExpandedActions}>
+                  {hasMentions ? <FeedMentionsButton compact color={colors.onPrimary} count={player.mentions?.length ?? 0} onPress={onOpenMentions} /> : <View />}
+                  <Pressable accessibilityLabel="Recolher descrição" accessibilityRole="button" hitSlop={8} onPress={() => animateDescription(false)} style={styles.feedCompactTextButton}>
+                    <Text style={styles.feedCompactTextButtonLabel}>menos</Text>
+                  </Pressable>
+                </View>
+              </Animated.View>
+            )}
           </Animated.View>
-
-          {isWide && evaluation ? (
-            <View style={styles.feedDesktopPanel}>
-              <Text style={styles.feedDesktopPanelTitle}>
-                Leitura de investimento
-              </Text>
-              <View style={styles.feedDesktopPanelRow}>
-                <Text style={styles.feedDesktopPanelLabel}>Projecao mensal</Text>
-                <Text style={styles.feedDesktopPanelValue}>{projectedMonthlyLabel}</Text>
-              </View>
-              <View style={styles.feedDesktopPanelRow}>
-                <Text style={styles.feedDesktopPanelLabel}>Participacao atleta</Text>
-                <Text style={styles.feedDesktopPanelValue}>
-                  {formatPercent(evaluation.athleteSharePercent)}
-                </Text>
-              </View>
-              <View style={styles.feedDesktopPanelRow}>
-                <Text style={styles.feedDesktopPanelLabel}>Perfil de risco</Text>
-                <Text style={styles.feedDesktopPanelValue}>
-                  {evaluation.riskLevel}
-                </Text>
-              </View>
-            </View>
-          ) : null}
         </View>
       </Animated.View>
     </View>
   );
 }
-
 function FeedMentionsButton({
   color,
   compact = false,
@@ -1253,22 +765,16 @@ function FeedMentionsButton({
 }
 
 function FeedVideoBox({
-  fundingProgressLabel,
   isActive,
   isWide,
   palette,
-  player,
-  scoreColor
+  player
 }: {
-  fundingProgressLabel: string | null;
   isActive: boolean;
   isWide: boolean;
   palette: CardPalette;
   player: Player;
-  scoreColor: string;
 }) {
-  const evaluation = player.evaluation;
-
   return (
     <View
       style={[
@@ -1292,25 +798,9 @@ function FeedVideoBox({
           uri={player.videoUri}
         />
       )}
-
-      {isWide && evaluation && fundingProgressLabel ? (
-        <View style={styles.feedVideoActionRail}>
-          <View style={styles.feedVideoActionButton}>
-            <Text style={[styles.feedVideoActionValue, { color: scoreColor }]}>
-              {evaluation.score}
-            </Text>
-            <Text style={styles.feedVideoActionLabel}>SC</Text>
-          </View>
-          <View style={styles.feedVideoActionButton}>
-            <Text style={styles.feedVideoActionValue}>{fundingProgressLabel}</Text>
-            <Text style={styles.feedVideoActionLabel}>CAP</Text>
-          </View>
-        </View>
-      ) : null}
     </View>
   );
 }
-
 function FeedImagePlayback({ uri }: { uri: string | number }) {
   const resolvedImage = useResolvedVideoSource(uri);
 

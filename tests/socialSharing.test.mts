@@ -15,7 +15,6 @@ const user: AppUser = {
   club: "Projeto Teste",
   email: "jogador@xolot.test",
   id: "user-a",
-  kycStatus: "Não iniciado",
   name: "Jogador A",
   position: "Ponta",
   profileCompleted: true,

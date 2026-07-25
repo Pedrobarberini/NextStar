@@ -1,0 +1,138 @@
+import React, { useMemo, useState } from "react";
+import { Megaphone, Play } from "lucide-react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
+import { BackButton } from "../components/Navigation";
+import { professionalStyles as s } from "../styles/professionalStyles";
+import { colors } from "../theme";
+import type { CampaignObjective, Player } from "../types";
+import {
+  CAMPAIGN_OBJECTIVE_OPTIONS,
+  estimateCampaignReach,
+  formatCompactMetric,
+  formatCurrency
+} from "../utils/professional";
+
+const DURATION_OPTIONS = [3, 7, 14];
+const BUDGET_OPTIONS = [20, 50, 100];
+
+export function PromotePostScreen({
+  onBack,
+  onCreate,
+  player
+}: {
+  onBack: () => void;
+  onCreate: (input: {
+    budget: number;
+    durationDays: number;
+    objective: CampaignObjective;
+  }) => boolean;
+  player: Player;
+}) {
+  const [objective, setObjective] = useState<CampaignObjective>("reach");
+  const [durationDays, setDurationDays] = useState(7);
+  const [budget, setBudget] = useState(50);
+  const resolvedMedia = useResolvedVideoSource(player.videoUri);
+  const estimatedReach = useMemo(
+    () => estimateCampaignReach(budget, durationDays, objective),
+    [budget, durationDays, objective]
+  );
+
+  function createCampaign() {
+    if (onCreate({ budget, durationDays, objective })) {
+      onBack();
+    }
+  }
+
+  return (
+    <ScrollView contentContainerStyle={s.content}>
+      <View style={s.header}>
+        <BackButton accessibilityLabel="Voltar ao painel profissional" onPress={onBack} />
+        <Text style={s.headerTitle}>Promover publicação</Text>
+        <View style={s.headerSpacer} />
+      </View>
+
+      <View style={s.preview}>
+        {player.mediaType === "image" && resolvedMedia.source ? (
+          <Image
+            resizeMode="cover"
+            source={typeof resolvedMedia.source === "number" ? resolvedMedia.source : { uri: resolvedMedia.source }}
+            style={s.previewImage}
+          />
+        ) : (
+          <View style={s.previewOverlay}>
+            <Play color={colors.onPrimary} fill={colors.onPrimary} size={42} />
+          </View>
+        )}
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>{player.videoTitle}</Text>
+        <Text numberOfLines={2} style={s.sectionDescription}>{player.highlight}</Text>
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.label}>Objetivo</Text>
+        {CAMPAIGN_OBJECTIVE_OPTIONS.map((option) => {
+          const active = objective === option.id;
+          return (
+            <Pressable
+              key={option.id}
+              onPress={() => setObjective(option.id)}
+              style={[s.optionCard, { marginBottom: 8 }, active ? s.optionCardActive : null]}
+            >
+              <View style={s.optionHeader}>
+                <Text style={s.optionTitle}>{option.label}</Text>
+                {active ? <Megaphone color={colors.primary} size={18} /> : null}
+              </View>
+              <Text style={s.optionDescription}>{option.description}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.label}>Duração</Text>
+        <View style={s.selectorRow}>
+          {DURATION_OPTIONS.map((days) => {
+            const active = durationDays === days;
+            return (
+              <Pressable key={days} onPress={() => setDurationDays(days)} style={[s.smallSelector, active ? s.smallSelectorActive : null]}>
+                <Text style={[s.smallSelectorText, active ? s.smallSelectorTextActive : null]}>{days} dias</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.label}>Orçamento total</Text>
+        <View style={s.selectorRow}>
+          {BUDGET_OPTIONS.map((value) => {
+            const active = budget === value;
+            return (
+              <Pressable key={value} onPress={() => setBudget(value)} style={[s.smallSelector, active ? s.smallSelectorActive : null]}>
+                <Text style={[s.smallSelectorText, active ? s.smallSelectorTextActive : null]}>{formatCurrency(value)}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.label}>Estimativa</Text>
+        <Text style={s.reachValue}>{formatCompactMetric(estimatedReach)}</Text>
+        <Text style={s.sectionDescription}>pessoas alcançadas durante a campanha</Text>
+      </View>
+
+      <View style={s.notice}>
+        <Text style={s.noticeText}>Esta etapa prepara a experiência de publicidade. Nenhuma cobrança é feita enquanto pagamentos e entrega de anúncios não estiverem conectados ao backend.</Text>
+      </View>
+
+      <Pressable accessibilityRole="button" onPress={createCampaign} style={s.actionButton}>
+        <Megaphone color={colors.onPrimary} size={19} />
+        <Text style={s.actionButtonText}>Criar campanha</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}

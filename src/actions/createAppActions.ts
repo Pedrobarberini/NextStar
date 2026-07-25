@@ -3,51 +3,51 @@ import { Alert } from "react-native";
 import {
   AccountProfile,
   AppUser,
-  AthleteFund,
-  Investment,
+  CampaignObjective,
+  ProfessionalSettings,
+  ProfessionalSettingsByUser,
+  PromotionCampaign,
   Player,
   VideoSubmission,
   VideoSubmissionStatus
 } from "../types";
 import { Tab } from "../ui/types";
-import { formatBRL } from "../utils/investment";
 import { deleteStoredVideo } from "../services/videoStorage";
 import { removeOwnedVideoSubmission } from "../utils/videoSubmission";
-import {
-  calculateBalanceAfterWithdrawal,
-  isValidWithdrawalAmount
-} from "../utils/wallet";
+import { estimateCampaignReach } from "../utils/professional";
+
+type CreateCampaignInput = {
+  budget: number;
+  durationDays: number;
+  objective: CampaignObjective;
+};
 
 type CreateAppActionsOptions = {
-  athleteFunds: AthleteFund[];
   registeredUsers: AppUser[];
-  setAthleteFunds: Dispatch<SetStateAction<AthleteFund[]>>;
-  setInvestments: Dispatch<SetStateAction<Investment[]>>;
+  setCampaigns: Dispatch<SetStateAction<PromotionCampaign[]>>;
+  setProfessionalSettingsByUser: Dispatch<
+    SetStateAction<ProfessionalSettingsByUser>
+  >;
   setRegisteredUsers: Dispatch<SetStateAction<AppUser[]>>;
   setSelectedAccount: Dispatch<SetStateAction<AppUser | null>>;
   setSelectedPlayer: Dispatch<SetStateAction<Player | null>>;
   setSubmissions: Dispatch<SetStateAction<VideoSubmission[]>>;
   setTab: Dispatch<SetStateAction<Tab>>;
   setUser: Dispatch<SetStateAction<AppUser | null>>;
-  setWalletBalances: Dispatch<SetStateAction<Record<string, number>>>;
   user: AppUser | null;
-  walletBalance: number;
 };
 
 export function createAppActions({
-  athleteFunds,
   registeredUsers,
-  setAthleteFunds,
-  setInvestments,
+  setCampaigns,
+  setProfessionalSettingsByUser,
   setRegisteredUsers,
   setSelectedAccount,
   setSelectedPlayer,
   setSubmissions,
   setTab,
   setUser,
-  setWalletBalances,
-  user,
-  walletBalance
+  user
 }: CreateAppActionsOptions) {
   function handleAuth(nextUser: AppUser) {
     setRegisteredUsers((current) => {
@@ -85,6 +85,75 @@ export function createAppActions({
     );
   }
 
+  function handleUpdateProfessionalSettings(settings: ProfessionalSettings) {
+    if (!user) {
+      return;
+    }
+
+    setProfessionalSettingsByUser((current) => ({
+      ...current,
+      [user.id]: {
+        ...settings,
+        updatedAt: new Date().toISOString()
+      }
+    }));
+  }
+
+  function handleCreateCampaign(player: Player, input: CreateCampaignInput) {
+    if (!user || player.ownerUserId !== user.id) {
+      Alert.alert(
+        "Publicação indisponível",
+        "Você só pode promover publicações do seu próprio perfil."
+      );
+      return false;
+    }
+
+    const campaign: PromotionCampaign = {
+      budget: input.budget,
+      clicks: 0,
+      createdAt: new Date().toISOString(),
+      durationDays: input.durationDays,
+      estimatedReach: estimateCampaignReach(
+        input.budget,
+        input.durationDays,
+        input.objective
+      ),
+      id: `campaign-${Date.now()}`,
+      impressions: 0,
+      messages: 0,
+      objective: input.objective,
+      ownerUserId: user.id,
+      playerId: player.id,
+      profileId: player.profileId,
+      status: "active",
+      title: player.videoTitle
+    };
+
+    setCampaigns((current) => [campaign, ...current]);
+    Alert.alert(
+      "Campanha criada",
+      "A promoção foi adicionada ao painel. Nenhuma cobrança será feita nesta fase."
+    );
+    return true;
+  }
+
+  function handleToggleCampaign(campaignId: string) {
+    if (!user) {
+      return;
+    }
+
+    setCampaigns((current) =>
+      current.map((campaign) =>
+        campaign.id === campaignId && campaign.ownerUserId === user.id
+          ? {
+              ...campaign,
+              status: campaign.status === "active" ? "paused" : "active"
+            }
+          : campaign
+      )
+    );
+  }
+
   function handleSignOut() {
     void import("../services/googleAuth").then(({ signOutFromGoogle }) =>
       signOutFromGoogle()
@@ -93,146 +162,6 @@ export function createAppActions({
     setSelectedPlayer(null);
     setUser(null);
     setTab("feed");
-  }
-
-  function handleInvest(player: Player, amount: number) {
-    const fund = athleteFunds.find(
-      (item) => item.profileId === player.profileId
-    );
-
-    if (!fund) {
-      Alert.alert(
-        "Bolsa indisponível",
-        "Este perfil ainda não abriu uma bolsa de investimento."
-      );
-      return;
-    }
-
-    if (fund.status === "Concluída") {
-      Alert.alert(
-        "Bolsa concluída",
-        "A meta deste perfil já foi atingida e novos aportes estão bloqueados."
-      );
-      return;
-    }
-
-    const remainingAmount = Math.max(0, fund.goalAmount - fund.fundedAmount);
-
-    if (amount < fund.minimumContribution || amount > remainingAmount) {
-      Alert.alert(
-        "Valor inválido",
-        `O aporte deve ficar entre ${formatBRL(fund.minimumContribution)} e ${formatBRL(remainingAmount)}.`
-      );
-      return;
-    }
-
-    if (amount > walletBalance) {
-      Alert.alert(
-        "Saldo insuficiente",
-        `Seu saldo disponível é ${formatBRL(walletBalance)}. Abra a Carteira pelo menu do Perfil e deposite um valor simulado antes de criar a reserva.`
-      );
-      return;
-    }
-
-    const nextFundedAmount = Math.min(
-      fund.goalAmount,
-      fund.fundedAmount + amount
-    );
-    const isFundComplete = nextFundedAmount >= fund.goalAmount;
-
-    setInvestments((current) => [
-      {
-        id: `simulation-${Date.now()}`,
-        fundId: fund.id,
-        investorUserId: user?.id ?? "",
-        profileId: player.profileId,
-        playerName: player.name,
-        amount,
-        sharePercent: (amount / fund.goalAmount) * 100,
-        status: "Confirmada",
-        createdAt: new Date().toISOString()
-      },
-      ...current
-    ]);
-    setAthleteFunds((current) =>
-      current.map((item) =>
-        item.id === fund.id
-          ? {
-              ...item,
-              fundedAmount: nextFundedAmount,
-              status: isFundComplete ? "Concluída" : "Captando",
-              completedAt: isFundComplete
-                ? new Date().toISOString()
-                : item.completedAt
-            }
-          : item
-      )
-    );
-    if (user) {
-      setWalletBalances((current) => ({
-        ...current,
-        [user.id]: Math.max(0, (current[user.id] ?? 0) - amount)
-      }));
-    }
-    setSelectedPlayer(null);
-    setTab("profile");
-    Alert.alert(
-      isFundComplete ? "Bolsa concluída" : "Transferência confirmada",
-      isFundComplete
-        ? "A meta do atleta foi atingida. O perfil agora aparece como em busca de contratantes."
-        : `${formatBRL(amount)} foram transferidos para a bolsa de ${player.name}.`
-    );
-  }
-
-  function handleDeposit(amount: number) {
-    if (!user) {
-      return;
-    }
-
-    setWalletBalances((current) => ({
-      ...current,
-      [user.id]: (current[user.id] ?? 0) + amount
-    }));
-  }
-
-  function handleWithdraw(amount: number) {
-    if (!user || !isValidWithdrawalAmount(walletBalance, amount)) {
-      return;
-    }
-
-    setWalletBalances((current) => ({
-      ...current,
-      [user.id]: calculateBalanceAfterWithdrawal(
-        current[user.id] ?? 0,
-        amount
-      )
-    }));
-  }
-
-  function handleOpenFund(
-    player: Player,
-    goalAmount: number,
-    minimumContribution: number
-  ) {
-    if (athleteFunds.some((item) => item.profileId === player.profileId)) {
-      Alert.alert("Bolsa já existente", "Este perfil já possui uma bolsa aberta.");
-      return;
-    }
-
-    setAthleteFunds((current) => [
-      {
-        id: `athlete-fund-${Date.now()}`,
-        profileId: player.profileId,
-        ownerUserId: player.ownerUserId ?? user?.id ?? "",
-        athleteName: player.name,
-        goalAmount,
-        fundedAmount: 0,
-        minimumContribution,
-        status: "Captando",
-        createdAt: new Date().toISOString()
-      },
-      ...current
-    ]);
   }
 
   function handleSubmitVideo(submission: VideoSubmission) {
@@ -246,6 +175,9 @@ export function createAppActions({
 
     setSubmissions((current) =>
       removeOwnedVideoSubmission(current, submission.id, user.id)
+    );
+    setCampaigns((current) =>
+      current.filter((campaign) => campaign.playerId !== `approved-${submission.id}`)
     );
     await deleteStoredVideo(submission.videoLink).catch(() => false);
 
@@ -278,14 +210,13 @@ export function createAppActions({
 
   return {
     handleAuth,
+    handleCreateCampaign,
     handleDeleteVideo,
-    handleDeposit,
-    handleInvest,
-    handleOpenFund,
     handleReviewSubmission,
     handleSignOut,
     handleSubmitVideo,
-    handleUpdateProfile,
-    handleWithdraw
+    handleToggleCampaign,
+    handleUpdateProfessionalSettings,
+    handleUpdateProfile
   };
 }

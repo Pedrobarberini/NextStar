@@ -1,23 +1,4 @@
-export type RiskLevel = "Baixo" | "Moderado" | "Alto";
-
 export type SubmissionMediaType = "image" | "video";
-
-export type PlayerMetric = {
-  label: string;
-  value: string;
-};
-
-export type PlayerEvaluation = {
-  thesis: string;
-  fundingGoal: number;
-  funded: number;
-  minimumTicket: number;
-  athleteSharePercent: number;
-  projectedMonthlyEarnings: number;
-  score: number;
-  riskLevel: RiskLevel;
-  metrics: PlayerMetric[];
-};
 
 export type Player = {
   id: string;
@@ -38,34 +19,53 @@ export type Player = {
   highlight: string;
   tags: string[];
   mentions?: string[];
-  evaluation?: PlayerEvaluation;
 };
 
-export type AthleteFundStatus = "Captando" | "Concluída";
+export type ProfessionalPlanId = "free" | "pro" | "business";
 
-export type AthleteFund = {
+export type ProfessionalCategory =
+  | "talent"
+  | "creator"
+  | "business"
+  | "brand"
+  | "project"
+  | "service";
+
+export type ProfessionalSettings = {
+  category: ProfessionalCategory;
+  enabled: boolean;
+  externalLink: string;
+  plan: ProfessionalPlanId;
+  updatedAt: string;
+};
+
+export type ProfessionalSettingsByUser = Record<
+  string,
+  ProfessionalSettings
+>;
+
+export type CampaignObjective =
+  | "reach"
+  | "profile_visits"
+  | "messages";
+
+export type CampaignStatus = "active" | "paused" | "completed";
+
+export type PromotionCampaign = {
+  budget: number;
+  clicks: number;
+  createdAt: string;
+  durationDays: number;
+  estimatedReach: number;
   id: string;
-  profileId: string;
+  impressions: number;
+  messages: number;
+  objective: CampaignObjective;
   ownerUserId: string;
-  athleteName: string;
-  goalAmount: number;
-  fundedAmount: number;
-  minimumContribution: number;
-  status: AthleteFundStatus;
-  createdAt: string;
-  completedAt?: string;
-};
-
-export type Investment = {
-  id: string;
-  fundId: string;
-  investorUserId: string;
+  playerId: string;
   profileId: string;
-  playerName: string;
-  amount: number;
-  sharePercent: number;
-  status: "Confirmada";
-  createdAt: string;
+  status: CampaignStatus;
+  title: string;
 };
 
 export type MessageContact = {
@@ -126,7 +126,6 @@ export type ProfileAvatarsByProfile = Record<string, ProfileAvatar>;
 
 export type UserRole = "Usuário" | "Admin";
 
-export type KycStatus = "Não iniciado" | "Pendente" | "Aprovado";
 
 export type AccountProfile = {
   age: number | null;
@@ -145,7 +144,6 @@ export type AppUser = AccountProfile & {
   email: string;
   role: UserRole;
   username: string;
-  kycStatus: KycStatus;
   acceptedTerms: boolean;
   authProvider?: AuthProvider;
   googleUid?: string;

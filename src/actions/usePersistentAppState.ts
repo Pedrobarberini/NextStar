@@ -15,22 +15,22 @@ import {
 } from "../repositories/localRepository";
 import {
   AppUser,
-  AthleteFund,
-  Investment,
+  ProfessionalSettingsByUser,
+  PromotionCampaign,
   VideoSubmission
 } from "../types";
 
 type PersistedSlice = Exclude<keyof LocalAppState, "version">;
 
-export function usePersistentAppState(initialFunds: AthleteFund[]) {
+export function usePersistentAppState() {
   const [appState, setAppState] = useState<LocalAppState>(() =>
-    createDefaultLocalAppState(initialFunds)
+    createDefaultLocalAppState()
   );
   const [isAppStateLoaded, setIsAppStateLoaded] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    const fallback = createDefaultLocalAppState(initialFunds);
+    const fallback = createDefaultLocalAppState();
 
     loadLocalAppState(fallback)
       .then((storedState) => {
@@ -52,7 +52,7 @@ export function usePersistentAppState(initialFunds: AthleteFund[]) {
     return () => {
       isMounted = false;
     };
-  }, [initialFunds]);
+  }, []);
 
   useEffect(() => {
     if (!isAppStateLoaded) {
@@ -88,12 +88,12 @@ export function usePersistentAppState(initialFunds: AthleteFund[]) {
     (update) => setSlice("activeUser", update),
     [setSlice]
   );
-  const setAthleteFunds: Dispatch<SetStateAction<AthleteFund[]>> = useCallback(
-    (update) => setSlice("athleteFunds", update),
-    [setSlice]
-  );
-  const setInvestments: Dispatch<SetStateAction<Investment[]>> = useCallback(
-    (update) => setSlice("investments", update),
+  const setCampaigns: Dispatch<SetStateAction<PromotionCampaign[]>> =
+    useCallback((update) => setSlice("campaigns", update), [setSlice]);
+  const setProfessionalSettingsByUser: Dispatch<
+    SetStateAction<ProfessionalSettingsByUser>
+  > = useCallback(
+    (update) => setSlice("professionalSettingsByUser", update),
     [setSlice]
   );
   const setRegisteredUsers: Dispatch<SetStateAction<AppUser[]>> = useCallback(
@@ -102,26 +102,18 @@ export function usePersistentAppState(initialFunds: AthleteFund[]) {
   );
   const setSubmissions: Dispatch<SetStateAction<VideoSubmission[]>> =
     useCallback((update) => setSlice("submissions", update), [setSlice]);
-  const setWalletBalances: Dispatch<
-    SetStateAction<Record<string, number>>
-  > = useCallback(
-    (update) => setSlice("walletBalances", update),
-    [setSlice]
-  );
 
   return {
-    athleteFunds: appState.athleteFunds,
-    investments: appState.investments,
+    campaigns: appState.campaigns,
     isAppStateLoaded,
+    professionalSettingsByUser: appState.professionalSettingsByUser,
     registeredUsers: appState.registeredUsers,
-    setAthleteFunds,
-    setInvestments,
+    setCampaigns,
+    setProfessionalSettingsByUser,
     setRegisteredUsers,
     setSubmissions,
     setUser,
-    setWalletBalances,
     submissions: appState.submissions,
-    user: appState.activeUser,
-    walletBalances: appState.walletBalances
+    user: appState.activeUser
   };
 }

@@ -120,13 +120,13 @@ export const discoveryMessagesStyles = {
     fontWeight: "700",
     marginTop: 2
   },
-  searchProfileFund: {
+  searchProfileBadge: {
     color: colors.muted,
     fontSize: 10,
     fontWeight: "800",
     marginTop: 5
   },
-  searchProfileFundActive: {
+  searchProfileBadgeActive: {
     color: colors.primary
   },
   discoveryEmptyState: {

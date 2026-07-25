@@ -12,7 +12,7 @@ export function useAppNavigation() {
   const [tab, setTab] = useState<Tab>("feed");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<AppUser | null>(null);
-  const [investmentPlayer, setInvestmentPlayer] = useState<Player | null>(null);
+  const [campaignPlayer, setCampaignPlayer] = useState<Player | null>(null);
   const [feedFocusPlayerId, setFeedFocusPlayerId] = useState<string | null>(null);
   const [reelReturnTarget, setReelReturnTarget] =
     useState<ReelReturnTarget | null>(null);
@@ -36,16 +36,16 @@ export function useAppNavigation() {
     setSelectedAccount(account);
   }, []);
 
-  const closeInvestment = useCallback(() => {
-    setInvestmentPlayer(null);
+  const closeCampaign = useCallback(() => {
+    setCampaignPlayer(null);
   }, []);
 
-  const openInvestment = useCallback((player: Player) => {
-    setInvestmentPlayer(player);
+  const openCampaign = useCallback((player: Player) => {
+    setCampaignPlayer(player);
   }, []);
 
   const openTab = useCallback((nextTab: Tab) => {
-    setInvestmentPlayer(null);
+    setCampaignPlayer(null);
     setReelReturnTarget(null);
     setSelectedAccount(null);
     setSelectedPlayer(null);
@@ -55,7 +55,7 @@ export function useAppNavigation() {
 
   const openReel = useCallback(
     (player: Player, returnTarget: ReelReturnTarget | null = null) => {
-      setInvestmentPlayer(null);
+      setCampaignPlayer(null);
       setReelReturnTarget(returnTarget);
       setSelectedAccount(null);
       setSelectedPlayer(null);
@@ -90,7 +90,7 @@ export function useAppNavigation() {
 
   const openMessageContact = useCallback((contactId: string) => {
     setActiveMessageContactId(contactId);
-    setInvestmentPlayer(null);
+    setCampaignPlayer(null);
     setSelectedAccount(null);
     setSelectedPlayer(null);
     setTab("messages");
@@ -98,6 +98,7 @@ export function useAppNavigation() {
 
   const resetSessionNavigation = useCallback(() => {
     setActiveMessageContactId(null);
+    setCampaignPlayer(null);
   }, []);
 
   const focusFeedPlayer = useCallback((playerId: string) => {
@@ -106,12 +107,12 @@ export function useAppNavigation() {
 
   return {
     activeMessageContactId,
+    campaignPlayer,
     clearSelectedProfile,
-    closeInvestment,
+    closeCampaign,
     feedFocusPlayerId,
     focusFeedPlayer,
-    investmentPlayer,
-    openInvestment,
+    openCampaign,
     openMessageContact,
     openPlayerProfile,
     openReel,

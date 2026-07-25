@@ -5,20 +5,20 @@ import { useProfileActions } from "./src/actions/useProfileActions";
 import { useSocialActions } from "./src/actions/useSocialActions";
 import {
   AccountSetupGate,
-  BrandLaunchOverlay,
   LoadingAppShell,
   LoggedOutAppShell
 } from "./src/app/AppEntryShells";
 import { AppRoutes } from "./src/app/AppRoutes";
 import {
+  selectActiveCampaignPlayerIds,
   selectApprovedSubmissionPlayers,
   selectAvailablePlayers,
-  selectCurrentUserInvestments,
-  selectInvestmentFund,
+  selectCurrentUserCampaigns,
   selectOrderedFeedPlayers,
   selectPendingReviews,
+  selectPlayersByOwner,
+  selectProfessionalSettings,
   selectProfileAccount,
-  selectProfileFund,
   selectProfileId,
   selectProfileVideos,
   selectVisibleFeedPlayers
@@ -26,25 +26,11 @@ import {
 import { useAppNavigation } from "./src/app/useAppNavigation";
 import { useExpoBoot } from "./src/app/useExpoBoot";
 import { demoPlayer } from "./src/data/demoPlayer";
+import type { MessageContact } from "./src/types";
 import {
-  AthleteFund,
-  MessageContact
-} from "./src/types";
+  createDefaultProfessionalSettings
+} from "./src/utils/professional";
 import { selectShareContacts } from "./src/utils/socialSharing";
-
-const INITIAL_ATHLETE_FUNDS: AthleteFund[] = [
-  {
-    id: "demo-athlete-fund",
-    profileId: demoPlayer.profileId,
-    ownerUserId: "demo-athlete",
-    athleteName: demoPlayer.name,
-    goalAmount: 5000,
-    fundedAmount: 0,
-    minimumContribution: 50,
-    status: "Captando",
-    createdAt: "2026-07-01T00:00:00.000Z"
-  }
-];
 
 export default function App() {
   const [isBrandLaunchVisible, setIsBrandLaunchVisible] = useState(true);
@@ -52,12 +38,12 @@ export default function App() {
   useExpoBoot();
   const {
     activeMessageContactId,
+    campaignPlayer,
     clearSelectedProfile,
-    closeInvestment,
+    closeCampaign,
     feedFocusPlayerId,
     focusFeedPlayer,
-    investmentPlayer,
-    openInvestment,
+    openCampaign,
     openMessageContact,
     openPlayerProfile,
     openReel,
@@ -75,39 +61,29 @@ export default function App() {
     tab
   } = useAppNavigation();
   const {
-    athleteFunds,
-    investments,
+    campaigns,
     isAppStateLoaded,
+    professionalSettingsByUser,
     registeredUsers,
-    setAthleteFunds,
-    setInvestments,
+    setCampaigns,
+    setProfessionalSettingsByUser,
     setRegisteredUsers,
     setSubmissions,
     setUser,
-    setWalletBalances,
     submissions,
-    user,
-    walletBalances
-  } = usePersistentAppState(INITIAL_ATHLETE_FUNDS);
-  const walletBalance = user ? (walletBalances[user.id] ?? 0) : 0;
+    user
+  } = usePersistentAppState();
 
   useEffect(() => {
-    if (!isAppStateLoaded || hasRestoredInitialRoute.current) {
-      return;
-    }
-
-    if (user?.role === "Admin") {
-      setTab("admin");
-    }
-
+    if (!isAppStateLoaded || hasRestoredInitialRoute.current) return;
+    if (user?.role === "Admin") setTab("admin");
     hasRestoredInitialRoute.current = true;
-  }, [isAppStateLoaded, user?.role]);
+  }, [isAppStateLoaded, setTab, user?.role]);
 
   const approvedSubmissionPlayers = useMemo(
     () => selectApprovedSubmissionPlayers(submissions, registeredUsers),
     [registeredUsers, submissions]
   );
-
   const availablePlayers = useMemo(
     () => selectAvailablePlayers(approvedSubmissionPlayers, demoPlayer),
     [approvedSubmissionPlayers]
@@ -145,81 +121,71 @@ export default function App() {
     viewCountsByPlayer
   } = useSocialActions({ players: availablePlayers, user });
   const visibleFeedPlayers = useMemo(
-    () =>
-      selectVisibleFeedPlayers(
-        availablePlayers,
-        hiddenPlayerIdSet,
-        feedFocusPlayerId,
-        blockedProfileIdSet,
-        mutedContentKeySet
-      ),
-    [
+    () => selectVisibleFeedPlayers(
       availablePlayers,
-      blockedProfileIdSet,
-      feedFocusPlayerId,
       hiddenPlayerIdSet,
+      feedFocusPlayerId,
+      blockedProfileIdSet,
       mutedContentKeySet
-    ]
+    ),
+    [availablePlayers, blockedProfileIdSet, feedFocusPlayerId, hiddenPlayerIdSet, mutedContentKeySet]
+  );
+  const activeCampaignPlayerIds = useMemo(
+    () => selectActiveCampaignPlayerIds(campaigns),
+    [campaigns]
   );
   const orderedFeedPlayers = useMemo(
-    () =>
-      selectOrderedFeedPlayers(
-        visibleFeedPlayers,
-        followingProfileSet,
-        interestedContentKeySet
-      ),
-    [followingProfileSet, interestedContentKeySet, visibleFeedPlayers]
+    () => selectOrderedFeedPlayers(
+      visibleFeedPlayers,
+      followingProfileSet,
+      interestedContentKeySet,
+      activeCampaignPlayerIds
+    ),
+    [activeCampaignPlayerIds, followingProfileSet, interestedContentKeySet, visibleFeedPlayers]
   );
   const shareContacts = useMemo(
-    () =>
-      selectShareContacts({
-        contacts: currentMessageContacts,
-        currentUserId: user?.id ?? "",
-        followingProfileIds,
-        players: availablePlayers,
-        users: registeredUsers
-      }),
-    [
-      availablePlayers,
-      currentMessageContacts,
+    () => selectShareContacts({
+      contacts: currentMessageContacts,
+      currentUserId: user?.id ?? "",
       followingProfileIds,
-      registeredUsers,
-      user?.id
-    ]
+      players: availablePlayers,
+      users: registeredUsers
+    }),
+    [availablePlayers, currentMessageContacts, followingProfileIds, registeredUsers, user?.id]
   );
 
   const pendingReviews = selectPendingReviews(submissions);
-  const currentUserInvestments = selectCurrentUserInvestments(investments, user);
+  const currentUserCampaigns = selectCurrentUserCampaigns(campaigns, user);
+  const currentProfessionalSettings = useMemo(
+    () => selectProfessionalSettings(professionalSettingsByUser, user?.id) ?? createDefaultProfessionalSettings(),
+    [professionalSettingsByUser, user?.id]
+  );
+  const ownProfilePlayers = user
+    ? selectPlayersByOwner(approvedSubmissionPlayers, user.id)
+    : [];
   const selectedProfilePlayer = selectedPlayer ?? undefined;
   const selectedProfileAccount = selectProfileAccount(
     selectedAccount,
     selectedPlayer,
     registeredUsers
   );
-  const selectedProfileVideos = selectProfileVideos(
-    selectedPlayer,
-    availablePlayers
-  );
-  const selectedProfileFund = selectProfileFund(selectedPlayer, athleteFunds);
-  const investmentFund = selectInvestmentFund(investmentPlayer, athleteFunds);
-  const selectedProfileId = selectProfileId(
-    selectedPlayer,
-    selectedProfileAccount
+  const selectedProfileVideos = selectProfileVideos(selectedPlayer, availablePlayers);
+  const selectedProfileId = selectProfileId(selectedPlayer, selectedProfileAccount);
+  const selectedProfileOwnerId =
+    selectedProfileAccount?.id ?? selectedProfilePlayer?.ownerUserId;
+  const selectedProfileProfessionalSettings = selectProfessionalSettings(
+    professionalSettingsByUser,
+    selectedProfileOwnerId
   );
 
   function openMessagesForSelectedProfile() {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
 
     const contactId =
       selectedProfileAccount?.id ??
       selectedProfilePlayer?.ownerUserId ??
       selectedProfilePlayer?.profileId;
-
-    if (!contactId) {
-      return;
-    }
+    if (!contactId) return;
 
     const contact: MessageContact = {
       id: contactId,
@@ -243,29 +209,25 @@ export default function App() {
 
   const {
     handleAuth,
+    handleCreateCampaign,
     handleDeleteVideo,
-    handleDeposit,
-    handleInvest,
-    handleOpenFund,
     handleReviewSubmission,
     handleSignOut,
     handleSubmitVideo,
-    handleUpdateProfile,
-    handleWithdraw
+    handleToggleCampaign,
+    handleUpdateProfessionalSettings,
+    handleUpdateProfile
   } = createAppActions({
-    athleteFunds,
     registeredUsers,
-    setAthleteFunds,
-    setInvestments,
+    setCampaigns,
+    setProfessionalSettingsByUser,
     setRegisteredUsers,
     setSelectedAccount,
     setSelectedPlayer,
     setSubmissions,
     setTab,
     setUser,
-    setWalletBalances,
-    user,
-    walletBalance
+    user
   });
 
   function signOutSession() {
@@ -274,12 +236,7 @@ export default function App() {
   }
 
   if (!isAppStateLoaded) {
-    return (
-      <LoadingAppShell
-        isVisible={isBrandLaunchVisible}
-        onFinish={() => setIsBrandLaunchVisible(false)}
-      />
-    );
+    return <LoadingAppShell isVisible={isBrandLaunchVisible} onFinish={() => setIsBrandLaunchVisible(false)} />;
   }
 
   if (!user) {
@@ -308,16 +265,18 @@ export default function App() {
 
   return (
     <AppRoutes
+      activeCampaignPlayerIds={activeCampaignPlayerIds}
       activeMessageContactId={activeMessageContactId}
       approvedSubmissionPlayers={approvedSubmissionPlayers}
-      athleteFunds={athleteFunds}
       availablePlayers={availablePlayers}
       blockedProfileIdSet={blockedProfileIdSet}
+      campaignPlayer={campaignPlayer}
       clearSelectedProfile={clearSelectedProfile}
-      closeInvestment={closeInvestment}
+      closeCampaign={closeCampaign}
       currentMessageContacts={currentMessageContacts}
+      currentProfessionalSettings={currentProfessionalSettings}
+      currentUserCampaigns={currentUserCampaigns}
       deleteConversation={deleteConversation}
-      currentUserInvestments={currentUserInvestments}
       directMessages={directMessages}
       feedFocusPlayerId={feedFocusPlayerId}
       focusFeedPlayer={focusFeedPlayer}
@@ -327,41 +286,40 @@ export default function App() {
       followingProfileSet={followingProfileSet}
       hiddenPlayerIdSet={hiddenPlayerIdSet}
       interestedContentKeySet={interestedContentKeySet}
+      handleCreateCampaign={handleCreateCampaign}
       handleDeleteVideo={handleDeleteVideo}
-      handleDeposit={handleDeposit}
-      handleInvest={handleInvest}
-      handleOpenFund={handleOpenFund}
       handleReviewSubmission={handleReviewSubmission}
       handleSubmitVideo={handleSubmitVideo}
+      handleToggleCampaign={handleToggleCampaign}
+      handleUpdateProfessionalSettings={handleUpdateProfessionalSettings}
       handleUpdateProfile={handleUpdateProfile}
-      handleWithdraw={handleWithdraw}
-      investmentFund={investmentFund}
-      investmentPlayer={investmentPlayer}
       isBrandLaunchVisible={isBrandLaunchVisible}
       likedPlayerIdSet={likedPlayerIdSet}
       likeCountsByPlayer={likeCountsByPlayer}
+      mutedContactIds={mutedContactIds}
       mutedContentKeySet={mutedContentKeySet}
       onBrandLaunchFinish={() => setIsBrandLaunchVisible(false)}
       onOpenMessagesForSelectedProfile={openMessagesForSelectedProfile}
-      openInvestment={openInvestment}
+      openCampaign={openCampaign}
       openPlayerProfile={openPlayerProfile}
       openReel={openReel}
       openTab={openTab}
       openUserProfile={openUserProfile}
       orderedFeedPlayers={orderedFeedPlayers}
       ownProfileId={ownProfileId}
+      ownProfilePlayers={ownProfilePlayers}
       pendingReviews={pendingReviews}
-      mutedContactIds={mutedContactIds}
       pinnedContactIds={pinnedContactIds}
+      professionalSettingsByUser={professionalSettingsByUser}
       profileAvatars={profileAvatars}
       recordPlayerView={recordPlayerView}
       registeredUsers={registeredUsers}
       reelReturnTarget={reelReturnTarget}
       returnToReelOrigin={returnToReelOrigin}
       selectedProfileAccount={selectedProfileAccount}
-      selectedProfileFund={selectedProfileFund}
       selectedProfileId={selectedProfileId}
       selectedProfilePlayer={selectedProfilePlayer}
+      selectedProfileProfessionalSettings={selectedProfileProfessionalSettings}
       selectedProfileVideos={selectedProfileVideos}
       sendDirectMessage={sendDirectMessage}
       sendSharedPost={sendSharedPost}
@@ -381,7 +339,6 @@ export default function App() {
       togglePinConversation={togglePinConversation}
       user={user}
       viewCountsByPlayer={viewCountsByPlayer}
-      walletBalance={walletBalance}
     />
   );
 }

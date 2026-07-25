@@ -510,9 +510,6 @@ export const feedStyles = {
     fontWeight: "800",
     marginTop: 4
   },
-  feedScoreBadge: {
-    backgroundColor: colors.surface
-  },
   feedTextOverlay: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
@@ -748,55 +745,6 @@ export const feedStyles = {
     textShadowColor: "rgba(0, 0, 0, 0.72)",
     textShadowOffset: { height: 1, width: 0 },
     textShadowRadius: 2
-  },
-  feedCompactFundSection: {
-    marginTop: 15,
-    zIndex: 2
-  },
-  feedCompactFundTitle: {
-    color: colors.onPrimary,
-    fontSize: 14,
-    fontWeight: "900",
-    lineHeight: 19
-  },
-  feedCompactFundValues: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    marginTop: 7
-  },
-  feedCompactFundValue: {
-    color: colors.onPrimary,
-    flexShrink: 1,
-    fontSize: 12,
-    fontWeight: "800"
-  },
-  feedCompactFundGoal: {
-    color: "rgba(255, 255, 255, 0.78)",
-    fontSize: 11,
-    fontWeight: "800",
-    textAlign: "right"
-  },
-  feedCompactFundTrack: {
-    backgroundColor: "rgba(255, 255, 255, 0.28)",
-    borderRadius: 999,
-    height: 6,
-    marginTop: 7,
-    overflow: "hidden"
-  },
-  feedCompactFundFill: {
-    backgroundColor: colors.accent,
-    borderRadius: 999,
-    height: "100%"
-  },
-  feedCompactFundEmpty: {
-    color: "rgba(255, 255, 255, 0.82)",
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 17,
-    marginTop: 15,
-    zIndex: 2
   },
   feedCompactExpandedActions: {
     alignItems: "center",

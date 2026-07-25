@@ -1,11 +1,12 @@
 import React from "react";
 import {
-  CircleDollarSign,
+  BadgeCheck,
+  ExternalLink,
   MessageCircle,
   UserCheck,
   UserPlus
 } from "lucide-react-native";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { DetailHud } from "../components/Navigation";
 import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import {
@@ -14,92 +15,73 @@ import {
 } from "../components/ProfileVideoGallery";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import {
+import type {
   AppUser,
-  AthleteFund,
   MessageContact,
   Player,
+  ProfessionalSettings,
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
+import {
+  formatCompactMetric,
+  getProfessionalCategoryLabel
+} from "../utils/professional";
 
 export function PublicProfileScreen({
   account,
   avatar,
-  canInvest,
-  fund,
   followersCount,
   hiddenPlayerIds,
   isFollowing,
   onBack,
-  onInvest,
   onMessage,
   onOpenVideo,
   onSetVideoHidden,
   onShareVideo,
   onToggleFollow,
   player,
+  professionalSettings,
   profileAvatars,
   shareContacts,
   showFollow,
   videos,
-  viewCountsByPlayer,
-  walletBalance
+  viewCountsByPlayer
 }: {
   account?: AppUser;
   avatar?: ProfileAvatar;
-  canInvest: boolean;
-  fund?: AthleteFund;
   followersCount: number;
   hiddenPlayerIds: Set<string>;
   isFollowing: boolean;
   onBack: () => void;
-  onInvest: () => void;
   onMessage: () => void;
   onOpenVideo: (player: Player) => void;
   onSetVideoHidden: (playerId: string, hidden: boolean) => void;
-  onShareVideo: (
-    player: Player,
-    contact: MessageContact,
-    message: string
-  ) => void;
+  onShareVideo: (player: Player, contact: MessageContact, message: string) => void;
   onToggleFollow: () => void;
   player?: Player;
+  professionalSettings?: ProfessionalSettings;
   profileAvatars: ProfileAvatarsByProfile;
   shareContacts: MessageContact[];
   showFollow: boolean;
   videos: Player[];
   viewCountsByPlayer: Record<string, number>;
-  walletBalance: number;
 }) {
   const profileName = account?.name ?? player?.name ?? "Perfil Xolot";
   const profileUsername = account?.username ?? player?.username;
-  const initials = profileName
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+  const initials = profileName.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const profileMeta = account?.profileCompleted
     ? `${account.position} | ${account.city}`
     : player
       ? `${player.position} | ${player.city}`
-      : "Usuário Xolot | Sem vídeos publicados";
+      : "Usuário Xolot | Sem publicações";
   const profileBio = account?.bio ?? "";
   const profileClub = account?.club ?? player?.club ?? "";
-  const fundProgress = fund
-    ? Math.min(Math.max(fund.fundedAmount / fund.goalAmount, 0), 1)
-    : 0;
-  const hasOpenFund = Boolean(
-    canInvest && fund && fund.status === "Captando"
+  const isProfessional = professionalSettings?.enabled === true;
+  const totalViews = videos.reduce(
+    (total, video) => total + (viewCountsByPlayer[video.id] ?? 0),
+    0
   );
-  const investmentLabel = !fund
-    ? "Bolsa indisponível"
-    : fund.status === "Concluída"
-      ? "Bolsa concluída"
-      : canInvest
-        ? "Investir"
-        : "Investimento indisponível";
   const galleryVideos: ProfileGalleryVideo[] = videos.map((video) => ({
     id: video.id,
     mediaType: video.mediaType ?? "video",
@@ -107,89 +89,56 @@ export function PublicProfileScreen({
     uri: video.videoUri
   }));
 
+  function openExternalLink() {
+    const url = professionalSettings?.externalLink.trim();
+    if (!url) {
+      return;
+    }
+
+    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    void Linking.openURL(normalizedUrl).catch(() => undefined);
+  }
+
   return (
     <View style={styles.publicProfileShell}>
-      <ScrollView
-        contentContainerStyle={[styles.screenContent, styles.publicProfileContent]}
-      >
+      <ScrollView contentContainerStyle={[styles.screenContent, styles.publicProfileContent]}>
         <View style={styles.profileHero}>
           <View style={styles.profileHeroTopRow}>
             <View style={styles.profileAvatar}>
-              {avatar ? (
-                <ProfileAvatarImage avatar={avatar} />
-              ) : (
-                <Text style={styles.profileAvatarText}>{initials}</Text>
-              )}
+              {avatar ? <ProfileAvatarImage avatar={avatar} /> : <Text style={styles.profileAvatarText}>{initials}</Text>}
             </View>
             <View style={styles.profileTitleBlock}>
-              <Text
-                numberOfLines={1}
-                style={styles.profilePrimaryUsername}
-              >
-                {profileUsername ? `@${profileUsername}` : profileName}
-              </Text>
-              {profileUsername ? (
-                <Text numberOfLines={1} style={styles.profileSecondaryName}>
-                  {profileName}
+              <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
+                <Text numberOfLines={1} style={[styles.profilePrimaryUsername, { flexShrink: 1 }]}>
+                  {profileUsername ? `@${profileUsername}` : profileName}
                 </Text>
-              ) : null}
-              <Text
-                numberOfLines={2}
-                style={[styles.profileMeta, styles.publicProfileMeta]}
-              >
-                {profileMeta}
-              </Text>
+                {isProfessional ? <BadgeCheck color={colors.primary} size={18} /> : null}
+              </View>
+              {profileUsername ? <Text numberOfLines={1} style={styles.profileSecondaryName}>{profileName}</Text> : null}
+              <Text numberOfLines={2} style={[styles.profileMeta, styles.publicProfileMeta]}>{profileMeta}</Text>
             </View>
-            <Pressable
-              accessibilityLabel={`Enviar mensagem para ${profileName}`}
-              accessibilityRole="button"
-              onPress={onMessage}
-              style={styles.profileMenuButton}
-            >
+            <Pressable accessibilityLabel={`Enviar mensagem para ${profileName}`} accessibilityRole="button" onPress={onMessage} style={styles.profileMenuButton}>
               <MessageCircle color={colors.primary} size={22} />
             </Pressable>
           </View>
 
-          {profileBio ? (
-            <Text style={styles.profileBio}>{profileBio}</Text>
+          {isProfessional ? (
+            <Text style={[styles.profileClub, { color: colors.primary }]}>{getProfessionalCategoryLabel(professionalSettings.category)} · Perfil profissional</Text>
           ) : null}
-          {profileClub ? (
-            <Text style={styles.profileClub}>{profileClub}</Text>
-          ) : null}
+          {profileBio ? <Text style={styles.profileBio}>{profileBio}</Text> : null}
+          {profileClub ? <Text style={styles.profileClub}>{profileClub}</Text> : null}
 
           <View style={styles.publicProfileSocialRow}>
-            <Text style={styles.publicProfileFollowerCount}>
-              {followersCount} {followersCount === 1 ? "seguidor" : "seguidores"}
-            </Text>
+            <Text style={styles.publicProfileFollowerCount}>{followersCount} {followersCount === 1 ? "seguidor" : "seguidores"}</Text>
             {showFollow ? (
               <Pressable
-                accessibilityLabel={
-                  isFollowing
-                    ? `Deixar de seguir ${profileName}`
-                    : `Seguir ${profileName}`
-                }
+                accessibilityLabel={isFollowing ? `Deixar de seguir ${profileName}` : `Seguir ${profileName}`}
                 accessibilityRole="button"
                 onPress={onToggleFollow}
-                style={[
-                  styles.publicProfileFollowButton,
-                  isFollowing ? styles.publicProfileFollowButtonActive : null
-                ]}
+                style={[styles.publicProfileFollowButton, isFollowing ? styles.publicProfileFollowButtonActive : null]}
               >
-                {isFollowing ? (
-                  <UserCheck color={colors.primary} size={17} strokeWidth={2.3} />
-                ) : (
-                  <UserPlus color={colors.onPrimary} size={17} strokeWidth={2.3} />
-                )}
-                <Text
-                  style={[
-                    styles.publicProfileFollowButtonText,
-                    isFollowing
-                      ? styles.publicProfileFollowButtonTextActive
-                      : null
-                  ]}
-                >
-                  {isFollowing ? "Seguindo" : "Seguir"}
-                </Text>
+                {isFollowing ? <UserCheck color={colors.primary} size={17} strokeWidth={2.3} /> : <UserPlus color={colors.onPrimary} size={17} strokeWidth={2.3} />}
+                <Text style={[styles.publicProfileFollowButtonText, isFollowing ? styles.publicProfileFollowButtonTextActive : null]}>{isFollowing ? "Seguindo" : "Seguir"}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -200,52 +149,20 @@ export function PublicProfileScreen({
               <Text style={styles.profileQuickLabel}>publicações</Text>
             </View>
             <View style={styles.profileQuickItem}>
-              <Text style={styles.profileQuickValue}>
-                {Math.round(fundProgress * 100)}%
-              </Text>
-              <Text style={styles.profileQuickLabel}>captado</Text>
+              <Text style={styles.profileQuickValue}>{formatCompactMetric(totalViews)}</Text>
+              <Text style={styles.profileQuickLabel}>visualizações</Text>
             </View>
             <View style={styles.profileQuickItem}>
-              <Text numberOfLines={1} style={styles.profileQuickValue}>
-                {fund?.status === "Captando"
-                  ? "Aberta"
-                  : fund?.status === "Concluída"
-                    ? "Concluída"
-                    : "Fechada"}
-              </Text>
-              <Text style={styles.profileQuickLabel}>bolsa</Text>
+              <Text style={styles.profileQuickValue}>{formatCompactMetric(followersCount)}</Text>
+              <Text style={styles.profileQuickLabel}>seguidores</Text>
             </View>
           </View>
 
-          <Pressable
-            accessibilityLabel={investmentLabel}
-            accessibilityRole="button"
-            disabled={!hasOpenFund}
-            onPress={onInvest}
-            style={[
-              styles.publicProfileInvestButton,
-              !hasOpenFund ? styles.publicProfileInvestButtonDisabled : null
-            ]}
-          >
-            <CircleDollarSign
-              color={hasOpenFund ? colors.onPrimary : colors.muted}
-              size={19}
-            />
-            <Text
-              style={[
-                styles.publicProfileInvestButtonText,
-                !hasOpenFund
-                  ? styles.publicProfileInvestButtonTextDisabled
-                  : null
-              ]}
-            >
-              {investmentLabel}
-            </Text>
-          </Pressable>
-          {!fund ? (
-            <Text style={styles.publicProfileInvestmentHint}>
-              Este perfil não possui uma bolsa de investimento aberta.
-            </Text>
+          {isProfessional && professionalSettings.externalLink ? (
+            <Pressable accessibilityRole="link" onPress={openExternalLink} style={styles.publicProfileLinkButton}>
+              <ExternalLink color={colors.onPrimary} size={18} />
+              <Text style={styles.publicProfileLinkButtonText}>Abrir link profissional</Text>
+            </Pressable>
           ) : null}
         </View>
 
@@ -255,20 +172,12 @@ export function PublicProfileScreen({
           hiddenVideoIds={hiddenPlayerIds}
           onOpenVideo={(video) => {
             const selectedVideo = videos.find((item) => item.id === video.id);
-
-            if (selectedVideo) {
-              onOpenVideo(selectedVideo);
-            }
+            if (selectedVideo) onOpenVideo(selectedVideo);
           }}
-          onSetVideoHidden={(video, hidden) =>
-            onSetVideoHidden(video.id, hidden)
-          }
+          onSetVideoHidden={(video, hidden) => onSetVideoHidden(video.id, hidden)}
           onShareVideo={(video, contact, message) => {
             const selectedVideo = videos.find((item) => item.id === video.id);
-
-            if (selectedVideo) {
-              onShareVideo(selectedVideo, contact, message);
-            }
+            if (selectedVideo) onShareVideo(selectedVideo, contact, message);
           }}
           profileAvatars={profileAvatars}
           shareContacts={shareContacts}
@@ -276,12 +185,7 @@ export function PublicProfileScreen({
           videos={galleryVideos}
         />
       </ScrollView>
-
-      <DetailHud
-        backLabel="Voltar"
-        onBack={onBack}
-        walletBalance={walletBalance}
-      />
+      <DetailHud backLabel="Voltar" onBack={onBack} />
     </View>
   );
 }

@@ -2,14 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Bell,
+  BriefcaseBusiness,
   Camera,
   LogOut,
   Menu,
   Play,
   Settings,
-  UserRoundPen,
-  WalletCards,
-  X
+  UserRoundPen
 } from "lucide-react-native";
 import {
   Alert,
@@ -19,7 +18,6 @@ import {
   ScrollView,
   Switch,
   Text,
-  TextInput,
   View
 } from "react-native";
 import { AvatarPositionModal } from "../components/AvatarPositionModal";
@@ -37,47 +35,47 @@ import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import { ScreenTransition } from "../components/AppShell";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import {
+import type {
   AccountProfile,
   AppUser,
-  AthleteFund,
-  Investment,
   MessageContact,
   Player,
+  ProfessionalSettings,
   ProfileAvatar,
   ProfileAvatarsByProfile,
+  PromotionCampaign,
   VideoSubmission
 } from "../types";
 import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
 import { AccountSetupScreen } from "./AccountSetupScreen";
-import { PortfolioScreen } from "./WalletScreen";
+import { ProfessionalDashboardScreen } from "./ProfessionalDashboardScreen";
 
-type ProfileView = "edit-profile" | "overview" | "wallet" | "settings";
+type ProfileView = "edit-profile" | "overview" | "professional" | "settings";
 
 export function ProfileScreen({
   accounts,
   avatar,
-  balance,
+  campaigns,
   followers,
   followersCount,
   following,
   followingCount,
-  fund,
   hiddenPlayerIds,
-  investments,
   likeCountsByPlayer,
+  messagesCount,
   onChangeAvatar,
   onDeleteVideo,
-  onDeposit,
-  onOpenFund,
   onOpenProfile,
   onOpenVideo,
+  onPromotePost,
   onSetVideoHidden,
   onShareVideo,
   onSignOut,
+  onToggleCampaign,
+  onUpdateProfessionalSettings,
   onUpdateProfile,
-  onWithdraw,
-  player,
+  professionalPosts,
+  professionalSettings,
   profileAvatars,
   shareContacts,
   submissions,
@@ -86,25 +84,19 @@ export function ProfileScreen({
 }: {
   accounts: AppUser[];
   avatar?: ProfileAvatar;
-  balance: number;
+  campaigns: PromotionCampaign[];
   followers: AppUser[];
   followersCount: number;
   following: AppUser[];
   followingCount: number;
-  fund?: AthleteFund;
   hiddenPlayerIds: Set<string>;
-  investments: Investment[];
   likeCountsByPlayer: Record<string, number>;
+  messagesCount: number;
   onChangeAvatar: (avatar: ProfileAvatar | null) => void;
   onDeleteVideo: (video: VideoSubmission) => Promise<boolean>;
-  onDeposit: (amount: number) => void;
-  onOpenFund: (
-    player: Player,
-    goalAmount: number,
-    minimumContribution: number
-  ) => void;
   onOpenProfile: (account: AppUser) => void;
   onOpenVideo: (video: VideoSubmission) => void;
+  onPromotePost: (player: Player) => void;
   onSetVideoHidden: (playerId: string, hidden: boolean) => void;
   onShareVideo: (
     video: VideoSubmission,
@@ -112,16 +104,17 @@ export function ProfileScreen({
     message: string
   ) => void;
   onSignOut: () => void;
+  onToggleCampaign: (campaignId: string) => void;
+  onUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
   onUpdateProfile: (profile: AccountProfile) => void;
-  onWithdraw: (amount: number) => void;
-  player?: Player;
+  professionalPosts: Player[];
+  professionalSettings: ProfessionalSettings;
   profileAvatars: ProfileAvatarsByProfile;
   shareContacts: MessageContact[];
   submissions: VideoSubmission[];
   user: AppUser;
   viewCountsByPlayer: Record<string, number>;
 }) {
-  const [isFundModalVisible, setIsFundModalVisible] = useState(false);
   const [isFollowersVisible, setIsFollowersVisible] = useState(false);
   const [isFollowingVisible, setIsFollowingVisible] = useState(false);
   const [isAvatarPositionVisible, setIsAvatarPositionVisible] = useState(false);
@@ -150,6 +143,10 @@ export function ProfileScreen({
   }));
   const totalProfileLikes = galleryVideos.reduce(
     (total, video) => total + (likeCountsByPlayer[video.id] ?? 0),
+    0
+  );
+  const totalProfileViews = galleryVideos.reduce(
+    (total, video) => total + (viewCountsByPlayer[video.id] ?? 0),
     0
   );
   const profileInitials = user.name
@@ -243,34 +240,25 @@ export function ProfileScreen({
     />
   );
 
-  if (profileView === "wallet") {
+  if (profileView === "professional") {
     return (
-      <>
-        <ScreenTransition key="wallet" style={styles.profileViewScene}>
-          <PortfolioScreen
-            balance={balance}
-            fund={fund}
-            investments={investments}
-            onBack={() => setProfileView("overview")}
-            onDeposit={onDeposit}
-            onRequestOpenFund={() => setIsFundModalVisible(true)}
-            onWithdraw={onWithdraw}
-            player={player}
-            submissionsCount={accountSubmissions.length}
-          />
-        </ScreenTransition>
-        {player ? (
-          <OpenFundModal
-            onClose={() => setIsFundModalVisible(false)}
-            onConfirm={(goalAmount, minimumContribution) => {
-              onOpenFund(player, goalAmount, minimumContribution);
-              setIsFundModalVisible(false);
-            }}
-            player={player}
-            visible={isFundModalVisible}
-          />
-        ) : null}
-      </>
+      <ScreenTransition key="professional" style={styles.profileViewScene}>
+        <ProfessionalDashboardScreen
+          campaigns={campaigns}
+          metrics={{
+            likes: totalProfileLikes,
+            messages: messagesCount,
+            posts: publishedVideos.length,
+            views: totalProfileViews
+          }}
+          onBack={() => setProfileView("overview")}
+          onPromotePost={onPromotePost}
+          onToggleCampaign={onToggleCampaign}
+          onUpdateSettings={onUpdateProfessionalSettings}
+          posts={professionalPosts}
+          settings={professionalSettings}
+        />
+      </ScreenTransition>
     );
   }
 
@@ -479,13 +467,13 @@ export function ProfileScreen({
       </ScreenTransition>
       <ProfileOptionsMenu
         onClose={() => setIsOptionsVisible(false)}
+        onOpenProfessional={() => openProfileView("professional")}
         onOpenSettings={() => openProfileView("settings")}
-        onOpenWallet={() => openProfileView("wallet")}
         onSignOut={() => {
           setIsOptionsVisible(false);
           onSignOut();
         }}
-        showWallet={user.role === "Usuário"}
+        showProfessional={user.role === "Usuário"}
         visible={isOptionsVisible}
       />
       <DeleteVideoModal
@@ -546,17 +534,17 @@ function toProfileListItem(
 
 function ProfileOptionsMenu({
   onClose,
+  onOpenProfessional,
   onOpenSettings,
-  onOpenWallet,
   onSignOut,
-  showWallet,
+  showProfessional,
   visible
 }: {
   onClose: () => void;
+  onOpenProfessional: () => void;
   onOpenSettings: () => void;
-  onOpenWallet: () => void;
   onSignOut: () => void;
-  showWallet: boolean;
+  showProfessional: boolean;
   visible: boolean;
 }) {
   return (
@@ -576,9 +564,9 @@ function ProfileOptionsMenu({
         />
         <View pointerEvents="box-none" style={styles.profileMenuLayer}>
           <View accessibilityViewIsModal style={styles.profileMenuPanel}>
-            <Text style={styles.profileMenuTitle}>Opcoes do perfil</Text>
+            <Text style={styles.profileMenuTitle}>Opções do perfil</Text>
             <Pressable
-              accessibilityLabel="Abrir configuracoes"
+              accessibilityLabel="Abrir configurações"
               accessibilityRole="button"
               onPress={onOpenSettings}
               style={styles.profileMenuItem}
@@ -586,15 +574,15 @@ function ProfileOptionsMenu({
               <Settings color={colors.text} size={20} />
               <Text style={styles.profileMenuItemText}>Configurações</Text>
             </Pressable>
-            {showWallet ? (
+            {showProfessional ? (
               <Pressable
-                accessibilityLabel="Abrir carteira"
+                accessibilityLabel="Abrir painel profissional"
                 accessibilityRole="button"
-                onPress={onOpenWallet}
+                onPress={onOpenProfessional}
                 style={styles.profileMenuItem}
               >
-                <WalletCards color={colors.text} size={20} />
-                <Text style={styles.profileMenuItemText}>Carteira</Text>
+                <BriefcaseBusiness color={colors.text} size={20} />
+                <Text style={styles.profileMenuItemText}>Painel profissional</Text>
               </Pressable>
             ) : null}
             <Pressable
@@ -612,7 +600,6 @@ function ProfileOptionsMenu({
     </Modal>
   );
 }
-
 function SettingsView({
   accountSubmissions,
   autoplayEnabled,
@@ -783,7 +770,7 @@ function SettingsView({
           <View style={styles.settingsRowBody}>
             <Text style={styles.settingsRowTitle}>Notificacoes</Text>
             <Text style={styles.settingsRowDescription}>
-              Avisos sobre vídeos, mensagens e investimentos.
+              Avisos sobre publicações, mensagens e campanhas.
             </Text>
           </View>
           <Switch
@@ -813,7 +800,7 @@ function SettingsView({
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Verificacao e KYC</Text>
+        <Text style={styles.settingsSectionTitle}>Conta e segurança</Text>
         <View style={styles.profileRowNoBorder}>
           <Text style={styles.profileLabel}>Email</Text>
           <Text numberOfLines={1} style={styles.profileValue}>
@@ -821,8 +808,10 @@ function SettingsView({
           </Text>
         </View>
         <View style={styles.profileRow}>
-          <Text style={styles.profileLabel}>Identidade</Text>
-          <Text style={styles.profileValue}>{user.kycStatus}</Text>
+          <Text style={styles.profileLabel}>Acesso</Text>
+          <Text style={styles.profileValue}>
+            {user.authProvider === "google" ? "Google" : "Email e senha"}
+          </Text>
         </View>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Termos</Text>
@@ -847,127 +836,5 @@ function SettingsView({
       ) : null}
 
     </ScrollView>
-  );
-}
-
-function OpenFundModal({
-  onClose,
-  onConfirm,
-  player,
-  visible
-}: {
-  onClose: () => void;
-  onConfirm: (goalAmount: number, minimumContribution: number) => void;
-  player: Player;
-  visible: boolean;
-}) {
-  const [goalText, setGoalText] = useState("5000");
-  const [minimumText, setMinimumText] = useState("50");
-  const goalAmount = Number(goalText.replace(/\D/g, "")) || 0;
-  const minimumContribution = Number(minimumText.replace(/\D/g, "")) || 0;
-  const canOpenFund =
-    goalAmount >= 1000 &&
-    goalAmount <= 1000000 &&
-    minimumContribution >= 10 &&
-    minimumContribution <= goalAmount;
-
-  function confirmFund() {
-    if (!canOpenFund) {
-      return;
-    }
-
-    onConfirm(goalAmount, minimumContribution);
-  }
-
-  return (
-    <Modal
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      transparent
-      visible={visible}
-    >
-      <View style={styles.depositModalRoot}>
-        <Pressable
-          accessibilityLabel="Fechar abertura da bolsa"
-          onPress={onClose}
-          style={styles.depositModalBackdrop}
-        />
-        <View accessibilityViewIsModal style={styles.depositDialog}>
-          <View style={styles.depositDialogHeader}>
-            <View style={styles.depositDialogTitleBlock}>
-              <Text style={styles.depositDialogTitle}>Abrir bolsa</Text>
-              <Text style={styles.depositDialogSubtitle}>
-                Vinculada ao perfil de {player.name}.
-              </Text>
-            </View>
-            <Pressable
-              accessibilityLabel="Fechar"
-              hitSlop={8}
-              onPress={onClose}
-              style={styles.depositCloseButton}
-            >
-              <X color={colors.muted} size={20} />
-            </Pressable>
-          </View>
-
-          <Text style={styles.inputLabel}>Meta de captação</Text>
-          <View style={styles.depositInputRow}>
-            <Text style={styles.depositCurrencyPrefix}>R$</Text>
-            <TextInput
-              keyboardType="number-pad"
-              onChangeText={setGoalText}
-              placeholder="5000"
-              placeholderTextColor={colors.muted}
-              style={styles.depositInput}
-              value={goalText}
-            />
-          </View>
-
-          <Text style={styles.openFundSecondLabel}>Aporte mínimo</Text>
-          <View style={styles.depositInputRow}>
-            <Text style={styles.depositCurrencyPrefix}>R$</Text>
-            <TextInput
-              keyboardType="number-pad"
-              onChangeText={setMinimumText}
-              placeholder="50"
-              placeholderTextColor={colors.muted}
-              style={styles.depositInput}
-              value={minimumText}
-            />
-          </View>
-
-          <View style={styles.openFundNotice}>
-            <Text style={styles.openFundNoticeText}>
-              Simulação sem dinheiro real. O atleta acompanha a meta, mas não
-              pode sacar os recursos da bolsa.
-            </Text>
-          </View>
-
-          {!canOpenFund ? (
-            <Text style={styles.validationText}>
-              Meta entre R$ 1.000 e R$ 1.000.000; aporte mínimo a partir de R$
-              10 e menor que a meta.
-            </Text>
-          ) : null}
-
-          <View style={styles.depositDialogActions}>
-            <Pressable onPress={onClose} style={styles.depositCancelButton}>
-              <Text style={styles.depositCancelText}>Cancelar</Text>
-            </Pressable>
-            <Pressable
-              disabled={!canOpenFund}
-              onPress={confirmFund}
-              style={[
-                styles.depositConfirmButton,
-                !canOpenFund ? styles.primaryButtonDisabled : null
-              ]}
-            >
-              <Text style={styles.depositConfirmText}>Abrir bolsa</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
   );
 }

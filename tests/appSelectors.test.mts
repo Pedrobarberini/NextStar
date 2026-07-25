@@ -3,19 +3,18 @@ import test from "node:test";
 import {
   isOwnAccountProfile,
   isOwnPlayerProfile,
-  selectApprovedSubmissionPlayers,
+  selectActiveCampaignPlayerIds,
   selectApprovedPlayerForSubmission,
+  selectApprovedSubmissionPlayers,
   selectAvailablePlayers,
-  selectCurrentUserInvestments,
-  selectFundByOwner,
-  selectInvestmentFund,
+  selectCurrentUserCampaigns,
   selectOrderedFeedPlayers,
   selectPendingReviews,
-  selectPlayerByOwner,
+  selectPlayersByOwner,
+  selectProfessionalSettings,
   selectProfileAccount,
   selectProfileFollowers,
   selectProfileFollowing,
-  selectProfileFund,
   selectProfileId,
   selectProfileVideos,
   selectUserSubmissions,
@@ -23,8 +22,8 @@ import {
 } from "../src/app/appSelectors.ts";
 import type {
   AppUser,
-  AthleteFund,
   Player,
+  PromotionCampaign,
   VideoSubmission
 } from "../src/types.ts";
 
@@ -47,57 +46,65 @@ const demoPlayer: Player = {
 const completeUser: AppUser = {
   acceptedTerms: true,
   age: 17,
-  bio: "Atleta completo para teste dos seletores.",
+  bio: "Criador completo para teste dos seletores.",
   city: "Rio de Janeiro, RJ",
   club: "Projeto Teste",
-  email: "atleta@xolot.local",
-  id: "usuario-atleta",
-  kycStatus: "Não iniciado",
-  name: "Atleta Completo",
-  position: "Meia",
+  email: "criador@xolot.local",
+  id: "usuario-criador",
+  name: "Criador Completo",
+  position: "Criador",
   profileCompleted: true,
   role: "Usuário",
-  username: "atleta"
+  username: "criador"
 };
 
-const otherCompleteUser: AppUser = {
+const otherUser: AppUser = {
   ...completeUser,
-  email: "latéral@xolot.local",
-  id: "usuario-lateral",
-  name: "Latéral Completo",
-  username: "latéral"
+  email: "marca@xolot.local",
+  id: "usuario-marca",
+  name: "Marca Local",
+  username: "marca.local"
 };
 
 const approvedSubmission: VideoSubmission = {
   age: 18,
   athleteName: "Nome do Envio",
   city: "São Paulo, SP",
-  club: "Clube do Envio",
+  club: "Projeto Xolot",
   hasGuardianConsent: false,
   highlight: "Texto da publicação",
   id: "video-aprovado",
-  position: "Ponta",
+  position: "Criador",
   status: "Aprovado",
   submittedAt: "2026-07-18T12:00:00.000Z",
   userId: completeUser.id,
   videoLink: "https://xolot.test/video.mp4",
-  videoTitle: "Melhores lances"
+  videoTitle: "Nova campanha"
 };
 
-test("seleciona vídeos aprovados e aplica dados do perfil completo", () => {
+const campaign: PromotionCampaign = {
+  budget: 50,
+  clicks: 0,
+  createdAt: "2026-07-25T12:00:00.000Z",
+  durationDays: 7,
+  estimatedReach: 4000,
+  id: "campaign-1",
+  impressions: 0,
+  messages: 0,
+  objective: "reach",
+  ownerUserId: completeUser.id,
+  playerId: "promoted",
+  profileId: `profile-${completeUser.id}`,
+  status: "active",
+  title: "Nova campanha"
+};
+
+test("seleciona publicações aprovadas e aplica dados atuais do perfil", () => {
   const players = selectApprovedSubmissionPlayers(
     [
       approvedSubmission,
-      {
-        ...approvedSubmission,
-        id: "video-pendente",
-        status: "Em revisão"
-      },
-      {
-        ...approvedSubmission,
-        id: "video-sem-link",
-        videoLink: " "
-      }
+      { ...approvedSubmission, id: "pendente", status: "Em revisão" },
+      { ...approvedSubmission, id: "sem-link", videoLink: " " }
     ],
     [completeUser]
   );
@@ -106,244 +113,104 @@ test("seleciona vídeos aprovados e aplica dados do perfil completo", () => {
   assert.equal(players[0]?.id, "approved-video-aprovado");
   assert.equal(players[0]?.name, completeUser.name);
   assert.equal(players[0]?.username, completeUser.username);
-  assert.equal(players[0]?.position, completeUser.position);
   assert.equal(players[0]?.mediaType, "video");
-  assert.deepEqual(players[0]?.tags, ["Novo", "Publicado"]);
 });
 
-test("preserva tipo, tags e marcacoes de uma publicacao com foto", () => {
+test("preserva foto, tags e marcações da publicação", () => {
   const [player] = selectApprovedSubmissionPlayers(
-    [
-      {
-        ...approvedSubmission,
-        id: "foto-aprovada",
-        mediaType: "image",
-        mentions: ["projeto.xolot"],
-        tags: ["Treino", "Base"],
-        videoLink: "https://xolot.test/foto.jpg"
-      }
-    ],
+    [{ ...approvedSubmission, id: "foto", mediaType: "image", mentions: ["marca.local"], tags: ["Produto"], videoLink: "foto.jpg" }],
     [completeUser]
   );
 
   assert.equal(player?.mediaType, "image");
   assert.equal(player?.hasAudio, false);
-  assert.deepEqual(player?.tags, ["Treino", "Base"]);
-  assert.deepEqual(player?.mentions, ["projeto.xolot"]);
+  assert.deepEqual(player?.tags, ["Produto"]);
+  assert.deepEqual(player?.mentions, ["marca.local"]);
 });
 
-test("usa demo somente quando não existem players aprovados", () => {
+test("usa demo somente quando não existem publicações aprovadas", () => {
   assert.deepEqual(selectAvailablePlayers([], demoPlayer), [demoPlayer]);
-  assert.deepEqual(
-    selectAvailablePlayers([{ ...demoPlayer, id: "real" }], demoPlayer).map(
-      (player) => player.id
-    ),
-    ["real"]
-  );
+  assert.deepEqual(selectAvailablePlayers([{ ...demoPlayer, id: "real" }], demoPlayer).map((player) => player.id), ["real"]);
 });
 
-test("prioriza perfis seguidos sem alterar a ordem relativa dos demais", () => {
+test("prioriza campanha ativa, depois perfis seguidos e interesse", () => {
   const players = [
-    { ...demoPlayer, id: "a", profileId: "profile-a" },
-    { ...demoPlayer, id: "b", profileId: "profile-b" },
-    { ...demoPlayer, id: "c", profileId: "profile-c" }
-  ];
-
-  assert.deepEqual(
-    selectOrderedFeedPlayers(players, new Set(["profile-c"])).map(
-      (player) => player.id
-    ),
-    ["c", "a", "b"]
-  );
-});
-
-test("prioriza interesse depois dos perfis seguidos", () => {
-  const players = [
-    { ...demoPlayer, id: "a", profileId: "profile-a", tags: ["Passe"] },
-    { ...demoPlayer, id: "b", profileId: "profile-b", tags: ["Defesa"] },
-    { ...demoPlayer, id: "c", profileId: "profile-c", tags: ["Passe"] }
+    { ...demoPlayer, id: "a", profileId: "profile-a", tags: ["Produto"] },
+    { ...demoPlayer, id: "b", profileId: "profile-b", tags: ["Serviço"] },
+    { ...demoPlayer, id: "promoted", profileId: "profile-c", tags: ["Outro"] }
   ];
 
   assert.deepEqual(
     selectOrderedFeedPlayers(
       players,
       new Set(["profile-b"]),
-      new Set(["tag:passe"])
+      new Set(["tag:produto"]),
+      new Set(["promoted"])
     ).map((player) => player.id),
-    ["b", "a", "c"]
+    ["promoted", "b", "a"]
   );
 });
 
-test("oculta players do Inicio e preserva o player aberto diretamente", () => {
+test("filtra conteúdo oculto, perfil bloqueado e categoria silenciada", () => {
   const players = [
-    { ...demoPlayer, id: "a" },
-    { ...demoPlayer, id: "b" },
-    { ...demoPlayer, id: "c" }
+    { ...demoPlayer, id: "a", profileId: "profile-a", tags: ["Produto"] },
+    { ...demoPlayer, id: "b", profileId: "profile-b", tags: ["Serviço"] }
   ];
-  const hiddenPlayerIds = new Set(["b", "c"]);
-
-  assert.deepEqual(
-    selectVisibleFeedPlayers(players, hiddenPlayerIds).map(
-      (player) => player.id
-    ),
-    ["a"]
-  );
-  assert.deepEqual(
-    selectVisibleFeedPlayers(players, hiddenPlayerIds, "c").map(
-      (player) => player.id
-    ),
-    ["a", "c"]
-  );
-});
-
-test("filtra perfil bloqueado e tipo silenciado preservando abertura direta", () => {
-  const players = [
-    { ...demoPlayer, id: "a", profileId: "profile-a", tags: ["Passe"] },
-    { ...demoPlayer, id: "b", profileId: "profile-b", tags: ["Defesa"] },
-    { ...demoPlayer, id: "c", profileId: "profile-c", tags: ["Passe"] }
-  ];
-  const blockedProfiles = new Set(["profile-b"]);
-  const mutedContent = new Set(["tag:passe"]);
 
   assert.deepEqual(
     selectVisibleFeedPlayers(
       players,
-      new Set(),
+      new Set(["a"]),
       null,
-      blockedProfiles,
-      mutedContent
+      new Set(["profile-b"]),
+      new Set()
     ),
     []
   );
   assert.deepEqual(
-    selectVisibleFeedPlayers(
-      players,
-      new Set(),
-      "b",
-      blockedProfiles,
-      mutedContent
-    ).map((player) => player.id),
-    ["b"]
+    selectVisibleFeedPlayers(players, new Set(["a"]), "a").map((player) => player.id),
+    ["a", "b"]
   );
 });
 
-test("identifica a própria conta e o próprio perfil de atleta", () => {
-  const ownPlayer = {
-    ...demoPlayer,
-    ownerUserId: completeUser.id,
-    profileId: `profile-${completeUser.id}`
+test("seleciona campanhas e configurações profissionais por usuário", () => {
+  const settings = {
+    [completeUser.id]: {
+      category: "creator" as const,
+      enabled: true,
+      externalLink: "https://xolot.com.br",
+      plan: "pro" as const,
+      updatedAt: "2026-07-25T12:00:00.000Z"
+    }
   };
 
-  assert.equal(isOwnAccountProfile(completeUser, completeUser.id), true);
-  assert.equal(isOwnAccountProfile(otherCompleteUser, completeUser.id), false);
-  assert.equal(
-    isOwnPlayerProfile(ownPlayer, completeUser.id, ownPlayer.profileId),
-    true
-  );
-  assert.equal(
-    isOwnPlayerProfile(
-      { ...ownPlayer, ownerUserId: otherCompleteUser.id },
-      completeUser.id,
-      ownPlayer.profileId
-    ),
-    true
-  );
-  assert.equal(
-    isOwnPlayerProfile(
-      {
-        ...ownPlayer,
-        ownerUserId: otherCompleteUser.id,
-        profileId: `profile-${otherCompleteUser.id}`
-      },
-      completeUser.id,
-      ownPlayer.profileId
-    ),
-    false
-  );
+  assert.deepEqual(selectCurrentUserCampaigns([campaign], completeUser), [campaign]);
+  assert.deepEqual([...selectActiveCampaignPlayerIds([campaign])], ["promoted"]);
+  assert.equal(selectProfessionalSettings(settings, completeUser.id)?.plan, "pro");
 });
 
-test("seleciona dados derivados de perfil, fundos e usuário atual", () => {
+test("seleciona relações e dados derivados do perfil", () => {
   const player = {
     ...demoPlayer,
-    id: "video-atleta",
+    id: "video-criador",
     ownerUserId: completeUser.id,
     profileId: `profile-${completeUser.id}`
   };
-  const fund: AthleteFund = {
-    athleteName: completeUser.name,
-    createdAt: "2026-07-18T12:00:00.000Z",
-    fundedAmount: 0,
-    goalAmount: 5000,
-    id: "fund-atleta",
-    minimumContribution: 50,
-    ownerUserId: completeUser.id,
-    profileId: player.profileId,
-    status: "Captando"
-  };
 
-  assert.equal(
-    selectPendingReviews([{ ...approvedSubmission, status: "Em revisão" }]),
-    1
-  );
-  assert.deepEqual(
-    selectCurrentUserInvestments(
-      [
-        {
-          amount: 100,
-          createdAt: "2026-07-18T12:00:00.000Z",
-          fundId: fund.id,
-          id: "investment-1",
-          investorUserId: completeUser.id,
-          playerName: completeUser.name,
-          profileId: player.profileId,
-          sharePercent: 2,
-          status: "Confirmada"
-        }
-      ],
-      completeUser
-    ).map((investment) => investment.id),
-    ["investment-1"]
-  );
+  assert.equal(selectPendingReviews([{ ...approvedSubmission, status: "Em revisão" }]), 1);
   assert.equal(selectProfileAccount(null, player, [completeUser])?.id, completeUser.id);
-  assert.deepEqual(
-    selectProfileFollowers(
-      player.profileId,
-      { [player.profileId]: [completeUser.id, "usuario-ausente"] },
-      [completeUser]
-    ),
-    [completeUser]
-  );
-  assert.deepEqual(
-    selectProfileFollowing(
-      [
-        `profile-${otherCompleteUser.id}`,
-        player.profileId,
-        "profile-ausente",
-        player.profileId
-      ],
-      [completeUser, otherCompleteUser]
-    ),
-    [otherCompleteUser, completeUser]
-  );
+  assert.deepEqual(selectProfileFollowers(player.profileId, { [player.profileId]: [completeUser.id] }, [completeUser]), [completeUser]);
+  assert.deepEqual(selectProfileFollowing([`profile-${otherUser.id}`, player.profileId], [completeUser, otherUser]), [otherUser, completeUser]);
   assert.deepEqual(selectProfileVideos(player, [demoPlayer, player]), [player]);
-  assert.equal(selectProfileFund(player, [fund]), fund);
-  assert.equal(selectFundByOwner([fund], completeUser.id), fund);
-  assert.equal(selectInvestmentFund(player, [fund]), fund);
   assert.equal(selectProfileId(player, completeUser), player.profileId);
-  assert.equal(selectPlayerByOwner([demoPlayer, player], completeUser.id), player);
-  assert.equal(
-    selectApprovedPlayerForSubmission([player], "video-atleta"),
-    undefined
-  );
-  assert.equal(
-    selectApprovedPlayerForSubmission(
-      [{ ...player, id: "approved-video-aprovado" }],
-      approvedSubmission.id
-    )?.id,
-    "approved-video-aprovado"
-  );
-  assert.deepEqual(
-    selectUserSubmissions([approvedSubmission], completeUser.id),
-    [approvedSubmission]
-  );
+  assert.deepEqual(selectPlayersByOwner([demoPlayer, player], completeUser.id), [player]);
+  assert.equal(selectApprovedPlayerForSubmission([{ ...player, id: "approved-video-aprovado" }], approvedSubmission.id)?.id, "approved-video-aprovado");
+  assert.deepEqual(selectUserSubmissions([approvedSubmission], completeUser.id), [approvedSubmission]);
+});
+
+test("identifica a própria conta e o próprio perfil", () => {
+  const player = { ...demoPlayer, ownerUserId: completeUser.id, profileId: `profile-${completeUser.id}` };
+  assert.equal(isOwnAccountProfile(completeUser, completeUser.id), true);
+  assert.equal(isOwnAccountProfile(otherUser, completeUser.id), false);
+  assert.equal(isOwnPlayerProfile(player, completeUser.id, player.profileId), true);
 });

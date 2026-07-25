@@ -2,50 +2,60 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   APP_STATE_SCHEMA_VERSION,
-  createLocalAppStateRepository,
   createDefaultLocalAppState,
+  createLocalAppStateRepository,
   migrateLocalAppState,
   parseLocalAppState,
   serializeLocalAppState
 } from "../src/repositories/appStateSchema.ts";
 
-const demoFund = {
-  athleteName: "Perfil demonstrativo",
-  createdAt: "2026-07-01T00:00:00.000Z",
-  fundedAmount: 0,
-  goalAmount: 5000,
-  id: "demo-athlete-fund",
-  minimumContribution: 50,
-  ownerUserId: "demo-athlete",
-  profileId: "nextstar-demo-profile",
-  status: "Captando" as const
+const campaign = {
+  budget: 50,
+  clicks: 0,
+  createdAt: "2026-07-25T12:00:00.000Z",
+  durationDays: 7,
+  estimatedReach: 4200,
+  id: "campaign-1",
+  impressions: 0,
+  messages: 0,
+  objective: "reach" as const,
+  ownerUserId: "usuario-teste",
+  playerId: "approved-video-1",
+  profileId: "profile-usuario-teste",
+  status: "active" as const,
+  title: "Campanha de lançamento"
+};
+
+const professionalSettings = {
+  category: "creator" as const,
+  enabled: true,
+  externalLink: "https://xolot.com.br",
+  plan: "pro" as const,
+  updatedAt: "2026-07-25T12:00:00.000Z"
 };
 
 test("retorna o estado inicial quando não existe valor persistido", () => {
-  const fallback = createDefaultLocalAppState([demoFund]);
-
+  const fallback = createDefaultLocalAppState();
   assert.deepEqual(parseLocalAppState(null, fallback), fallback);
   assert.deepEqual(parseLocalAppState("json-inválido", fallback), fallback);
 });
 
-test("migra estado sem versão e preserva dados válidos", () => {
-  const fallback = createDefaultLocalAppState([demoFund]);
+test("migra estado antigo preservando conta e descartando carteira e investimentos", () => {
+  const fallback = createDefaultLocalAppState();
   const migrated = migrateLocalAppState(
     {
       activeUser: {
         acceptedTerms: true,
         email: "teste@xolot.local",
         id: "usuario-teste",
-        kycStatus: "Não iniciado",
         name: "Teste",
         role: "Usuário"
       },
+      athleteFunds: [{ id: "fund-antigo" }],
+      investments: [{ id: "investment-antigo" }],
       registeredUsers: [],
       submissions: [],
-      walletBalances: {
-        "usuario-teste": 350,
-        inválido: -10
-      }
+      walletBalances: { "usuario-teste": 350 }
     },
     fallback
   );
@@ -53,45 +63,43 @@ test("migra estado sem versão e preserva dados válidos", () => {
   assert.equal(migrated.version, APP_STATE_SCHEMA_VERSION);
   assert.equal(migrated.activeUser?.id, "usuario-teste");
   assert.equal(migrated.activeUser?.profileCompleted, false);
-  assert.equal(migrated.activeUser?.age, null);
-  assert.equal(migrated.activeUser?.bio, "");
   assert.equal(migrated.activeUser?.username, "teste");
   assert.equal(migrated.registeredUsers[0]?.id, "usuario-teste");
-  assert.deepEqual(migrated.athleteFunds, [demoFund]);
-  assert.deepEqual(migrated.walletBalances, { "usuario-teste": 350 });
+  assert.deepEqual(migrated.campaigns, []);
+  assert.deepEqual(migrated.professionalSettingsByUser, {});
+  assert.equal("walletBalances" in migrated, false);
+  assert.equal("athleteFunds" in migrated, false);
+  assert.equal("investments" in migrated, false);
 });
 
 test("preserva perfil completo e credencial sem expor senha em texto", () => {
-  const fallback = createDefaultLocalAppState();
   const migrated = migrateLocalAppState(
     {
       activeUser: null,
       registeredUsers: [
         {
           acceptedTerms: true,
-          age: 17,
-          bio: "Atleta focado em evolução e oportunidades no futebol.",
+          age: 27,
+          bio: "Criador focado em publicidade e conteúdo local.",
           city: "São Paulo, SP",
-          club: "Projeto Xolot",
-          email: "atleta@xolot.local",
-          id: "usuario-atleta@xolot.local",
-          kycStatus: "Não iniciado",
-          name: "Atleta Xolot",
+          club: "Estúdio Xolot",
+          email: "criador@xolot.local",
+          id: "usuario-criador",
+          name: "Criador Xolot",
           passwordHash: "hash-seguro",
           passwordSalt: "salt-aleatório",
-          position: "Ponta",
+          position: "Criador",
           profileCompleted: true,
           role: "Usuário"
         }
       ]
     },
-    fallback
+    createDefaultLocalAppState()
   );
 
   assert.equal(migrated.registeredUsers[0]?.profileCompleted, true);
-  assert.equal(migrated.registeredUsers[0]?.bio, "Atleta focado em evolução e oportunidades no futebol.");
   assert.equal(migrated.registeredUsers[0]?.passwordHash, "hash-seguro");
-  assert.equal(migrated.registeredUsers[0]?.username, "atleta");
+  assert.equal(migrated.registeredUsers[0]?.username, "criador");
   assert.equal("password" in migrated.registeredUsers[0], false);
 });
 
@@ -100,76 +108,66 @@ test("migra usernames repetidos para identificadores únicos", () => {
     {
       activeUser: null,
       registeredUsers: [
-        {
-          acceptedTerms: true,
-          email: "primeiro@xolot.local",
-          id: "usuario-primeiro",
-          kycStatus: "Não iniciado",
-          name: "Pedro Barberini",
-          role: "Usuário",
-          username: "pedro"
-        },
-        {
-          acceptedTerms: true,
-          email: "segundo@xolot.local",
-          id: "usuario-segundo",
-          kycStatus: "Não iniciado",
-          name: "Pedro Barberini",
-          role: "Usuário",
-          username: "Pedro"
-        }
+        { acceptedTerms: true, email: "primeiro@xolot.local", id: "primeiro", name: "Pedro", role: "Usuário", username: "pedro" },
+        { acceptedTerms: true, email: "segundo@xolot.local", id: "segundo", name: "Pedro", role: "Usuário", username: "Pedro" }
       ]
     },
     createDefaultLocalAppState()
   );
 
-  assert.deepEqual(
-    migrated.registeredUsers.map((account) => account.username),
-    ["pedro", "pedro_2"]
-  );
-  assert.equal(migrated.registeredUsers[0]?.name, "Pedro Barberini");
-  assert.equal(migrated.registeredUsers[1]?.name, "Pedro Barberini");
+  assert.deepEqual(migrated.registeredUsers.map((account) => account.username), ["pedro", "pedro_2"]);
 });
 
-test("serialização e leitura preservam o estado completo", () => {
-  const staté = {
-    ...createDefaultLocalAppState([demoFund]),
-    walletBalances: { "usuario-teste": 1200 }
-  };
-  const serialized = serializeLocalAppState(staté);
-  const restored = parseLocalAppState(
-    serialized,
+test("normaliza campanhas e configurações profissionais válidas", () => {
+  const migrated = migrateLocalAppState(
+    {
+      activeUser: null,
+      campaigns: [campaign, { id: "incompleta" }],
+      professionalSettingsByUser: {
+        "usuario-teste": professionalSettings,
+        inválido: null
+      },
+      registeredUsers: [],
+      submissions: []
+    },
     createDefaultLocalAppState()
   );
 
-  assert.deepEqual(restored, staté);
+  assert.deepEqual(migrated.campaigns, [campaign]);
+  assert.deepEqual(migrated.professionalSettingsByUser, {
+    "usuario-teste": professionalSettings
+  });
+});
+
+test("serialização e leitura preservam o estado profissional completo", () => {
+  const state = {
+    ...createDefaultLocalAppState(),
+    campaigns: [campaign],
+    professionalSettingsByUser: { "usuario-teste": professionalSettings }
+  };
+  const restored = parseLocalAppState(
+    serializeLocalAppState(state),
+    createDefaultLocalAppState()
+  );
+
+  assert.deepEqual(restored, state);
 });
 
 test("repositório salva, carrega e limpa o estado", async () => {
   const memory = new Map<string, string>();
   const repository = createLocalAppStateRepository(
     {
-      async getItem(key) {
-        return memory.get(key) ?? null;
-      },
-      async removeItem(key) {
-        memory.delete(key);
-      },
-      async setItem(key, value) {
-        memory.set(key, value);
-      }
+      async getItem(key) { return memory.get(key) ?? null; },
+      async removeItem(key) { memory.delete(key); },
+      async setItem(key, value) { memory.set(key, value); }
     },
-    "app-staté-test"
+    "app-state-test"
   );
-  const fallback = createDefaultLocalAppState([demoFund]);
-  const staté = {
-    ...fallback,
-    walletBalances: { "usuario-teste": 900 }
-  };
+  const fallback = createDefaultLocalAppState();
+  const state = { ...fallback, campaigns: [campaign] };
 
-  await repository.save(staté);
-  assert.deepEqual(await repository.load(fallback), staté);
-
+  await repository.save(state);
+  assert.deepEqual(await repository.load(fallback), state);
   await repository.clear();
   assert.deepEqual(await repository.load(fallback), fallback);
 });
