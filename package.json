@@ -14,7 +14,7 @@
     "ios": "expo start --ios",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mts",
     "web": "expo start --web",
-    "build:web": "node scripts/clean-dist.mjs && expo export --platform web --output-dir dist && node scripts/prepare-web.mjs && workbox generateSW workbox-config.js",
+    "build:web": "node scripts/clean-dist.mjs && expo export --clear --platform web --output-dir dist && node scripts/prepare-web.mjs && workbox generateSW workbox-config.js",
     "typecheck": "tsc --noEmit",
     "deploy:firebase": "pnpm run build:web && pnpm dlx firebase-tools@latest deploy --only hosting,firestore",
     "deploy:firebase:hosting": "pnpm run build:web && pnpm dlx firebase-tools@latest deploy --only hosting"

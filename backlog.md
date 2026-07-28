@@ -303,7 +303,7 @@ Status: Preparação local concluída em 2026-07-28; ativação externa pendente
 - [x] Tornar o pós-processamento do PWA independente do GitHub Pages.
 - [x] Remover o workflow que publicava novos builds no GitHub Pages.
 - [x] Adicionar scripts de deploy de Hosting e Firestore.
-- [ ] Associar o projeto Firebase local ao projeto criado no Console.
+- [x] Associar o projeto Firebase local ao projeto `xolot-384e9`.
 - [ ] Publicar e validar o app no subdomínio `web.app`.
 - [ ] Migrar `xolot.com.br` usando os registros DNS fornecidos pelo Firebase.
 - [ ] Confirmar certificado HTTPS e só então despublicar o GitHub Pages.
