@@ -283,7 +283,7 @@ Tipo: Frontend/UX
 
 Tipo: Infra/Qualidade
 
-- [x] Publicar web por GitHub Actions e domínio próprio.
+- [x] Publicar a versão web anterior por GitHub Actions e domínio próprio.
 - [x] Executar testes unitários do estado local.
 - [ ] Executar typecheck, testes e build em toda pull request.
 - [ ] Adicionar monitoramento de erros com contexto não sensível.
@@ -291,6 +291,23 @@ Tipo: Infra/Qualidade
 - [ ] Criar alertas para falha de deploy e API.
 - [ ] Criar política de backup e restauração do banco.
 
+### Task P2-004 - Migrar publicação para Firebase Hosting
+
+Tipo: Infra/Segurança
+
+Status: Preparação local concluída em 2026-07-28; ativação externa pendente.
+
+- [x] Configurar `dist` como raiz pública do Firebase Hosting.
+- [x] Configurar fallback de SPA para `index.html`.
+- [x] Definir cache curto para manifest e sem cache para o service worker.
+- [x] Tornar o pós-processamento do PWA independente do GitHub Pages.
+- [x] Remover o workflow que publicava novos builds no GitHub Pages.
+- [x] Adicionar scripts de deploy de Hosting e Firestore.
+- [ ] Associar o projeto Firebase local ao projeto criado no Console.
+- [ ] Publicar e validar o app no subdomínio `web.app`.
+- [ ] Migrar `xolot.com.br` usando os registros DNS fornecidos pelo Firebase.
+- [ ] Confirmar certificado HTTPS e só então despublicar o GitHub Pages.
+- [ ] Tornar o repositório privado depois de confirmar que nenhum fluxo público depende dele.
 ## P3 - Expansão após validação
 
 - [ ] Marketplace de serviços entre profissionais e marcas.

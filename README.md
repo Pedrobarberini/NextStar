@@ -67,11 +67,21 @@ pnpm run build:web
 6. Copie `.env.example` para `.env` e preencha apenas as variáveis públicas `EXPO_PUBLIC_*`.
 7. Publique regras e índices com `firebase deploy --only firestore --project SEU_PROJECT_ID`.
 8. Registre o app web no App Check com reCAPTCHA Enterprise, monitore as métricas e só depois habilite enforcement.
-9. Cadastre as mesmas variáveis nos GitHub Actions Secrets para o deploy web.
+9. Gere o build e publique Hosting, regras e índices com `pnpm run deploy:firebase -- --project SEU_PROJECT_ID`.
 
 A API key do Firebase e a chave de site do App Check identificam o app, mas não substituem segurança. A proteção efetiva está nas regras do Firestore, Auth, App Check e validações server-side.
 
-Nunca inclua no app, no `.env` público ou no GitHub Pages uma service account, chave privada, token Admin SDK ou segredo de provedor. Funções administrativas futuras devem rodar em Cloud Functions/Cloud Run com custom claims.
+Nunca inclua no app, no `.env` público ou no Firebase Hosting uma service account, chave privada, token Admin SDK ou segredo de provedor. Funções administrativas futuras devem rodar em Cloud Functions/Cloud Run com custom claims.
+### Publicação no Firebase Hosting
+
+O código-fonte pode permanecer em um repositório privado. O navegador recebe apenas o build de `dist`, mas esse JavaScript compilado continua sendo conteúdo público e não pode conter segredos administrativos.
+
+```bash
+pnpm dlx firebase-tools@latest login
+pnpm run deploy:firebase -- --project SEU_PROJECT_ID
+```
+
+O `firebase.json` publica `dist` como SPA, preserva as rotas do app e controla o cache do service worker. Valide primeiro o endereço `SEU_PROJECT_ID.web.app`; depois conecte `xolot.com.br` em Firebase Console > Hosting > Add custom domain e aplique exatamente os registros DNS exibidos pelo Firebase.
 
 ### Modelo de dados desta fase
 

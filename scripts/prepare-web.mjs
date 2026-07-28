@@ -41,13 +41,13 @@ const pwaHeadTags = `    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Xolot" />
-    <link rel="manifest" href="./manifest.json" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />`;
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />`;
 
 const serviceWorkerScript = `    <script id="xolot-pwa-register">
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
-          navigator.serviceWorker.register("./sw.js").catch(function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {
             /* PWA opcional: falha silenciosa em ambientes sem SW */
           });
         });
@@ -74,13 +74,7 @@ function walk(dir) {
     }
 
     const source = readFileSync(path, "utf8");
-    let updated = source
-      .replace(/(["'=])\/_expo\//g, "$1./_expo/")
-      .replace(/(["'=])\/assets\//g, "$1./assets/")
-      .replace(/(["'=])\/favicon\.ico/g, "$1./favicon.ico")
-      .replace(/(["'=])\/manifest\.json/g, "$1./manifest.json")
-      .replace(/(["'=])\/icons\//g, "$1./icons/")
-      .replace(/(["'=])\/sw\.js/g, "$1./sw.js");
+    let updated = source;
 
     if (getExtension(path) === ".html") {
       if (!updated.includes("xolot-page-shell")) {
