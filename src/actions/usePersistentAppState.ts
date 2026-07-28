@@ -14,7 +14,6 @@ import {
   saveLocalAppState
 } from "../repositories/localRepository";
 import {
-  AppUser,
   ProfessionalSettingsByUser,
   PromotionCampaign,
   VideoSubmission
@@ -84,20 +83,12 @@ export function usePersistentAppState() {
     []
   );
 
-  const setUser: Dispatch<SetStateAction<AppUser | null>> = useCallback(
-    (update) => setSlice("activeUser", update),
-    [setSlice]
-  );
   const setCampaigns: Dispatch<SetStateAction<PromotionCampaign[]>> =
     useCallback((update) => setSlice("campaigns", update), [setSlice]);
   const setProfessionalSettingsByUser: Dispatch<
     SetStateAction<ProfessionalSettingsByUser>
   > = useCallback(
     (update) => setSlice("professionalSettingsByUser", update),
-    [setSlice]
-  );
-  const setRegisteredUsers: Dispatch<SetStateAction<AppUser[]>> = useCallback(
-    (update) => setSlice("registeredUsers", update),
     [setSlice]
   );
   const setSubmissions: Dispatch<SetStateAction<VideoSubmission[]>> =
@@ -107,13 +98,9 @@ export function usePersistentAppState() {
     campaigns: appState.campaigns,
     isAppStateLoaded,
     professionalSettingsByUser: appState.professionalSettingsByUser,
-    registeredUsers: appState.registeredUsers,
     setCampaigns,
     setProfessionalSettingsByUser,
-    setRegisteredUsers,
     setSubmissions,
-    setUser,
-    submissions: appState.submissions,
-    user: appState.activeUser
+    submissions: appState.submissions
   };
 }

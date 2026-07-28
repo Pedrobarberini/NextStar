@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createAppActions } from "./src/actions/createAppActions";
+import { useFirebaseAccounts } from "./src/actions/useFirebaseAccounts";
 import { usePersistentAppState } from "./src/actions/usePersistentAppState";
 import { useProfileActions } from "./src/actions/useProfileActions";
 import { useSocialActions } from "./src/actions/useSocialActions";
@@ -64,21 +65,24 @@ export default function App() {
     campaigns,
     isAppStateLoaded,
     professionalSettingsByUser,
-    registeredUsers,
     setCampaigns,
     setProfessionalSettingsByUser,
-    setRegisteredUsers,
     setSubmissions,
-    setUser,
-    submissions,
-    user
+    submissions
   } = usePersistentAppState();
+  const {
+    isSessionLoaded,
+    registeredUsers,
+    setRegisteredUsers,
+    setUser,
+    user
+  } = useFirebaseAccounts();
 
   useEffect(() => {
-    if (!isAppStateLoaded || hasRestoredInitialRoute.current) return;
+    if (!isAppStateLoaded || !isSessionLoaded || hasRestoredInitialRoute.current) return;
     if (user?.role === "Admin") setTab("admin");
     hasRestoredInitialRoute.current = true;
-  }, [isAppStateLoaded, setTab, user?.role]);
+  }, [isAppStateLoaded, isSessionLoaded, setTab, user?.role]);
 
   const approvedSubmissionPlayers = useMemo(
     () => selectApprovedSubmissionPlayers(submissions, registeredUsers),
@@ -235,14 +239,13 @@ export default function App() {
     handleSignOut();
   }
 
-  if (!isAppStateLoaded) {
+  if (!isAppStateLoaded || !isSessionLoaded) {
     return <LoadingAppShell isVisible={isBrandLaunchVisible} onFinish={() => setIsBrandLaunchVisible(false)} />;
   }
 
   if (!user) {
     return (
       <LoggedOutAppShell
-        accounts={registeredUsers}
         isVisible={isBrandLaunchVisible}
         onComplete={handleAuth}
         onFinish={() => setIsBrandLaunchVisible(false)}

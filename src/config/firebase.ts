@@ -1,5 +1,12 @@
 import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
-import { Auth, getAuth } from "firebase/auth";
+import {
+  ReCaptchaEnterpriseProvider,
+  initializeAppCheck
+} from "firebase/app-check";
+import type { Auth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
+import { Platform } from "react-native";
+import { initializeFirebaseAuth } from "./firebaseAuth";
 
 export type FirebasePublicConfig = {
   apiKey: string;
@@ -34,6 +41,27 @@ function readConfig(): FirebasePublicConfig | null {
 }
 
 const firebaseConfig = readConfig();
+let isAppCheckInitialized = false;
+let firebaseAuth: Auth | null = null;
+
+function initializeClientProtection(app: FirebaseApp) {
+  const siteKey =
+    process.env.EXPO_PUBLIC_FIREBASE_APPCHECK_SITE_KEY?.trim();
+
+  if (Platform.OS !== "web" || !siteKey || isAppCheckInitialized) {
+    return;
+  }
+
+  try {
+    initializeAppCheck(app, {
+      isTokenAutoRefreshEnabled: true,
+      provider: new ReCaptchaEnterpriseProvider(siteKey)
+    });
+    isAppCheckInitialized = true;
+  } catch {
+    // A instância já pode ter sido criada pelo hot reload do Expo.
+  }
+}
 
 export function isFirebaseConfigured() {
   return firebaseConfig !== null;
@@ -42,21 +70,26 @@ export function isFirebaseConfigured() {
 export function getFirebaseApp(): FirebaseApp {
   if (!firebaseConfig) {
     throw new Error(
-      "Firebase não configurado. Defina as variaveis EXPO_PUBLIC_FIREBASE_* no arquivo .env."
+      "Firebase não configurado. Defina as variáveis EXPO_PUBLIC_FIREBASE_* no arquivo .env."
     );
   }
 
-  if (getApps().length > 0) {
-    return getApp();
-  }
-
-  return initializeApp(firebaseConfig);
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  initializeClientProtection(app);
+  return app;
 }
 
 export function getFirebaseAuth(): Auth {
-  const auth = getAuth(getFirebaseApp());
-  auth.languageCode = "pt-BR";
-  return auth;
+  if (!firebaseAuth) {
+    firebaseAuth = initializeFirebaseAuth(getFirebaseApp());
+    firebaseAuth.languageCode = "pt-BR";
+  }
+
+  return firebaseAuth;
+}
+
+export function getFirebaseFirestore(): Firestore {
+  return getFirestore(getFirebaseApp());
 }
 
 export function getGoogleClientIds() {
@@ -65,4 +98,8 @@ export function getGoogleClientIds() {
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim(),
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim()
   };
+}
+
+export function getPublicAppUrl() {
+  return process.env.EXPO_PUBLIC_APP_URL?.trim() || "https://xolot.com.br";
 }

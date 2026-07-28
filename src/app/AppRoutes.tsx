@@ -86,7 +86,7 @@ type AppRoutesProps = {
     name: string;
     position: string;
     username: string;
-  }) => void;
+  }) => Promise<boolean>;
   isBrandLaunchVisible: boolean;
   likedPlayerIdSet: Set<string>;
   likeCountsByPlayer: Record<string, number>;

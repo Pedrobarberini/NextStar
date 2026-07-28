@@ -5,42 +5,37 @@ Rede social mobile-first para pessoas, criadores, talentos, marcas, projetos e s
 ## Produto atual
 
 - Aplicativo React Native com Expo e TypeScript para Android, iOS e web/PWA.
-- Login por email e senha, cadastro simplificado e autenticação Google preparada com Firebase.
+- Contas por email/senha e Google usando Firebase Authentication.
+- Verificação de email, recuperação de senha e restauração segura de sessão.
 - Primeiro acesso com configuração de `@username`, nome público, biografia, idade, área de atuação, cidade e organização.
-- Perfis próprios e públicos com foto ajustável, biografia, galeria, métricas sociais e link profissional.
-- Início em formato vertical, com reprodução automática apenas do conteúdo visível, curtidas, compartilhamento, follow e preferências de conteúdo.
-- Envio por câmera ou galeria, com foto, vídeo, descrição, tags e marcações de usuários.
+- Perfis públicos sincronizados pelo Cloud Firestore, com reserva transacional de `@username`.
+- Perfis próprios e públicos com galeria, métricas sociais e link profissional.
+- Início vertical com reprodução automática apenas do conteúdo visível, curtidas, compartilhamento, follow e preferências.
+- Envio por câmera ou galeria, com foto, vídeo, descrição, tags e marcações.
 - Pesquisa por nome, `@username`, categoria, cidade, organização ou área de atuação.
-- Mensagens diretas, solicitações de contato, conversas fixadas, silenciadas e compartilhamento de publicações.
-- Menu do Perfil com Configurações, Painel profissional e Sair da conta.
-- Modo profissional para talentos, criadores, negócios, marcas, projetos e serviços.
-- Planos preparados para lançamento: Gratuito, Xolot Pro e Xolot Negócios.
-- Painel profissional com visualizações, curtidas, mensagens, publicações e campanhas.
-- Promoção de publicações por objetivo, duração e orçamento, com estimativa de alcance.
-- Campanhas ativas recebem prioridade identificada no Início e podem ser pausadas ou retomadas.
+- Mensagens diretas, solicitações de contato e compartilhamento de publicações.
+- Modo profissional, planos de pré-lançamento e campanhas simuladas.
 
-Os planos e campanhas estão em modo de pré-lançamento. Não existe cobrança ou movimentação de dinheiro no frontend atual. A ativação comercial depende de backend, billing e medição server-side.
-
-## Monetização planejada
-
-1. **Xolot Pro:** perfil profissional, métricas ampliadas, link externo e recursos de divulgação.
-2. **Xolot Negócios:** presença de marca, campanhas recorrentes, relatórios e recursos para equipes.
-3. **Publicações promovidas:** alcance pago com objetivo de visualizações, visitas ao perfil ou mensagens.
-4. **Futuro:** marketplace de serviços e parcerias, com comissão somente após validação do produto e implementação de pagamentos reais.
+Planos e campanhas continuam sem cobrança real. Billing, mídia remota, publicações, follows e mensagens server-side entram nas próximas fases.
 
 ## Teste online
 
-A versão web oficial é publicada em:
-
-https://xolot.com.br
-
-A versão web é um PWA e pode ser instalada pelo navegador. O service worker mantém os assets principais em cache depois do primeiro acesso.
+A versão web oficial é publicada em [xolot.com.br](https://xolot.com.br). A web é um PWA e pode ser instalada pelo navegador.
 
 ## Persistência atual
 
-Contas, sessão, perfis, publicações, follows, mensagens, preferências, configurações profissionais e campanhas ficam persistidos localmente no dispositivo.
+### Firebase
 
-Na web, os arquivos escolhidos ficam no IndexedDB e sobrevivem ao recarregamento no mesmo navegador. Sincronização entre aparelhos, recuperação de conta, upload remoto e entrega real de campanhas dependem do backend.
+- Firebase Authentication: credenciais, sessão, email verificado e provedores de login.
+- `accounts/{uid}`: metadados privados mínimos, acessíveis somente pelo proprietário.
+- `profiles/{uid}`: perfil social público, sem email, senha ou papel administrativo.
+- `usernames/{username}`: reserva única de identificador, alterada junto ao perfil em transação.
+
+A sessão e a lista de contas não são mais gravadas no estado local do app. Senhas nunca passam pelo Firestore nem pelo `AsyncStorage`.
+
+### Ainda local
+
+Publicações, mídia, follows, mensagens, preferências, avatares personalizados, configurações profissionais e campanhas ainda ficam no dispositivo. Na web, a mídia usa IndexedDB. Esses dados ainda não sincronizam entre aparelhos.
 
 ## Como executar
 
@@ -52,9 +47,9 @@ cp .env.example .env
 pnpm start --tunnel
 ```
 
-O modo `--tunnel` permite abrir o projeto no Expo Go mesmo quando computador e celular não estão na mesma rede local.
+O modo `--tunnel` permite abrir o projeto no Expo Go quando computador e celular não estão na mesma rede.
 
-### Comandos de qualidade
+### Qualidade
 
 ```bash
 pnpm run typecheck
@@ -62,51 +57,81 @@ pnpm test
 pnpm run build:web
 ```
 
-### Login com Google
+## Configuração Firebase
 
-A integração preparada usa:
+1. Crie ou selecione um projeto Firebase e habilite o Cloud Firestore em modo Native.
+2. Em Authentication, habilite Email/Senha e Google.
+3. Configure uma política de senha com no mínimo 8 caracteres, letra maiúscula, minúscula e número.
+4. Ative proteção contra enumeração de emails no projeto.
+5. Autorize `localhost`, `xolot.com.br` e os domínios usados pelo Expo/OAuth.
+6. Copie `.env.example` para `.env` e preencha apenas as variáveis públicas `EXPO_PUBLIC_*`.
+7. Publique regras e índices com `firebase deploy --only firestore --project SEU_PROJECT_ID`.
+8. Registre o app web no App Check com reCAPTCHA Enterprise, monitore as métricas e só depois habilite enforcement.
+9. Cadastre as mesmas variáveis nos GitHub Actions Secrets para o deploy web.
 
-- **Web/PWA:** Firebase Auth com `signInWithPopup`.
-- **iOS/Android:** `expo-auth-session` e credencial Firebase.
+A API key do Firebase e a chave de site do App Check identificam o app, mas não substituem segurança. A proteção efetiva está nas regras do Firestore, Auth, App Check e validações server-side.
 
-Configure as variáveis `EXPO_PUBLIC_FIREBASE_*` e `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` no `.env` e nos Secrets do GitHub Actions. No Firebase, autorize `localhost`, `xolot.com.br` e `pedrobarberini.github.io`.
+Nunca inclua no app, no `.env` público ou no GitHub Pages uma service account, chave privada, token Admin SDK ou segredo de provedor. Funções administrativas futuras devem rodar em Cloud Functions/Cloud Run com custom claims.
 
-Sem essas variáveis, email e senha continuam funcionando no modo local.
+### Modelo de dados desta fase
+
+```text
+accounts/{uid}
+  uid
+  authProvider
+  createdAt
+  termsAcceptedAt
+
+profiles/{uid}
+  uid
+  username
+  name
+  bio
+  age
+  position
+  city
+  club
+  photoURL
+  profileCompleted
+  createdAt
+  updatedAt
+
+usernames/{username}
+  uid
+  createdAt
+```
+
+As regras estão em `firestore.rules`; a configuração de deploy está em `firebase.json`.
 
 ## Arquitetura
 
-- `App.tsx`: composição do estado compartilhado e roteamento.
-- `src/screens/`: autenticação, Início, Envio, Pesquisa, Mensagens, Perfil, painel profissional e promoção.
+- `App.tsx`: composição de estado e roteamento.
+- `src/screens/`: autenticação, Início, Envio, Pesquisa, Mensagens, Perfil e painéis.
 - `src/components/`: navegação, shell, modais e componentes compartilhados.
-- `src/actions/`: casos de uso e handlers de produto.
-- `src/repositories/`: schema local versionado e persistência.
-- `src/services/`: mídia local, autenticação e domínios sociais.
-- `src/styles/`: estilos organizados por tela ou domínio.
+- `src/actions/`: casos de uso, sessão Firebase e handlers de produto.
+- `src/repositories/`: schema local apenas para domínios ainda não migrados.
+- `src/services/`: Firebase Auth/Firestore, mídia local e domínios sociais.
+- `src/styles/`: estilos por tela ou domínio.
 - `src/utils/`: regras puras de perfil, mídia, campanhas e conteúdo.
 
-## Fluxo de teste
+## Fluxo de teste de contas
 
-1. Cadastre uma conta com email e senha.
-2. Complete o perfil inicial e escolha um `@username` único.
-3. Publique uma foto ou vídeo com descrição, tags e marcações.
-4. Confirme a publicação no Início e na galeria do Perfil.
-5. Curta, siga, compartilhe e abra uma conversa com outro perfil.
-6. Ative o modo profissional em `Perfil > Painel profissional`.
-7. Escolha uma categoria e um plano de pré-lançamento.
-8. Selecione uma publicação e crie uma campanha de teste.
-9. Confirme o selo de conteúdo promovido no Início.
-10. Pause e retome a campanha pelo painel.
-11. Recarregue a página e confirme a restauração do estado local.
+1. Cadastre uma conta com email e senha forte.
+2. Abra o email de verificação antes de tentar entrar.
+3. Faça login e conclua o perfil inicial com um `@username` único.
+4. Saia, recarregue o app e entre novamente.
+5. Edite o perfil e confirme a atualização em outro navegador autenticado.
+6. Teste `Esqueci minha senha` com uma mensagem que não revela se o email existe.
+7. Crie uma segunda conta e confirme que o mesmo `@username` é recusado pelo servidor.
 
 ## Antes da abertura ao público
 
-- Implementar API, banco de dados e sessões seguras.
-- Armazenar mídia em storage remoto com processamento de thumbnail e vídeo.
-- Implementar entrega e segmentação de campanhas no servidor.
-- Registrar eventos de impressão, visualização, clique, visita e mensagem sem duplicação.
-- Integrar billing de assinaturas e campanhas pelas lojas e por provedor web.
-- Adicionar moderação automática, denúncias, recursos e auditoria.
-- Aplicar LGPD, proteção de menores, consentimentos e controles de privacidade.
-- Adicionar observabilidade, rate limiting, testes de integração e recuperação de falhas.
+- Publicar e testar as regras do Firestore no Emulator Suite e no projeto de produção.
+- Ativar App Check enforcement após observar clientes legítimos.
+- Armazenar avatares e mídia no Firebase Storage com regras, limites e processamento.
+- Migrar publicações, follows e mensagens para backend e tempo real.
+- Implementar custom claims e auditoria para qualquer função administrativa.
+- Adicionar exclusão/exportação de conta conforme LGPD e proteção de menores.
+- Adicionar observabilidade, alertas, backups e testes de integração.
 
 O backlog técnico atualizado está em `backlog.md`.

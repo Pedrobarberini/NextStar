@@ -14,13 +14,12 @@ type BrandLaunchOverlayProps = {
 };
 
 type LoggedOutAppShellProps = BrandLaunchOverlayProps & {
-  accounts: AppUser[];
   onComplete: (user: AppUser) => void;
 };
 
 type AccountSetupGateProps = BrandLaunchOverlayProps & {
   accounts: AppUser[];
-  onSave: (profile: AccountProfile) => void;
+  onSave: (profile: AccountProfile) => Promise<boolean> | boolean;
   onSignOut: () => void;
   user: AppUser;
 };
@@ -56,7 +55,6 @@ export function LoadingAppShell({
 }
 
 export function LoggedOutAppShell({
-  accounts,
   isVisible,
   onComplete,
   onFinish
@@ -65,7 +63,7 @@ export function LoggedOutAppShell({
     <View style={styles.appRoot}>
       <SafeAreaView style={styles.safeArea}>
         <AppStatusBar />
-        <AuthScreen accounts={accounts} onComplete={onComplete} />
+        <AuthScreen onComplete={onComplete} />
       </SafeAreaView>
       <BrandLaunchOverlay isVisible={isVisible} onFinish={onFinish} />
     </View>

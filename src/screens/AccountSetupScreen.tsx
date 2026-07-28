@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Check, LogOut } from "lucide-react-native";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,7 +24,7 @@ type AccountSetupProps = {
   accounts: AppUser[];
   isInitialSetup?: boolean;
   onBack?: () => void;
-  onSave: (profile: AccountProfile) => void;
+  onSave: (profile: AccountProfile) => Promise<boolean> | boolean;
   onSignOut?: () => void;
   user: AppUser;
 };
@@ -44,6 +45,8 @@ export function AccountSetupScreen({
   const [position, setPosition] = useState(user.position);
   const [city, setCity] = useState(user.city);
   const [club, setClub] = useState(user.club);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const age = Number(ageText);
   const cleanUsername = normalizeUsername(username);
   const usernameAvailable = isUsernameAvailable(
@@ -72,6 +75,25 @@ export function AccountSetupScreen({
     cleanProfile.city.length >= 2 &&
     cleanProfile.club.length >= 2;
   const isNarrow = width < 370;
+
+  async function submitProfile() {
+    if (!canSave || isSaving) {
+      return;
+    }
+
+    setSaveError("");
+    setIsSaving(true);
+    try {
+      const saved = await onSave(cleanProfile);
+      if (!saved) {
+        setSaveError("Revise os dados e tente salvar novamente.");
+      }
+    } catch {
+      setSaveError("Não foi possível salvar o perfil agora.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -209,19 +231,29 @@ export function AccountSetupScreen({
 
         <Pressable
           accessibilityRole="button"
-          disabled={!canSave}
-          onPress={() => onSave(cleanProfile)}
+          disabled={!canSave || isSaving}
+          onPress={submitProfile}
           style={[
             styles.primaryButton,
             styles.accountSetupSaveButton,
-            !canSave ? styles.primaryButtonDisabled : null
+            !canSave || isSaving ? styles.primaryButtonDisabled : null
           ]}
         >
-          <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
+          {isSaving ? (
+            <ActivityIndicator color={colors.onPrimary} size="small" />
+          ) : (
+            <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
+          )}
           <Text style={styles.primaryButtonText}>
             {isInitialSetup ? "Concluir perfil" : "Salvar alteracoes"}
           </Text>
         </Pressable>
+
+        {saveError ? (
+          <Text accessibilityRole="alert" style={styles.authErrorText}>
+            {saveError}
+          </Text>
+        ) : null}
 
         {isInitialSetup && onSignOut ? (
           <Pressable

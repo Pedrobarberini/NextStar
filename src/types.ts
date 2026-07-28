@@ -148,8 +148,6 @@ export type AppUser = AccountProfile & {
   authProvider?: AuthProvider;
   googleUid?: string;
   photoURL?: string;
-  passwordHash?: string;
-  passwordSalt?: string;
   profileCompleted: boolean;
 };
 

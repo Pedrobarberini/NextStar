@@ -106,7 +106,7 @@ export function ProfileScreen({
   onSignOut: () => void;
   onToggleCampaign: (campaignId: string) => void;
   onUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
-  onUpdateProfile: (profile: AccountProfile) => void;
+  onUpdateProfile: (profile: AccountProfile) => Promise<boolean>;
   professionalPosts: Player[];
   professionalSettings: ProfessionalSettings;
   profileAvatars: ProfileAvatarsByProfile;
@@ -303,9 +303,12 @@ export function ProfileScreen({
         <AccountSetupScreen
           accounts={accounts}
           onBack={() => setProfileView("settings")}
-          onSave={(profile) => {
-            onUpdateProfile(profile);
-            setProfileView("settings");
+          onSave={async (profile) => {
+            const saved = await onUpdateProfile(profile);
+            if (saved) {
+              setProfileView("settings");
+            }
+            return saved;
           }}
           user={user}
         />

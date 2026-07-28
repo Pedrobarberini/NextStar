@@ -140,6 +140,22 @@ export const authStyles = {
     lineHeight: 17,
     marginTop: 12
   },
+  authSuccessText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17,
+    marginTop: 12
+  },
+  authInlineAction: {
+    alignSelf: "flex-end",
+    paddingVertical: 8
+  },
+  authInlineActionText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "800"
+  },
   authGoogleButton: {
     alignItems: "center",
     backgroundColor: colors.surface,

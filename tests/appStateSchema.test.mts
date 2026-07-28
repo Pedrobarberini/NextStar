@@ -40,20 +40,19 @@ test("retorna o estado inicial quando não existe valor persistido", () => {
   assert.deepEqual(parseLocalAppState("json-inválido", fallback), fallback);
 });
 
-test("migra estado antigo preservando conta e descartando carteira e investimentos", () => {
+test("migra estado antigo descartando conta, sessão e credenciais locais", () => {
   const fallback = createDefaultLocalAppState();
   const migrated = migrateLocalAppState(
     {
       activeUser: {
-        acceptedTerms: true,
         email: "teste@xolot.local",
         id: "usuario-teste",
-        name: "Teste",
-        role: "Usuário"
+        passwordHash: "hash-antigo",
+        passwordSalt: "salt-antigo"
       },
       athleteFunds: [{ id: "fund-antigo" }],
       investments: [{ id: "investment-antigo" }],
-      registeredUsers: [],
+      registeredUsers: [{ email: "teste@xolot.local", id: "usuario-teste" }],
       submissions: [],
       walletBalances: { "usuario-teste": 350 }
     },
@@ -61,73 +60,22 @@ test("migra estado antigo preservando conta e descartando carteira e investiment
   );
 
   assert.equal(migrated.version, APP_STATE_SCHEMA_VERSION);
-  assert.equal(migrated.activeUser?.id, "usuario-teste");
-  assert.equal(migrated.activeUser?.profileCompleted, false);
-  assert.equal(migrated.activeUser?.username, "teste");
-  assert.equal(migrated.registeredUsers[0]?.id, "usuario-teste");
-  assert.deepEqual(migrated.campaigns, []);
-  assert.deepEqual(migrated.professionalSettingsByUser, {});
+  assert.equal("activeUser" in migrated, false);
+  assert.equal("registeredUsers" in migrated, false);
+  assert.equal("passwordHash" in migrated, false);
   assert.equal("walletBalances" in migrated, false);
   assert.equal("athleteFunds" in migrated, false);
   assert.equal("investments" in migrated, false);
 });
 
-test("preserva perfil completo e credencial sem expor senha em texto", () => {
-  const migrated = migrateLocalAppState(
-    {
-      activeUser: null,
-      registeredUsers: [
-        {
-          acceptedTerms: true,
-          age: 27,
-          bio: "Criador focado em publicidade e conteúdo local.",
-          city: "São Paulo, SP",
-          club: "Estúdio Xolot",
-          email: "criador@xolot.local",
-          id: "usuario-criador",
-          name: "Criador Xolot",
-          passwordHash: "hash-seguro",
-          passwordSalt: "salt-aleatório",
-          position: "Criador",
-          profileCompleted: true,
-          role: "Usuário"
-        }
-      ]
-    },
-    createDefaultLocalAppState()
-  );
-
-  assert.equal(migrated.registeredUsers[0]?.profileCompleted, true);
-  assert.equal(migrated.registeredUsers[0]?.passwordHash, "hash-seguro");
-  assert.equal(migrated.registeredUsers[0]?.username, "criador");
-  assert.equal("password" in migrated.registeredUsers[0], false);
-});
-
-test("migra usernames repetidos para identificadores únicos", () => {
-  const migrated = migrateLocalAppState(
-    {
-      activeUser: null,
-      registeredUsers: [
-        { acceptedTerms: true, email: "primeiro@xolot.local", id: "primeiro", name: "Pedro", role: "Usuário", username: "pedro" },
-        { acceptedTerms: true, email: "segundo@xolot.local", id: "segundo", name: "Pedro", role: "Usuário", username: "Pedro" }
-      ]
-    },
-    createDefaultLocalAppState()
-  );
-
-  assert.deepEqual(migrated.registeredUsers.map((account) => account.username), ["pedro", "pedro_2"]);
-});
-
 test("normaliza campanhas e configurações profissionais válidas", () => {
   const migrated = migrateLocalAppState(
     {
-      activeUser: null,
       campaigns: [campaign, { id: "incompleta" }],
       professionalSettingsByUser: {
         "usuario-teste": professionalSettings,
         inválido: null
       },
-      registeredUsers: [],
       submissions: []
     },
     createDefaultLocalAppState()
@@ -139,18 +87,22 @@ test("normaliza campanhas e configurações profissionais válidas", () => {
   });
 });
 
-test("serialização e leitura preservam o estado profissional completo", () => {
+test("serialização não inclui identidade ou credenciais", () => {
   const state = {
     ...createDefaultLocalAppState(),
     campaigns: [campaign],
     professionalSettingsByUser: { "usuario-teste": professionalSettings }
   };
+  const serialized = serializeLocalAppState(state);
   const restored = parseLocalAppState(
-    serializeLocalAppState(state),
+    serialized,
     createDefaultLocalAppState()
   );
 
   assert.deepEqual(restored, state);
+  assert.equal(serialized.includes("activeUser"), false);
+  assert.equal(serialized.includes("registeredUsers"), false);
+  assert.equal(serialized.includes("password"), false);
 });
 
 test("repositório salva, carrega e limpa o estado", async () => {

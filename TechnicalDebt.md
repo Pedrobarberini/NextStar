@@ -106,28 +106,29 @@ Foram criados repositories para o estado principal e services para dados sociais
 
 **Prioridade:** P0
 
-## 3. Estado volátil sem persistência
+## 3. Persistência parcialmente local
 
-**Status:** Curto prazo resolvido em 2026-07-16.
+**Status:** Contas e perfis migrados para Firebase em 2026-07-27.
 
-Usuários cadastrados, sessão ativa, envios, decisões de moderação, saldos, bolsas e investimentos agora usam estado local versionado com `AsyncStorage`. Follows, mensagens e fotos já possuíam persistência própria.
+Firebase Authentication agora é a autoridade de credenciais e sessão. Metadados privados mínimos ficam em `accounts/{uid}` e o perfil público em `profiles/{uid}`. O estado local versão 6 não serializa conta ativa, lista de usuários, hash ou salt.
 
-**Risco residual:** URI de vídeo escolhida no aparelho pode apontar para cache temporário. O registro da postagem sobrevive ao refresh, mas o arquivo só terá disponibilidade garantida depois do upload para storage remoto.
+**Risco residual:** Publicações, mídia, follows, mensagens, avatares personalizados, preferências e campanhas continuam locais. URI de mídia pode expirar e não sincroniza entre aparelhos.
 
-**Prioridade:** P0 para upload remoto
+**Ação:** Migrar o restante por domínio, começando por Firebase Storage e publicações.
 
-## 4. Autenticação simulada sem segurança
+**Prioridade:** P0 para mídia e conteúdo social remoto
 
-**Status:** Parcialmente resolvido localmente em 2026-07-16.
+## 4. Autenticação e autorização Firebase
 
-Cadastro e login agora usam email e senha. A senha não é serializada em texto puro: o dispositivo armazena salt aleatório e hash SHA-256, e contas antigas definem uma credencial no próximo acesso. O primeiro login também exige a conclusão do perfil do atleta.
+**Status:** Fase 1 implementada em 2026-07-27.
 
-**Risco residual:** Não existe backend, sessão/token server-side, verificação de email, recuperação de senha, limitação de tentativas nem sincronização entre dispositivos. O papel Admin ainda é escolhido no cliente para permitir a demonstração; por isso, o fluxo atual não é autenticação segura para público.
+Cadastro, login, logout, verificação de email, recuperação de senha, Google e restauração de sessão usam Firebase Authentication. Perfis e usernames usam transações do Firestore e regras deny-by-default. Papel administrativo não é aceito no perfil público.
 
-**Ação:** Implementar auth no backend com hash apropriado no servidor, sessão segura, recuperação de senha, verificação de email, rate limit e atribuição de papel somente no servidor.
+**Risco residual:** As regras ainda precisam ser testadas no Emulator Suite e publicadas no projeto correto. App Check precisa ser registrado e colocado em enforcement após observação. Funções administrativas futuras dependem de custom claims e execução server-side.
+
+**Ação:** Concluir configuração do console, testes de regras, App Check, custom claims, auditoria e fluxos LGPD.
 
 **Prioridade:** P0
-
 ## 5. Upload de vídeo por URI ou link
 
 **Status:** Pendente.

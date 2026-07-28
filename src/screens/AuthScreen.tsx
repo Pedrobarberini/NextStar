@@ -17,30 +17,29 @@ import { LabeledInput } from "../components/Navigation";
 import { XOLOT_WORDMARK } from "../constants/assets";
 import { useGoogleSignIn } from "../hooks/useGoogleSignIn";
 import {
-  createPasswordCredential,
-  hasPasswordCredential,
-  verifyPassword
-} from "../services/authCredentials";
+  createFirebaseAccountMetadata,
+  getCurrentFirebaseUser,
+  getSafeFirebaseAuthMessage,
+  hasFirebaseAccount,
+  registerWithEmailAndPassword,
+  sendFirebasePasswordReset,
+  signInWithEmailAndPasswordSecurely,
+  signOutFirebaseSession
+} from "../services/firebaseAccountService";
+import { loadFirebaseAppUser } from "../services/firebaseProfileService";
 import {
   GoogleAuthCancelledError,
-  GoogleAuthConfigurationError,
-  GoogleIdentity
+  GoogleAuthConfigurationError
 } from "../services/googleAuth";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import { AppUser } from "../types";
-import {
-  claimUniqueUsername,
-  normalizeUsername
-} from "../utils/userIdentity";
+import type { AppUser } from "../types";
 
 type AuthMode = "create" | "login";
 
 export function AuthScreen({
-  accounts,
   onComplete
 }: {
-  accounts: AppUser[];
   onComplete: (user: AppUser) => void;
 }) {
   const { width } = useWindowDimensions();
@@ -50,6 +49,7 @@ export function AuthScreen({
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     isAvailable: isGoogleAvailable,
@@ -60,7 +60,12 @@ export function AuthScreen({
   const isCompact = width < 380;
   const cleanEmail = email.trim().toLowerCase();
   const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
-  const hasValidPassword = password.length >= 6;
+  const hasStrongPassword =
+    password.length >= 8 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password);
+  const hasValidPassword = mode === "login" ? password.length >= 1 : hasStrongPassword;
   const isBusy = isSubmitting || isGoogleSigningIn;
   const canContinue =
     hasValidEmail &&
@@ -68,83 +73,60 @@ export function AuthScreen({
     (mode === "login" || password === passwordConfirmation) &&
     (mode === "login" || acceptedTerms) &&
     !isBusy;
-  const canContinueWithGoogle = !isBusy && (Platform.OS === "web" || isGoogleReady);
+  const canContinueWithGoogle =
+    !isBusy && (Platform.OS === "web" || isGoogleReady);
+
+  function clearFeedback() {
+    setErrorMessage("");
+    setSuccessMessage("");
+  }
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode);
-    setErrorMessage("");
+    clearFeedback();
     setPassword("");
     setPasswordConfirmation("");
     setAcceptedTerms(false);
   }
 
-  function completeWithGoogleIdentity(identity: GoogleIdentity) {
-    const existingAccount = accounts.find(
-      (account) =>
-        account.googleUid === identity.uid ||
-        account.email.toLowerCase() === identity.email
-    );
-
-    if (existingAccount) {
-      onComplete({
-        ...existingAccount,
-        authProvider: "google",
-        email: identity.email,
-        googleUid: identity.uid,
-        name: existingAccount.name || identity.name,
-        ...(identity.photoURL ? { photoURL: identity.photoURL } : {})
-      });
-      return;
-    }
-
-    const accountId = `google-${identity.uid}`;
-    const takenUsernames = new Set(
-      accounts.map((account) => normalizeUsername(account.username))
-    );
-    const provisionalUsername = claimUniqueUsername(
-      identity.email.split("@")[0],
-      takenUsernames,
-      accountId
-    );
-
-    onComplete({
-      acceptedTerms: true,
-      age: null,
-      authProvider: "google",
-      bio: "",
-      city: "",
-      club: "",
-      email: identity.email,
-      googleUid: identity.uid,
-      id: accountId,
-      name: identity.name,
-      ...(identity.photoURL ? { photoURL: identity.photoURL } : {}),
-      position: "",
-      profileCompleted: false,
-      role: "Usuário",
-      username: provisionalUsername
-    });
-  }
-
   async function handleGooglePress() {
-    setErrorMessage("");
+    clearFeedback();
 
     if (!isGoogleAvailable) {
       Alert.alert(
         "Login com Google",
-        "Configure o Firebase no arquivo .env (veja .env.example) e reinicie o Expo."
+        "Configure o Firebase no arquivo .env e reinicie o Expo."
       );
       return;
     }
 
     if (mode === "create" && !acceptedTerms) {
-      setErrorMessage("Aceite os termos para criar a conta com Google.");
+      setErrorMessage("Aceite os Termos de Uso e a Política de Privacidade.");
       return;
     }
 
     try {
-      const identity = await signInWithGoogle();
-      completeWithGoogleIdentity(identity);
+      await signInWithGoogle();
+      const firebaseUser = getCurrentFirebaseUser();
+
+      if (!firebaseUser) {
+        throw new Error("O Firebase não retornou uma sessão válida.");
+      }
+
+      const hasAccount = await hasFirebaseAccount(firebaseUser.uid);
+      if (!hasAccount) {
+        if (mode !== "create") {
+          await signOutFirebaseSession();
+          setErrorMessage(
+            "Esta identidade ainda não possui uma conta Xolot. Use Cadastrar."
+          );
+          return;
+        }
+
+        await createFirebaseAccountMetadata(firebaseUser, acceptedTerms);
+      }
+
+      onComplete(await loadFirebaseAppUser(firebaseUser));
     } catch (error) {
       if (error instanceof GoogleAuthCancelledError) {
         return;
@@ -155,11 +137,7 @@ export function AuthScreen({
         return;
       }
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Não foi possível autenticar com Google.";
-      setErrorMessage(message);
+      setErrorMessage(getSafeFirebaseAuthMessage(error));
     }
   }
 
@@ -168,82 +146,65 @@ export function AuthScreen({
       return;
     }
 
-    setErrorMessage("");
+    clearFeedback();
     setIsSubmitting(true);
 
     try {
-      const existingAccount = accounts.find(
-        (account) => account.email.toLowerCase() === cleanEmail
-      );
-
-      if (mode === "create" && existingAccount) {
-        setErrorMessage("Já existe uma conta com este email.");
-        return;
-      }
-
-      if (mode === "login" && !existingAccount) {
-        setErrorMessage("Conta não encontrada. Confira o email ou cadastre-se.");
-        return;
-      }
-
-      if (existingAccount?.authProvider === "google" && !hasPasswordCredential(existingAccount)) {
-        setErrorMessage(
-          "Esta conta usa Google. Toque em Continuar com Google para entrar."
+      if (mode === "create") {
+        await registerWithEmailAndPassword(
+          cleanEmail,
+          password,
+          acceptedTerms
+        );
+        setMode("login");
+        setPassword("");
+        setPasswordConfirmation("");
+        setAcceptedTerms(false);
+        setSuccessMessage(
+          "Conta criada. Confirme o link enviado ao seu email antes de entrar."
         );
         return;
       }
 
-      if (existingAccount && hasPasswordCredential(existingAccount)) {
-        const isPasswordValid = await verifyPassword(existingAccount, password);
-
-        if (!isPasswordValid) {
-          setErrorMessage("Senha incorreta. Tente novamente.");
-          return;
-        }
-
-        onComplete(existingAccount);
-        return;
-      }
-
-      const credential = await createPasswordCredential(password);
-
-      if (existingAccount) {
-        onComplete({
-          ...existingAccount,
-          ...credential,
-          authProvider: "password"
-        });
-        return;
-      }
-
-      const accountId = `usuario-${cleanEmail}`;
-      const takenUsernames = new Set(
-        accounts.map((account) => normalizeUsername(account.username))
+      const firebaseUser = await signInWithEmailAndPasswordSecurely(
+        cleanEmail,
+        password
       );
-      const provisionalUsername = claimUniqueUsername(
-        cleanEmail.split("@")[0],
-        takenUsernames,
-        accountId
-      );
+      onComplete(await loadFirebaseAppUser(firebaseUser));
+    } catch (error) {
+      setErrorMessage(getSafeFirebaseAuthMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
-      onComplete({
-        acceptedTerms,
-        age: null,
-        authProvider: "password",
-        bio: "",
-        city: "",
-        club: "",
-        email: cleanEmail,
-        id: accountId,
-        name: cleanEmail.split("@")[0],
-        ...credential,
-        position: "",
-        profileCompleted: false,
-        role: "Usuário",
-        username: provisionalUsername
-      });
-    } catch {
-      setErrorMessage("Não foi possível autenticar agora. Tente novamente.");
+  async function handlePasswordReset() {
+    clearFeedback();
+
+    if (!hasValidEmail) {
+      setErrorMessage("Informe um email válido para recuperar a senha.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await sendFirebasePasswordReset(cleanEmail);
+      setSuccessMessage(
+        "Se existir uma conta para este email, enviaremos as instruções de recuperação."
+      );
+    } catch (error) {
+      const message = getSafeFirebaseAuthMessage(error);
+      if (
+        message.includes("conexão") ||
+        message.includes("tentativas") ||
+        message.includes("configurado")
+      ) {
+        setErrorMessage(message);
+      } else {
+        setSuccessMessage(
+          "Se existir uma conta para este email, enviaremos as instruções de recuperação."
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -315,7 +276,7 @@ export function AuthScreen({
             label="Email"
             onChangeText={(value) => {
               setEmail(value);
-              setErrorMessage("");
+              clearFeedback();
             }}
             placeholder="você@email.com"
             value={email}
@@ -327,35 +288,52 @@ export function AuthScreen({
             label="Senha"
             onChangeText={(value) => {
               setPassword(value);
-              setErrorMessage("");
+              clearFeedback();
             }}
             onSubmitEditing={mode === "login" ? submitAuth : undefined}
-            placeholder="Minimo de 6 caracteres"
+            placeholder={
+              mode === "login" ? "Sua senha" : "8 caracteres, maiúscula e número"
+            }
             returnKeyType={mode === "login" ? "done" : "next"}
             secureTextEntry
             value={password}
           />
 
           {mode === "create" ? (
-            <LabeledInput
-              autoCapitalize="none"
-              autoComplete="new-password"
-              label="Confirmar senha"
-              onChangeText={(value) => {
-                setPasswordConfirmation(value);
-                setErrorMessage("");
-              }}
-              onSubmitEditing={submitAuth}
-              placeholder="Repita sua senha"
-              returnKeyType="done"
-              secureTextEntry
-              value={passwordConfirmation}
-            />
+            <>
+              <Text style={styles.authHelperText}>
+                Use ao menos 8 caracteres, com letra maiúscula, minúscula e número.
+              </Text>
+              <LabeledInput
+                autoCapitalize="none"
+                autoComplete="new-password"
+                label="Confirmar senha"
+                onChangeText={(value) => {
+                  setPasswordConfirmation(value);
+                  clearFeedback();
+                }}
+                onSubmitEditing={submitAuth}
+                placeholder="Repita sua senha"
+                returnKeyType="done"
+                secureTextEntry
+                value={passwordConfirmation}
+              />
+            </>
+          ) : null}
+
+          {mode === "login" ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={handlePasswordReset}
+              style={styles.authInlineAction}
+            >
+              <Text style={styles.authInlineActionText}>Esqueci minha senha</Text>
+            </Pressable>
           ) : null}
 
           {mode === "create" ? (
             <Pressable
-              accessibilityLabel="Aceitar termos do ambiente demonstrativo"
+              accessibilityLabel="Aceitar Termos de Uso e Política de Privacidade"
               accessibilityRole="checkbox"
               accessibilityState={{ checked: acceptedTerms }}
               onPress={() => setAcceptedTerms((current) => !current)}
@@ -372,10 +350,15 @@ export function AuthScreen({
                 ) : null}
               </View>
               <Text style={styles.checkText}>
-                Aceito que este ambiente é demonstrativo, sem dinheiro real,
-                contrato real ou promessa de retorno.
+                Aceito os Termos de Uso e a Política de Privacidade da Xolot.
               </Text>
             </Pressable>
+          ) : null}
+
+          {successMessage ? (
+            <Text accessibilityRole="alert" style={styles.authSuccessText}>
+              {successMessage}
+            </Text>
           ) : null}
 
           {errorMessage ? (

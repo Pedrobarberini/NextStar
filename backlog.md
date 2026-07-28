@@ -1,6 +1,6 @@
 # Backlog técnico - Xolot
 
-Atualizado em 2026-07-25.
+Atualizado em 2026-07-27.
 
 Este arquivo é orientado a desenvolvimento. Cada item deve virar issue ou task rastreável antes de entrar em implementação.
 
@@ -106,33 +106,45 @@ Status: Concluído em 2026-07-25, com validação visual manual ainda recomendad
 
 ## P0 - Backend público
 
-### Task P0-001 - API, banco e autenticação
+### Task P0-001 - Contas e perfis no Firebase
 
-Tipo: Backend/Infra
+Tipo: Backend/Frontend/Infra/Segurança
 
-- [ ] Escolher stack de backend e banco relacional.
-- [ ] Criar ambientes local, staging e produção.
-- [ ] Implementar cadastro, login, logout, refresh token e recuperação de senha.
-- [ ] Garantir unicidade server-side de email e `@username`.
-- [ ] Migrar login Google para sessão emitida pelo backend.
-- [ ] Criar autorização por usuário, função e propriedade do recurso.
-- [ ] Implementar rate limiting e proteção contra abuso.
+Status: Fase 1 implementada em 2026-07-27; configuração e validação no projeto Firebase ainda pendentes.
+
+- [x] Escolher Firebase Authentication e Cloud Firestore para contas e perfis.
+- [x] Implementar cadastro por email/senha sem credencial local.
+- [x] Implementar login, logout e restauração de sessão pelo Firebase Auth.
+- [x] Exigir verificação de email antes de acessar dados sociais.
+- [x] Implementar recuperação de senha com resposta antienumeração.
+- [x] Integrar login Google à mesma autoridade de sessão.
+- [x] Criar `accounts/{uid}` privado com metadados mínimos e imutáveis.
+- [x] Criar `profiles/{uid}` sem email, senha ou papel administrativo.
+- [x] Garantir unicidade de `@username` com transação e coleção `usernames`.
+- [x] Aplicar regras Firestore deny-by-default, propriedade por UID e allowlist de campos.
+- [x] Remover hash, salt, contas e sessão do estado persistido local.
+- [x] Atualizar o schema local da versão 5 para a versão 6.
+- [x] Configurar persistência do Firebase Auth no React Native com AsyncStorage.
+- [x] Preparar App Check web com reCAPTCHA Enterprise por variável de ambiente.
+- [x] Adicionar testes de normalização de perfil, descarte de credenciais e invariantes das regras.
+- [x] Documentar variáveis, modelo de dados e práticas de segurança.
+- [x] Executar pnpm run typecheck, 71 testes e build web de produção.
+- [ ] Criar projetos Firebase separados para desenvolvimento, staging e produção.
+- [ ] Habilitar Email/Senha, Google e política forte de senha no console.
+- [ ] Ativar proteção contra enumeração de emails.
+- [ ] Revisar domínios autorizados para OAuth e links de ação.
+- [ ] Publicar `firestore.rules` e `firestore.indexes.json` no projeto correto.
+- [ ] Cobrir regras com Firebase Emulator Suite e `@firebase/rules-unit-testing`.
+- [ ] Registrar App Check e ativar enforcement após monitorar clientes legítimos.
+- [ ] Implementar custom claims e backend confiável para funções administrativas.
+- [ ] Implementar exclusão/exportação de conta e dados conforme LGPD.
 - [ ] Criar trilha de auditoria para ações administrativas.
 
-Endpoints iniciais:
+Coleções desta fase:
 
-- [ ] `POST /auth/register`
-- [ ] `POST /auth/login`
-- [ ] `POST /auth/google`
-- [ ] `POST /auth/refresh`
-- [ ] `POST /auth/logout`
-- [ ] `GET /me`
-- [ ] `PATCH /me`
-- [ ] `GET /profiles`
-- [ ] `GET /profiles/:username`
-- [ ] `POST /profiles/:id/follow`
-- [ ] `DELETE /profiles/:id/follow`
-
+- [x] `accounts/{uid}` para metadados privados mínimos.
+- [x] `profiles/{uid}` para dados públicos do perfil.
+- [x] `usernames/{username}` para reserva única e transacional.
 ### Task P0-002 - Publicações e storage
 
 Tipo: Backend/Frontend/Infra

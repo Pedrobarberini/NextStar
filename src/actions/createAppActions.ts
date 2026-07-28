@@ -1,5 +1,11 @@
 import { Dispatch, SetStateAction } from "react";
 import { Alert } from "react-native";
+import { signOutFirebaseSession } from "../services/firebaseAccountService";
+import {
+  InvalidPublicProfileError,
+  UsernameAlreadyInUseError,
+  saveFirebaseProfile
+} from "../services/firebaseProfileService";
 import {
   AccountProfile,
   AppUser,
@@ -64,25 +70,41 @@ export function createAppActions({
     setTab(nextUser.role === "Admin" ? "admin" : "feed");
   }
 
-  function handleUpdateProfile(profile: AccountProfile) {
+  async function handleUpdateProfile(profile: AccountProfile) {
     if (!user) {
-      return;
+      return false;
     }
 
-    const updatedUser: AppUser = {
-      ...user,
-      ...profile,
-      profileCompleted: true
-    };
+    try {
+      const savedProfile = await saveFirebaseProfile(
+        user.id,
+        profile,
+        user.photoURL ?? ""
+      );
+      const updatedUser: AppUser = {
+        ...user,
+        ...savedProfile,
+        profileCompleted: true
+      };
 
-    setUser(updatedUser);
-    setRegisteredUsers((current) =>
-      current.some((account) => account.id === updatedUser.id)
-        ? current.map((account) =>
-            account.id === updatedUser.id ? updatedUser : account
-          )
-        : [updatedUser, ...current]
-    );
+      setUser(updatedUser);
+      setRegisteredUsers((current) =>
+        current.some((account) => account.id === updatedUser.id)
+          ? current.map((account) =>
+              account.id === updatedUser.id ? updatedUser : account
+            )
+          : [updatedUser, ...current]
+      );
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof UsernameAlreadyInUseError ||
+        error instanceof InvalidPublicProfileError
+          ? error.message
+          : "Não foi possível salvar o perfil com segurança. Tente novamente.";
+      Alert.alert("Perfil não salvo", message);
+      return false;
+    }
   }
 
   function handleUpdateProfessionalSettings(settings: ProfessionalSettings) {
@@ -155,9 +177,7 @@ export function createAppActions({
   }
 
   function handleSignOut() {
-    void import("../services/googleAuth").then(({ signOutFromGoogle }) =>
-      signOutFromGoogle()
-    );
+    void signOutFirebaseSession();
     setSelectedAccount(null);
     setSelectedPlayer(null);
     setUser(null);
