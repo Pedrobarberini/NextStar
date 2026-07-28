@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "xolot-384e9"
-  }
+  },
+  "targets": {
+    "xolot-384e9": {
+      "hosting": {
+        "xolot": [
+          "xolot"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

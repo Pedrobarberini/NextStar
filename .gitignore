@@ -18,3 +18,4 @@ expo-go-qr.png
 *.p12
 *.key
 *.mobileprovision
+.firebase/

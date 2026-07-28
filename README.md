@@ -81,7 +81,7 @@ pnpm dlx firebase-tools@latest login
 pnpm run deploy:firebase -- --project SEU_PROJECT_ID
 ```
 
-O `firebase.json` publica `dist` como SPA, preserva as rotas do app e controla o cache do service worker. Valide primeiro o endereço `SEU_PROJECT_ID.web.app`; depois conecte `xolot.com.br` em Firebase Console > Hosting > Add custom domain e aplique exatamente os registros DNS exibidos pelo Firebase.
+O `firebase.json` publica `dist` como SPA, preserva as rotas do app e controla o cache do service worker. Valide primeiro o endereço `xolot.web.app`; depois conecte `xolot.com.br` em Firebase Console > Hosting > Add custom domain e aplique exatamente os registros DNS exibidos pelo Firebase.
 
 ### Modelo de dados desta fase
 

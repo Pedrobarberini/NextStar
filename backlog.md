@@ -110,7 +110,7 @@ Status: Concluído em 2026-07-25, com validação visual manual ainda recomendad
 
 Tipo: Backend/Frontend/Infra/Segurança
 
-Status: Fase 1 implementada em 2026-07-27; configuração e validação no projeto Firebase ainda pendentes.
+Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Authentication e App Check ainda pendentes no Console.
 
 - [x] Escolher Firebase Authentication e Cloud Firestore para contas e perfis.
 - [x] Implementar cadastro por email/senha sem credencial local.
@@ -133,7 +133,7 @@ Status: Fase 1 implementada em 2026-07-27; configuração e validação no proje
 - [ ] Habilitar Email/Senha, Google e política forte de senha no console.
 - [ ] Ativar proteção contra enumeração de emails.
 - [ ] Revisar domínios autorizados para OAuth e links de ação.
-- [ ] Publicar `firestore.rules` e `firestore.indexes.json` no projeto correto.
+- [x] Publicar `firestore.rules` e `firestore.indexes.json` no projeto correto.
 - [ ] Cobrir regras com Firebase Emulator Suite e `@firebase/rules-unit-testing`.
 - [ ] Registrar App Check e ativar enforcement após monitorar clientes legítimos.
 - [ ] Implementar custom claims e backend confiável para funções administrativas.
@@ -304,7 +304,7 @@ Status: Preparação local concluída em 2026-07-28; ativação externa pendente
 - [x] Remover o workflow que publicava novos builds no GitHub Pages.
 - [x] Adicionar scripts de deploy de Hosting e Firestore.
 - [x] Associar o projeto Firebase local ao projeto `xolot-384e9`.
-- [ ] Publicar e validar o app no subdomínio `web.app`.
+- [x] Publicar e validar o app no subdomínio `web.app`.
 - [ ] Migrar `xolot.com.br` usando os registros DNS fornecidos pelo Firebase.
 - [ ] Confirmar certificado HTTPS e só então despublicar o GitHub Pages.
 - [ ] Tornar o repositório privado depois de confirmar que nenhum fluxo público depende dele.
