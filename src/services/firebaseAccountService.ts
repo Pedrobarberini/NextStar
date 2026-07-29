@@ -203,6 +203,25 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
     return "Este método de acesso ainda não foi habilitado no Firebase.";
   }
 
+  if (error.code === "auth/unauthorized-domain") {
+    return "Este domínio ainda não foi autorizado no Firebase Authentication. Adicione xolot.com.br em Configurações > Domínios autorizados.";
+  }
+
+  if (error.code === "auth/popup-blocked") {
+    return "O navegador bloqueou a janela de autenticação. Permita pop-ups para a Xolot e tente novamente.";
+  }
+
+  if (error.code === "auth/account-exists-with-different-credential") {
+    return "Já existe uma conta para este email usando outro método de entrada. Entre pelo método usado no cadastro.";
+  }
+
+  if (
+    error.code === "auth/invalid-continue-uri" ||
+    error.code === "auth/unauthorized-continue-uri"
+  ) {
+    return "O endereço de retorno da autenticação não está autorizado no Firebase.";
+  }
+
   if (
     error.code === "auth/invalid-credential" ||
     error.code === "auth/wrong-password" ||

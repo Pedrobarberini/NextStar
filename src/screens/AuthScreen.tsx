@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Check, LogIn, UserPlus } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -15,7 +14,11 @@ import {
 } from "react-native";
 import { ScreenBackdrop, ScreenTransition } from "../components/AppShell";
 import { LabeledInput } from "../components/Navigation";
-import { XOLOT_WORDMARK } from "../constants/assets";
+import {
+  APPLE_SIGNIN_ICON,
+  GOOGLE_SIGNIN_ICON,
+  XOLOT_WORDMARK
+} from "../constants/assets";
 import { useAppleSignIn } from "../hooks/useAppleSignIn";
 import { useGoogleSignIn } from "../hooks/useGoogleSignIn";
 import {
@@ -288,10 +291,10 @@ export function AuthScreen({
               {isGoogleSigningIn ? (
                 <ActivityIndicator color={colors.text} size="small" />
               ) : (
-                <FontAwesome
-                  color={colors.text}
-                  name="google"
-                  size={21}
+                <Image
+                  accessibilityIgnoresInvertColors
+                  source={GOOGLE_SIGNIN_ICON}
+                  style={styles.authSocialIcon}
                 />
               )}
               <Text style={styles.authSocialButtonText}>Google</Text>
@@ -311,10 +314,13 @@ export function AuthScreen({
               {isAppleSigningIn ? (
                 <ActivityIndicator color={colors.onPrimary} size="small" />
               ) : (
-                <FontAwesome
-                  color={colors.onPrimary}
-                  name="apple"
-                  size={23}
+                <Image
+                  accessibilityIgnoresInvertColors
+                  source={APPLE_SIGNIN_ICON}
+                  style={[
+                    styles.authSocialIcon,
+                    styles.authAppleSocialIcon
+                  ]}
                 />
               )}
               <Text

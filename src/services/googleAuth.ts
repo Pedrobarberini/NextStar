@@ -75,8 +75,24 @@ export async function signInWithGoogleOnWeb(): Promise<GoogleIdentity> {
   provider.addScope("profile");
   provider.addScope("email");
 
-  const result = await signInWithPopup(auth, provider);
-  return toGoogleIdentity(result.user);
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return toGoogleIdentity(result.user);
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "";
+
+    if (
+      code === "auth/cancelled-popup-request" ||
+      code === "auth/popup-closed-by-user"
+    ) {
+      throw new GoogleAuthCancelledError();
+    }
+
+    throw error;
+  }
 }
 
 export async function signInWithGoogleIdToken(

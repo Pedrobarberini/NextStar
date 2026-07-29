@@ -120,6 +120,8 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Integrar login Google à mesma autoridade de sessão.
 - [x] Integrar login Apple Web via `OAuthProvider("apple.com")` à mesma autoridade de sessão.
 - [x] Exibir Google e Apple lado a lado com ícones, carregamento e acessibilidade na tela de entrada.
+- [x] Substituir os glifos por assets oficiais Google Identity e Sign in with Apple, sem dependência de fonte web.
+- [x] Tratar domínio OAuth não autorizado, popup bloqueado, conta já vinculada e URI de retorno inválida com mensagens específicas.
 - [ ] Implementar Sign in with Apple nativo no build iOS com nonce e entitlement próprios.
 - [x] Criar `accounts/{uid}` privado com metadados mínimos e imutáveis.
 - [x] Criar `profiles/{uid}` sem email, senha ou papel administrativo.

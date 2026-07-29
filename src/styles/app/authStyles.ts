@@ -183,6 +183,15 @@ export const authStyles = {
     fontSize: 14,
     fontWeight: "900"
   },
+  authSocialIcon: {
+    height: 21,
+    resizeMode: "contain",
+    width: 21
+  },
+  authAppleSocialIcon: {
+    height: 24,
+    width: 24
+  },
   authAppleButton: {
     backgroundColor: "#000000",
     borderColor: "#000000"
