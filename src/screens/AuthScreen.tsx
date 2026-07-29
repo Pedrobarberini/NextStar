@@ -14,12 +14,7 @@ import {
 } from "react-native";
 import { ScreenBackdrop, ScreenTransition } from "../components/AppShell";
 import { LabeledInput } from "../components/Navigation";
-import {
-  APPLE_SIGNIN_ICON,
-  GOOGLE_SIGNIN_ICON,
-  XOLOT_WORDMARK
-} from "../constants/assets";
-import { useAppleSignIn } from "../hooks/useAppleSignIn";
+import { GOOGLE_SIGNIN_ICON, XOLOT_WORDMARK } from "../constants/assets";
 import { useGoogleSignIn } from "../hooks/useGoogleSignIn";
 import {
   createFirebaseAccountMetadata,
@@ -32,10 +27,6 @@ import {
   signOutFirebaseSession
 } from "../services/firebaseAccountService";
 import { loadFirebaseAppUser } from "../services/firebaseProfileService";
-import {
-  AppleAuthCancelledError,
-  AppleAuthConfigurationError
-} from "../services/appleAuth";
 import {
   GoogleAuthCancelledError,
   GoogleAuthConfigurationError
@@ -65,12 +56,6 @@ export function AuthScreen({
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
-    isAvailable: isAppleAvailable,
-    isReady: isAppleReady,
-    isSigningIn: isAppleSigningIn,
-    signInWithApple
-  } = useAppleSignIn();
-  const {
     isAvailable: isGoogleAvailable,
     isReady: isGoogleReady,
     isSigningIn: isGoogleSigningIn,
@@ -82,7 +67,7 @@ export function AuthScreen({
   const passwordRequirements = getPasswordRequirements(password);
   const hasStrongPassword = isStrongPassword(password);
   const hasValidPassword = mode === "login" ? password.length >= 1 : hasStrongPassword;
-  const isBusy = isSubmitting || isGoogleSigningIn || isAppleSigningIn;
+  const isBusy = isSubmitting || isGoogleSigningIn;
   const canContinue =
     hasValidEmail &&
     hasValidPassword &&
@@ -91,8 +76,6 @@ export function AuthScreen({
     !isBusy;
   const canContinueWithGoogle =
     !isBusy && isGoogleAvailable && isGoogleReady;
-  const canContinueWithApple =
-    !isBusy && isAppleAvailable && isAppleReady;
 
   function clearFeedback() {
     setErrorMessage("");
@@ -107,19 +90,13 @@ export function AuthScreen({
     setAcceptedTerms(false);
   }
 
-  async function handleSocialPress(provider: "apple" | "google") {
+  async function handleGooglePress() {
     clearFeedback();
 
-    const isAvailable =
-      provider === "apple" ? isAppleAvailable : isGoogleAvailable;
-    const providerLabel = provider === "apple" ? "Apple" : "Google";
-
-    if (!isAvailable) {
+    if (!isGoogleAvailable) {
       Alert.alert(
-        `Login com ${providerLabel}`,
-        provider === "apple"
-          ? "O login Apple está disponível na versão web do app."
-          : "Configure o Firebase no arquivo .env e reinicie o Expo."
+        "Login com Google",
+        "Configure o Firebase no arquivo .env e reinicie o Expo."
       );
       return;
     }
@@ -130,11 +107,7 @@ export function AuthScreen({
     }
 
     try {
-      if (provider === "apple") {
-        await signInWithApple();
-      } else {
-        await signInWithGoogle();
-      }
+      await signInWithGoogle();
 
       const firebaseUser = getCurrentFirebaseUser();
 
@@ -157,17 +130,11 @@ export function AuthScreen({
 
       onComplete(await loadFirebaseAppUser(firebaseUser));
     } catch (error) {
-      if (
-        error instanceof AppleAuthCancelledError ||
-        error instanceof GoogleAuthCancelledError
-      ) {
+      if (error instanceof GoogleAuthCancelledError) {
         return;
       }
 
-      if (
-        error instanceof AppleAuthConfigurationError ||
-        error instanceof GoogleAuthConfigurationError
-      ) {
+      if (error instanceof GoogleAuthConfigurationError) {
         setErrorMessage(error.message);
         return;
       }
@@ -283,7 +250,7 @@ export function AuthScreen({
               accessibilityLabel="Continuar com Google"
               accessibilityRole="button"
               disabled={!canContinueWithGoogle}
-              onPress={() => void handleSocialPress("google")}
+              onPress={() => void handleGooglePress()}
               style={[
                 styles.authSocialButton,
                 !canContinueWithGoogle ? styles.authSocialButtonDisabled : null
@@ -299,39 +266,6 @@ export function AuthScreen({
                 />
               )}
               <Text style={styles.authSocialButtonText}>Google</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityLabel="Continuar com Apple"
-              accessibilityRole="button"
-              disabled={!canContinueWithApple}
-              onPress={() => void handleSocialPress("apple")}
-              style={[
-                styles.authSocialButton,
-                styles.authAppleButton,
-                !canContinueWithApple ? styles.authSocialButtonDisabled : null
-              ]}
-            >
-              {isAppleSigningIn ? (
-                <ActivityIndicator color={colors.onPrimary} size="small" />
-              ) : (
-                <Image
-                  accessibilityIgnoresInvertColors
-                  source={APPLE_SIGNIN_ICON}
-                  style={[
-                    styles.authSocialIcon,
-                    styles.authAppleSocialIcon
-                  ]}
-                />
-              )}
-              <Text
-                style={[
-                  styles.authSocialButtonText,
-                  styles.authAppleButtonText
-                ]}
-              >
-                Apple
-              </Text>
             </Pressable>
           </View>
 

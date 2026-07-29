@@ -227,17 +227,6 @@ export const authStyles = {
     resizeMode: "contain",
     width: 21
   },
-  authAppleSocialIcon: {
-    height: 24,
-    width: 24
-  },
-  authAppleButton: {
-    backgroundColor: "#000000",
-    borderColor: "#000000"
-  },
-  authAppleButtonText: {
-    color: colors.onPrimary
-  },
   authDivider: {
     alignItems: "center",
     flexDirection: "row",

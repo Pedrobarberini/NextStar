@@ -110,7 +110,7 @@ Status: Concluído em 2026-07-25, com validação visual manual ainda recomendad
 
 Tipo: Backend/Frontend/Infra/Segurança
 
-Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email/Senha, Google e Apple Web configurados; domínio Auth personalizado, Apple nativo e App Check ainda pendentes.
+Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email/Senha e Google configurados; domínio Auth personalizado e App Check ainda pendentes.
 
 - [x] Escolher Firebase Authentication e Cloud Firestore para contas e perfis.
 - [x] Implementar cadastro por email/senha sem credencial local.
@@ -118,12 +118,12 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Exigir verificação de email antes de acessar dados sociais.
 - [x] Implementar recuperação de senha com resposta antienumeração.
 - [x] Integrar login Google à mesma autoridade de sessão.
-- [x] Integrar login Apple Web via `OAuthProvider("apple.com")` à mesma autoridade de sessão.
-- [x] Exibir Google e Apple lado a lado com ícones, carregamento e acessibilidade na tela de entrada.
-- [x] Substituir os glifos por assets oficiais Google Identity e Sign in with Apple, sem dependência de fonte web.
+- [x] Remover o login Apple Web e seu código específico por decisão de produto.
+- [x] Exibir Google em largura total, com ícone oficial, carregamento e acessibilidade.
+- [x] Usar o asset oficial do Google Identity, sem dependência de fonte web.
 - [x] Tratar domínio OAuth não autorizado, popup bloqueado, conta já vinculada e URI de retorno inválida com mensagens específicas.
 - [x] Exibir requisitos de senha em tempo real e traduzir erros de cadastro do Firebase, incluindo email já cadastrado por provedor social.
-- [ ] Implementar Sign in with Apple nativo no build iOS com nonce e entitlement próprios.
+- [x] Retirar o planejamento de Sign in with Apple nativo nesta fase.
 - [x] Criar `accounts/{uid}` privado com metadados mínimos e imutáveis.
 - [x] Criar `profiles/{uid}` sem email, senha ou papel administrativo.
 - [x] Garantir unicidade de `@username` com transação e coleção `usernames`.
@@ -136,7 +136,7 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Documentar variáveis, modelo de dados e práticas de segurança.
 - [x] Executar pnpm run typecheck, 74 testes e build web de produção.
 - [ ] Criar projetos Firebase separados para desenvolvimento, staging e produção.
-- [x] Habilitar Email/Senha, Google, Apple e política forte de senha no console.
+- [x] Habilitar Email/Senha, Google e política forte de senha no console.
 - [ ] Ativar proteção contra enumeração de emails.
 - [ ] Adicionar `xolot.com.br` aos domínios autorizados do Firebase Authentication.
 - [ ] Revisar domínios autorizados para OAuth e links de ação após a emissão do certificado TLS.

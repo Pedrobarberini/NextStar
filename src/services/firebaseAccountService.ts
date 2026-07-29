@@ -200,7 +200,7 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
   }
 
   if (error.code === "auth/email-already-in-use") {
-    return "Este email já possui uma conta Xolot. Use Entrar e escolha o mesmo método usado no primeiro acesso, como Google ou Apple.";
+    return "Este email já possui uma conta Xolot. Use Entrar e escolha o mesmo método usado no primeiro acesso, como Google.";
   }
 
   if (error.code === "auth/invalid-email") {
