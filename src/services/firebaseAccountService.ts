@@ -196,7 +196,27 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
   }
 
   if (error.code === "auth/weak-password") {
-    return "A senha não atende à política de segurança da Xolot.";
+    return "A senha precisa ter pelo menos 8 caracteres, com letra maiúscula, minúscula e número.";
+  }
+
+  if (error.code === "auth/email-already-in-use") {
+    return "Este email já possui uma conta Xolot. Use Entrar e escolha o mesmo método usado no primeiro acesso, como Google ou Apple.";
+  }
+
+  if (error.code === "auth/invalid-email") {
+    return "O email informado não é válido. Verifique o endereço e tente novamente.";
+  }
+
+  if (error.code === "auth/missing-password") {
+    return "Digite uma senha para criar sua conta.";
+  }
+
+  if (error.code === "auth/user-disabled") {
+    return "Esta conta foi desativada. Entre em contato com o suporte da Xolot.";
+  }
+
+  if (error.code === "auth/credential-already-in-use") {
+    return "Esta forma de acesso já está vinculada a outra conta Xolot.";
   }
 
   if (error.code === "auth/operation-not-allowed") {

@@ -125,6 +125,45 @@ export const authStyles = {
     lineHeight: 16,
     marginTop: 8
   },
+  authPasswordRequirements: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8
+  },
+  authPasswordRequirement: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5
+  },
+  authPasswordRequirementIcon: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 7,
+    borderWidth: 1,
+    height: 14,
+    justifyContent: "center",
+    width: 14
+  },
+  authPasswordRequirementIconMet: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  authPasswordRequirementText: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "700"
+  },
+  authPasswordRequirementTextMet: {
+    color: colors.primary
+  },
+  authFieldErrorText: {
+    color: colors.danger,
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 15,
+    marginTop: 6
+  },
   authIdentityHint: {
     color: colors.muted,
     fontSize: 10,

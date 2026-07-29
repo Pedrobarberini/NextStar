@@ -43,6 +43,10 @@ import {
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
 import type { AppUser } from "../types";
+import {
+  getPasswordRequirements,
+  isStrongPassword
+} from "../utils/passwordValidation";
 
 type AuthMode = "create" | "login";
 
@@ -75,11 +79,8 @@ export function AuthScreen({
   const isCompact = width < 380;
   const cleanEmail = email.trim().toLowerCase();
   const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
-  const hasStrongPassword =
-    password.length >= 8 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /\d/.test(password);
+  const passwordRequirements = getPasswordRequirements(password);
+  const hasStrongPassword = isStrongPassword(password);
   const hasValidPassword = mode === "login" ? password.length >= 1 : hasStrongPassword;
   const isBusy = isSubmitting || isGoogleSigningIn || isAppleSigningIn;
   const canContinue =
@@ -352,6 +353,11 @@ export function AuthScreen({
             placeholder="você@email.com"
             value={email}
           />
+          {email.trim() && !hasValidEmail ? (
+            <Text accessibilityRole="alert" style={styles.authFieldErrorText}>
+              Digite um email válido, como nome@dominio.com.
+            </Text>
+          ) : null}
 
           <LabeledInput
             autoCapitalize="none"
@@ -372,9 +378,44 @@ export function AuthScreen({
 
           {mode === "create" ? (
             <>
-              <Text style={styles.authHelperText}>
-                Use ao menos 8 caracteres, com letra maiúscula, minúscula e número.
-              </Text>
+              <View
+                accessibilityLabel="Requisitos da senha"
+                style={styles.authPasswordRequirements}
+              >
+                {passwordRequirements.map((requirement) => (
+                  <View
+                    key={requirement.id}
+                    style={styles.authPasswordRequirement}
+                  >
+                    <View
+                      style={[
+                        styles.authPasswordRequirementIcon,
+                        requirement.met
+                          ? styles.authPasswordRequirementIconMet
+                          : null
+                      ]}
+                    >
+                      {requirement.met ? (
+                        <Check
+                          color={colors.onPrimary}
+                          size={10}
+                          strokeWidth={3}
+                        />
+                      ) : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.authPasswordRequirementText,
+                        requirement.met
+                          ? styles.authPasswordRequirementTextMet
+                          : null
+                      ]}
+                    >
+                      {requirement.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
               <LabeledInput
                 autoCapitalize="none"
                 autoComplete="new-password"
@@ -389,6 +430,12 @@ export function AuthScreen({
                 secureTextEntry
                 value={passwordConfirmation}
               />
+              {passwordConfirmation &&
+              password !== passwordConfirmation ? (
+                <Text accessibilityRole="alert" style={styles.authFieldErrorText}>
+                  As senhas não coincidem.
+                </Text>
+              ) : null}
             </>
           ) : null}
 

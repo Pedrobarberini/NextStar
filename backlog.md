@@ -122,6 +122,7 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Exibir Google e Apple lado a lado com ícones, carregamento e acessibilidade na tela de entrada.
 - [x] Substituir os glifos por assets oficiais Google Identity e Sign in with Apple, sem dependência de fonte web.
 - [x] Tratar domínio OAuth não autorizado, popup bloqueado, conta já vinculada e URI de retorno inválida com mensagens específicas.
+- [x] Exibir requisitos de senha em tempo real e traduzir erros de cadastro do Firebase, incluindo email já cadastrado por provedor social.
 - [ ] Implementar Sign in with Apple nativo no build iOS com nonce e entitlement próprios.
 - [x] Criar `accounts/{uid}` privado com metadados mínimos e imutáveis.
 - [x] Criar `profiles/{uid}` sem email, senha ou papel administrativo.
@@ -133,7 +134,7 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Preparar App Check web com reCAPTCHA Enterprise por variável de ambiente.
 - [x] Adicionar testes de normalização de perfil, descarte de credenciais e invariantes das regras.
 - [x] Documentar variáveis, modelo de dados e práticas de segurança.
-- [x] Executar pnpm run typecheck, 71 testes e build web de produção.
+- [x] Executar pnpm run typecheck, 74 testes e build web de produção.
 - [ ] Criar projetos Firebase separados para desenvolvimento, staging e produção.
 - [x] Habilitar Email/Senha, Google, Apple e política forte de senha no console.
 - [ ] Ativar proteção contra enumeração de emails.
