@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Check, LogIn, UserPlus } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
 import { ScreenBackdrop, ScreenTransition } from "../components/AppShell";
 import { LabeledInput } from "../components/Navigation";
 import { XOLOT_WORDMARK } from "../constants/assets";
+import { useAppleSignIn } from "../hooks/useAppleSignIn";
 import { useGoogleSignIn } from "../hooks/useGoogleSignIn";
 import {
   createFirebaseAccountMetadata,
@@ -27,6 +29,10 @@ import {
   signOutFirebaseSession
 } from "../services/firebaseAccountService";
 import { loadFirebaseAppUser } from "../services/firebaseProfileService";
+import {
+  AppleAuthCancelledError,
+  AppleAuthConfigurationError
+} from "../services/appleAuth";
 import {
   GoogleAuthCancelledError,
   GoogleAuthConfigurationError
@@ -52,6 +58,12 @@ export function AuthScreen({
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
+    isAvailable: isAppleAvailable,
+    isReady: isAppleReady,
+    isSigningIn: isAppleSigningIn,
+    signInWithApple
+  } = useAppleSignIn();
+  const {
     isAvailable: isGoogleAvailable,
     isReady: isGoogleReady,
     isSigningIn: isGoogleSigningIn,
@@ -66,7 +78,7 @@ export function AuthScreen({
     /[A-Z]/.test(password) &&
     /\d/.test(password);
   const hasValidPassword = mode === "login" ? password.length >= 1 : hasStrongPassword;
-  const isBusy = isSubmitting || isGoogleSigningIn;
+  const isBusy = isSubmitting || isGoogleSigningIn || isAppleSigningIn;
   const canContinue =
     hasValidEmail &&
     hasValidPassword &&
@@ -74,7 +86,9 @@ export function AuthScreen({
     (mode === "login" || acceptedTerms) &&
     !isBusy;
   const canContinueWithGoogle =
-    !isBusy && (Platform.OS === "web" || isGoogleReady);
+    !isBusy && isGoogleAvailable && isGoogleReady;
+  const canContinueWithApple =
+    !isBusy && isAppleAvailable && isAppleReady;
 
   function clearFeedback() {
     setErrorMessage("");
@@ -89,13 +103,19 @@ export function AuthScreen({
     setAcceptedTerms(false);
   }
 
-  async function handleGooglePress() {
+  async function handleSocialPress(provider: "apple" | "google") {
     clearFeedback();
 
-    if (!isGoogleAvailable) {
+    const isAvailable =
+      provider === "apple" ? isAppleAvailable : isGoogleAvailable;
+    const providerLabel = provider === "apple" ? "Apple" : "Google";
+
+    if (!isAvailable) {
       Alert.alert(
-        "Login com Google",
-        "Configure o Firebase no arquivo .env e reinicie o Expo."
+        `Login com ${providerLabel}`,
+        provider === "apple"
+          ? "O login Apple está disponível na versão web do app."
+          : "Configure o Firebase no arquivo .env e reinicie o Expo."
       );
       return;
     }
@@ -106,7 +126,12 @@ export function AuthScreen({
     }
 
     try {
-      await signInWithGoogle();
+      if (provider === "apple") {
+        await signInWithApple();
+      } else {
+        await signInWithGoogle();
+      }
+
       const firebaseUser = getCurrentFirebaseUser();
 
       if (!firebaseUser) {
@@ -128,11 +153,17 @@ export function AuthScreen({
 
       onComplete(await loadFirebaseAppUser(firebaseUser));
     } catch (error) {
-      if (error instanceof GoogleAuthCancelledError) {
+      if (
+        error instanceof AppleAuthCancelledError ||
+        error instanceof GoogleAuthCancelledError
+      ) {
         return;
       }
 
-      if (error instanceof GoogleAuthConfigurationError) {
+      if (
+        error instanceof AppleAuthConfigurationError ||
+        error instanceof GoogleAuthConfigurationError
+      ) {
         setErrorMessage(error.message);
         return;
       }
@@ -243,25 +274,59 @@ export function AuthScreen({
             {mode === "login" ? "Entre na sua conta" : "Crie sua conta"}
           </Text>
 
-          <Pressable
-            accessibilityLabel="Continuar com Google"
-            accessibilityRole="button"
-            disabled={!canContinueWithGoogle}
-            onPress={handleGooglePress}
-            style={[
-              styles.authGoogleButton,
-              !canContinueWithGoogle ? styles.authGoogleButtonDisabled : null
-            ]}
-          >
-            {isGoogleSigningIn ? (
-              <ActivityIndicator color={colors.text} size="small" />
-            ) : (
-              <View style={styles.authGoogleIcon}>
-                <Text style={styles.authGoogleIconText}>G</Text>
-              </View>
-            )}
-            <Text style={styles.authGoogleButtonText}>Continuar com Google</Text>
-          </Pressable>
+          <View style={styles.authSocialRow}>
+            <Pressable
+              accessibilityLabel="Continuar com Google"
+              accessibilityRole="button"
+              disabled={!canContinueWithGoogle}
+              onPress={() => void handleSocialPress("google")}
+              style={[
+                styles.authSocialButton,
+                !canContinueWithGoogle ? styles.authSocialButtonDisabled : null
+              ]}
+            >
+              {isGoogleSigningIn ? (
+                <ActivityIndicator color={colors.text} size="small" />
+              ) : (
+                <FontAwesome
+                  color={colors.text}
+                  name="google"
+                  size={21}
+                />
+              )}
+              <Text style={styles.authSocialButtonText}>Google</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityLabel="Continuar com Apple"
+              accessibilityRole="button"
+              disabled={!canContinueWithApple}
+              onPress={() => void handleSocialPress("apple")}
+              style={[
+                styles.authSocialButton,
+                styles.authAppleButton,
+                !canContinueWithApple ? styles.authSocialButtonDisabled : null
+              ]}
+            >
+              {isAppleSigningIn ? (
+                <ActivityIndicator color={colors.onPrimary} size="small" />
+              ) : (
+                <FontAwesome
+                  color={colors.onPrimary}
+                  name="apple"
+                  size={23}
+                />
+              )}
+              <Text
+                style={[
+                  styles.authSocialButtonText,
+                  styles.authAppleButtonText
+                ]}
+              >
+                Apple
+              </Text>
+            </Pressable>
+          </View>
 
           <View style={styles.authDivider}>
             <View style={styles.authDividerLine} />

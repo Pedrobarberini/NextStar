@@ -137,7 +137,7 @@ export type AccountProfile = {
   username: string;
 };
 
-export type AuthProvider = "password" | "google";
+export type AuthProvider = "password" | "google" | "apple";
 
 export type AppUser = AccountProfile & {
   id: string;

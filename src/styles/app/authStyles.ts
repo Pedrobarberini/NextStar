@@ -156,39 +156,39 @@ export const authStyles = {
     fontSize: 12,
     fontWeight: "800"
   },
-  authGoogleButton: {
+  authSocialRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%"
+  },
+  authSocialButton: {
     alignItems: "center",
     backgroundColor: colors.surface,
     borderColor: colors.borderStrong,
     borderRadius: 8,
     borderWidth: 1,
+    flex: 1,
     flexDirection: "row",
     gap: 9,
     justifyContent: "center",
     minHeight: 48,
-    paddingHorizontal: 14
+    minWidth: 0,
+    paddingHorizontal: 12
   },
-  authGoogleButtonDisabled: {
-    opacity: 0.55
+  authSocialButtonDisabled: {
+    opacity: 0.48
   },
-  authGoogleButtonText: {
+  authSocialButtonText: {
     color: colors.text,
     fontSize: 14,
     fontWeight: "900"
   },
-  authGoogleIcon: {
-    alignItems: "center",
-    borderColor: colors.borderStrong,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 24,
-    justifyContent: "center",
-    width: 24
+  authAppleButton: {
+    backgroundColor: "#000000",
+    borderColor: "#000000"
   },
-  authGoogleIconText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "900"
+  authAppleButtonText: {
+    color: colors.onPrimary
   },
   authDivider: {
     alignItems: "center",

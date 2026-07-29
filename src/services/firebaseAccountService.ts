@@ -48,6 +48,10 @@ function assertFirebaseAvailable() {
 }
 
 function getAuthProvider(user: User): AuthProvider {
+  if (user.providerData.some((provider) => provider.providerId === "apple.com")) {
+    return "apple";
+  }
+
   return user.providerData.some((provider) => provider.providerId === "google.com")
     ? "google"
     : "password";

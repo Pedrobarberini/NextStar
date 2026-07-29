@@ -813,7 +813,11 @@ function SettingsView({
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Acesso</Text>
           <Text style={styles.profileValue}>
-            {user.authProvider === "google" ? "Google" : "Email e senha"}
+            {user.authProvider === "apple"
+              ? "Apple"
+              : user.authProvider === "google"
+                ? "Google"
+                : "Email e senha"}
           </Text>
         </View>
         <View style={styles.profileRow}>

@@ -110,7 +110,7 @@ Status: Concluído em 2026-07-25, com validação visual manual ainda recomendad
 
 Tipo: Backend/Frontend/Infra/Segurança
 
-Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Authentication e App Check ainda pendentes no Console.
+Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email/Senha, Google e Apple Web configurados; domínio Auth personalizado, Apple nativo e App Check ainda pendentes.
 
 - [x] Escolher Firebase Authentication e Cloud Firestore para contas e perfis.
 - [x] Implementar cadastro por email/senha sem credencial local.
@@ -118,6 +118,9 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Authe
 - [x] Exigir verificação de email antes de acessar dados sociais.
 - [x] Implementar recuperação de senha com resposta antienumeração.
 - [x] Integrar login Google à mesma autoridade de sessão.
+- [x] Integrar login Apple Web via `OAuthProvider("apple.com")` à mesma autoridade de sessão.
+- [x] Exibir Google e Apple lado a lado com ícones, carregamento e acessibilidade na tela de entrada.
+- [ ] Implementar Sign in with Apple nativo no build iOS com nonce e entitlement próprios.
 - [x] Criar `accounts/{uid}` privado com metadados mínimos e imutáveis.
 - [x] Criar `profiles/{uid}` sem email, senha ou papel administrativo.
 - [x] Garantir unicidade de `@username` com transação e coleção `usernames`.
@@ -130,9 +133,10 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Authe
 - [x] Documentar variáveis, modelo de dados e práticas de segurança.
 - [x] Executar pnpm run typecheck, 71 testes e build web de produção.
 - [ ] Criar projetos Firebase separados para desenvolvimento, staging e produção.
-- [ ] Habilitar Email/Senha, Google e política forte de senha no console.
+- [x] Habilitar Email/Senha, Google, Apple e política forte de senha no console.
 - [ ] Ativar proteção contra enumeração de emails.
-- [ ] Revisar domínios autorizados para OAuth e links de ação.
+- [ ] Adicionar `xolot.com.br` aos domínios autorizados do Firebase Authentication.
+- [ ] Revisar domínios autorizados para OAuth e links de ação após a emissão do certificado TLS.
 - [x] Publicar `firestore.rules` e `firestore.indexes.json` no projeto correto.
 - [ ] Cobrir regras com Firebase Emulator Suite e `@firebase/rules-unit-testing`.
 - [ ] Registrar App Check e ativar enforcement após monitorar clientes legítimos.

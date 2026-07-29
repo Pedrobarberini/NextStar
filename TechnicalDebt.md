@@ -122,7 +122,7 @@ Firebase Authentication agora é a autoridade de credenciais e sessão. Metadado
 
 **Status:** Fase 1 implementada em 2026-07-27.
 
-Cadastro, login, logout, verificação de email, recuperação de senha, Google e restauração de sessão usam Firebase Authentication. Perfis e usernames usam transações do Firestore e regras deny-by-default. Papel administrativo não é aceito no perfil público.
+Cadastro, login, logout, verificação de email, recuperação de senha, Google, Apple Web e restauração de sessão usam Firebase Authentication. Perfis e usernames usam transações do Firestore e regras deny-by-default. Papel administrativo não é aceito no perfil público.
 
 **Risco residual:** As regras ainda precisam ser testadas no Emulator Suite e publicadas no projeto correto. App Check precisa ser registrado e colocado em enforcement após observação. Funções administrativas futuras dependem de custom claims e execução server-side.
 

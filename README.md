@@ -5,7 +5,7 @@ Rede social mobile-first para pessoas, criadores, talentos, marcas, projetos e s
 ## Produto atual
 
 - Aplicativo React Native com Expo e TypeScript para Android, iOS e web/PWA.
-- Contas por email/senha e Google usando Firebase Authentication.
+- Contas por email/senha, Google e Apple Web usando Firebase Authentication.
 - Verificação de email, recuperação de senha e restauração segura de sessão.
 - Primeiro acesso com configuração de `@username`, nome público, biografia, idade, área de atuação, cidade e organização.
 - Perfis públicos sincronizados pelo Cloud Firestore, com reserva transacional de `@username`.
@@ -60,14 +60,15 @@ pnpm run build:web
 ## Configuração Firebase
 
 1. Crie ou selecione um projeto Firebase e habilite o Cloud Firestore em modo Native.
-2. Em Authentication, habilite Email/Senha e Google.
-3. Configure uma política de senha com no mínimo 8 caracteres, letra maiúscula, minúscula e número.
-4. Ative proteção contra enumeração de emails no projeto.
-5. Autorize `localhost`, `xolot.com.br` e os domínios usados pelo Expo/OAuth.
-6. Copie `.env.example` para `.env` e preencha apenas as variáveis públicas `EXPO_PUBLIC_*`.
-7. Publique regras e índices com `firebase deploy --only firestore --project SEU_PROJECT_ID`.
-8. Registre o app web no App Check com reCAPTCHA Enterprise, monitore as métricas e só depois habilite enforcement.
-9. Gere o build e publique Hosting, regras e índices com `pnpm run deploy:firebase -- --project SEU_PROJECT_ID`.
+2. Em Authentication, habilite Email/Senha, Google e Apple.
+3. No provedor Apple, registre `https://SEU_PROJECT_ID.firebaseapp.com/__/auth/handler` como Return URL e mantenha Service ID, Team ID e chave privada somente no console da Apple/Firebase.
+4. Configure uma política de senha com no mínimo 8 caracteres, letra maiúscula, minúscula e número.
+5. Ative proteção contra enumeração de emails no projeto.
+6. Autorize `localhost`, `xolot.com.br`, `xolot.web.app` e os domínios usados pelo Expo/OAuth.
+7. Copie `.env.example` para `.env` e preencha apenas as variáveis públicas `EXPO_PUBLIC_*`.
+8. Publique regras e índices com `firebase deploy --only firestore --project SEU_PROJECT_ID`.
+9. Registre o app web no App Check com reCAPTCHA Enterprise, monitore as métricas e só depois habilite enforcement.
+10. Gere o build e publique Hosting, regras e índices com `pnpm run deploy:firebase -- --project SEU_PROJECT_ID`.
 
 A API key do Firebase e a chave de site do App Check identificam o app, mas não substituem segurança. A proteção efetiva está nas regras do Firestore, Auth, App Check e validações server-side.
 
