@@ -156,15 +156,25 @@ Coleções desta fase:
 
 Tipo: Backend/Frontend/Infra
 
+Status: Cliente, Firestore e regras preparados em 2026-07-29. A ativação do bucket Firebase Storage e o plano Blaze ainda bloqueiam a publicação desta versão no Hosting.
+
 - [x] Persistir mídia provisoriamente no IndexedDB do navegador.
 - [x] Pausar vídeos fora da área visível.
 - [x] Suportar foto, vídeo, descrição, tags e marcações no frontend.
-- [ ] Escolher storage: S3, Cloudflare R2, Supabase ou Firebase Storage.
-- [ ] Criar upload por URL assinada.
-- [ ] Validar MIME, tamanho, duração e resolução.
+- [x] Escolher Firebase Storage para mídia e Cloud Firestore para metadados.
+- [x] Criar upload autenticado e resumível pelo SDK Firebase, com progresso visual.
+- [x] Persistir posts em `posts/{postId}` e arquivos em `posts/{uid}/{postId}/media`.
+- [x] Persistir avatar e enquadramento em `profileMedia/{uid}` e `avatars/{uid}/profile`.
+- [x] Validar MIME, tamanho e metadados no cliente, Firestore e Storage Rules.
+- [x] Assinar em tempo real a primeira página com limite de 50 publicações.
+- [x] Excluir documento e arquivo remoto apenas para o proprietário.
+- [x] Publicar e validar a compilação das regras do Firestore.
+- [x] Validar integração com TypeScript, 84 testes automatizados e build web.
+- [ ] Ativar Firebase Storage no projeto `xolot-384e9` e vincular o plano Blaze.
+- [ ] Publicar `storage.rules` após a criação do bucket.
+- [ ] Validar duração e resolução reais em processamento confiável no servidor.
 - [ ] Gerar thumbnail, poster e versões otimizadas.
-- [ ] Implementar CDN e expiração de links privados.
-- [ ] Criar feed paginado no backend.
+- [ ] Implementar paginação incremental além das 50 publicações iniciais.
 - [ ] Implementar exclusão lógica e limpeza assíncrona de mídia.
 
 ### Task P0-003 - Mensagens em tempo real

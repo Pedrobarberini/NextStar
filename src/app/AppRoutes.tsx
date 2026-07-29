@@ -27,6 +27,7 @@ import type {
   DirectMessage,
   MessageContact,
   Player,
+  PublicationMediaInput,
   ProfessionalSettings,
   ProfessionalSettingsByUser,
   ProfileAvatar,
@@ -75,7 +76,11 @@ type AppRoutesProps = {
     status: VideoSubmissionStatus,
     reviewNote: string
   ) => void;
-  handleSubmitVideo: (submission: VideoSubmission) => void;
+  handleSubmitVideo: (
+    submission: VideoSubmission,
+    media: PublicationMediaInput,
+    onProgress: (progress: number) => void
+  ) => Promise<VideoSubmission>;
   handleToggleCampaign: (campaignId: string) => void;
   handleUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
   handleUpdateProfile: (profile: {

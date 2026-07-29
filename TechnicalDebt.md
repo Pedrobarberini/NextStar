@@ -114,7 +114,7 @@ Firebase Authentication agora é a autoridade de credenciais e sessão. Metadado
 
 **Risco residual:** Publicações, mídia, follows, mensagens, avatares personalizados, preferências e campanhas continuam locais. URI de mídia pode expirar e não sincroniza entre aparelhos.
 
-**Ação:** Migrar o restante por domínio, começando por Firebase Storage e publicações.
+**Ação:** A integração de Firebase Storage e publicações foi preparada em 2026-07-29. Falta ativar o bucket no plano Blaze, publicar `storage.rules` e então implantar o cliente no Hosting. Processamento confiável de duração, resolução e thumbnails continua pendente.
 
 **Prioridade:** P0 para mídia e conteúdo social remoto
 

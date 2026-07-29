@@ -14,10 +14,16 @@ import {
   ProfessionalSettingsByUser,
   PromotionCampaign,
   Player,
+  PublicationMediaInput,
   VideoSubmission,
   VideoSubmissionStatus
 } from "../types";
 import { Tab } from "../ui/types";
+import {
+  deleteFirebasePost,
+  isFirebaseStoredPost,
+  publishFirebasePost
+} from "../services/firebasePostService";
 import { deleteStoredVideo } from "../services/videoStorage";
 import { removeOwnedVideoSubmission } from "../utils/videoSubmission";
 import { estimateCampaignReach } from "../utils/professional";
@@ -184,13 +190,36 @@ export function createAppActions({
     setTab("feed");
   }
 
-  function handleSubmitVideo(submission: VideoSubmission) {
-    setSubmissions((current) => [submission, ...current]);
+  async function handleSubmitVideo(
+    submission: VideoSubmission,
+    media: PublicationMediaInput,
+    onProgress: (progress: number) => void
+  ) {
+    if (!user || submission.userId !== user.id) {
+      throw new Error("A publicação não pertence à conta conectada.");
+    }
+
+    const publishedSubmission = await publishFirebasePost(
+      submission,
+      media,
+      onProgress
+    );
+    setSubmissions((current) => [
+      publishedSubmission,
+      ...current.filter((item) => item.id !== publishedSubmission.id)
+    ]);
+    return publishedSubmission;
   }
 
   async function handleDeleteVideo(submission: VideoSubmission) {
     if (!user || submission.userId !== user.id) {
       return false;
+    }
+
+    if (isFirebaseStoredPost(submission)) {
+      await deleteFirebasePost(submission);
+    } else {
+      await deleteStoredVideo(submission.videoLink).catch(() => false);
     }
 
     setSubmissions((current) =>
@@ -199,7 +228,6 @@ export function createAppActions({
     setCampaigns((current) =>
       current.filter((campaign) => campaign.playerId !== `approved-${submission.id}`)
     );
-    await deleteStoredVideo(submission.videoLink).catch(() => false);
 
     return true;
   }

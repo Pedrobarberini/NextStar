@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createAppActions } from "./src/actions/createAppActions";
 import { useFirebaseAccounts } from "./src/actions/useFirebaseAccounts";
+import { useFirebasePosts } from "./src/actions/useFirebasePosts";
 import { usePersistentAppState } from "./src/actions/usePersistentAppState";
 import { useProfileActions } from "./src/actions/useProfileActions";
 import { useSocialActions } from "./src/actions/useSocialActions";
@@ -77,6 +78,7 @@ export default function App() {
     setUser,
     user
   } = useFirebaseAccounts();
+  const { isPostsLoaded } = useFirebasePosts(user, setSubmissions);
 
   useEffect(() => {
     if (!isAppStateLoaded || !isSessionLoaded || hasRestoredInitialRoute.current) return;
@@ -92,7 +94,7 @@ export default function App() {
     () => selectAvailablePlayers(approvedSubmissionPlayers, demoPlayer),
     [approvedSubmissionPlayers]
   );
-  const { profileAvatars, setProfileAvatar } = useProfileActions();
+  const { profileAvatars, setProfileAvatar } = useProfileActions(user);
   const {
     addMessageContact,
     blockedProfileIdSet,
@@ -239,7 +241,7 @@ export default function App() {
     handleSignOut();
   }
 
-  if (!isAppStateLoaded || !isSessionLoaded) {
+  if (!isAppStateLoaded || !isSessionLoaded || !isPostsLoaded) {
     return <LoadingAppShell isVisible={isBrandLaunchVisible} onFinish={() => setIsBrandLaunchVisible(false)} />;
   }
 

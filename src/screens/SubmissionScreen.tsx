@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
+import { randomUUID } from "expo-crypto";
 import { Check, Send } from "lucide-react-native";
 import {
   Alert,
@@ -26,10 +27,14 @@ import {
 import { SubmissionMediaPreview } from "../components/SubmissionComponents";
 import { SubmissionMentionPicker } from "../components/SubmissionMentionPicker";
 import { USE_CENTERED_WEB_LAYOUT } from "../constants/layout";
-import { persistPickedVideo } from "../services/videoStorage";
+import { getSafeFirebasePostMessage } from "../services/firebasePostService";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import { AppUser, VideoSubmission } from "../types";
+import {
+  AppUser,
+  PublicationMediaInput,
+  VideoSubmission
+} from "../types";
 import { DIRECT_PUBLICATION_STATUS } from "../utils/publication";
 import { parseSubmissionTokens } from "../utils/submissionMetadata";
 
@@ -59,7 +64,11 @@ export function SubmitVideoScreen({
 }: {
   accounts: AppUser[];
   onBack: () => void;
-  onSubmit: (submission: VideoSubmission) => void;
+  onSubmit: (
+    submission: VideoSubmission,
+    media: PublicationMediaInput,
+    onProgress: (progress: number) => void
+  ) => Promise<VideoSubmission>;
   user: AppUser;
 }) {
   const { width } = useWindowDimensions();
@@ -71,6 +80,7 @@ export function SubmitVideoScreen({
     useState<SelectedSubmissionMedia | null>(null);
   const [step, setStep] = useState<SubmissionStep>("media");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [lastSubmittedId, setLastSubmittedId] = useState<string | null>(null);
   const submissionToastProgress = useRef(new Animated.Value(0)).current;
   const age = user.age ?? 0;
@@ -83,12 +93,13 @@ export function SubmitVideoScreen({
       ? null
       : "Revise a idade no perfil. Envios são aceitos a partir de 12 anos.",
     selectedMedia ? null : "Escolha ou capture uma foto ou vídeo.",
-    draft.title.trim().length >= 4
+    draft.title.trim().length >= 4 && draft.title.trim().length <= 120
       ? null
-      : "O título precisa ter pelo menos 4 caracteres.",
-    draft.highlight.trim().length >= 4
+      : "O título precisa ter entre 4 e 120 caracteres.",
+    draft.highlight.trim().length >= 4 &&
+    draft.highlight.trim().length <= 2000
       ? null
-      : "Escreva uma descrição com pelo menos 4 caracteres.",
+      : "A descrição precisa ter entre 4 e 2.000 caracteres.",
     !needsGuardianConsent || draft.hasGuardianConsent
       ? null
       : "Confirme a autorização do responsável legal."
@@ -244,51 +255,52 @@ export function SubmitVideoScreen({
       return;
     }
 
-    const id = `media-${Date.now()}`;
+    const id = randomUUID();
     setIsSubmitting(true);
+    setUploadProgress(0);
 
     try {
-      const mediaLink = await persistPickedVideo(id, {
-        file: selectedMedia.file,
-        fileName: selectedMedia.fileName,
-        mimeType: selectedMedia.mimeType,
-        uri: selectedMedia.uri
-      });
-
-      onSubmit({
-        age,
-        approvedAt: new Date().toISOString(),
-        athleteName: user.name,
-        city: user.city,
-        club: user.club,
-        hasGuardianConsent: draft.hasGuardianConsent,
-        highlight: draft.highlight.trim(),
-        id,
-        mediaType: selectedMedia.mediaType,
-        mentions: draft.mentions,
-        position: user.position,
-        status: DIRECT_PUBLICATION_STATUS,
-        submittedAt: new Date().toISOString(),
-        tags,
-        userId: user.id,
-        videoDurationMs: selectedMedia.durationMs,
-        videoFileName: selectedMedia.fileName,
-        videoFileSize: selectedMedia.fileSize,
-        videoLink: mediaLink,
-        videoTitle: draft.title.trim()
-      });
+      const publishedSubmission = await onSubmit(
+        {
+          age,
+          athleteName: user.name,
+          city: user.city,
+          club: user.club,
+          hasGuardianConsent: draft.hasGuardianConsent,
+          highlight: draft.highlight.trim(),
+          id,
+          mediaHeight: selectedMedia.height,
+          mediaType: selectedMedia.mediaType,
+          mediaWidth: selectedMedia.width,
+          mentions: draft.mentions,
+          mimeType: selectedMedia.mimeType,
+          position: user.position,
+          status: DIRECT_PUBLICATION_STATUS,
+          submittedAt: new Date().toISOString(),
+          tags,
+          userId: user.id,
+          videoDurationMs: selectedMedia.durationMs,
+          videoFileName: selectedMedia.fileName,
+          videoFileSize: selectedMedia.fileSize,
+          videoLink: "",
+          videoTitle: draft.title.trim()
+        },
+        selectedMedia,
+        setUploadProgress
+      );
       Keyboard.dismiss();
-      setLastSubmittedId(id);
+      setLastSubmittedId(publishedSubmission.id);
       setSelectedMedia(null);
       setDraft(emptySubmissionDraft);
       setStep("media");
-    } catch {
+    } catch (error) {
       Alert.alert(
-        "Não foi possível salvar a publicação",
-        "A mídia não foi salva. Verifique o espaço do navegador e tente novamente."
+        "Não foi possível publicar",
+        getSafeFirebasePostMessage(error)
       );
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
     }
   }
 
@@ -362,12 +374,14 @@ export function SubmitVideoScreen({
             <Text style={styles.sectionTitle}>Detalhes</Text>
             <LabeledInput
               label="Título"
+              maxLength={120}
               onChangeText={(value) => updateDraft("title", value)}
               placeholder="Meu melhor lance"
               value={draft.title}
             />
             <LabeledInput
               label="Descrição"
+              maxLength={2000}
               multiline
               onChangeText={(value) => updateDraft("highlight", value)}
               placeholder="Descreva o que acontece nesta publicação"
@@ -438,7 +452,11 @@ export function SubmitVideoScreen({
             >
               <Send color={colors.onPrimary} size={19} />
               <Text style={styles.primaryButtonText}>
-                {isSubmitting ? "Publicando..." : "Publicar"}
+                {isSubmitting
+                  ? uploadProgress > 0
+                    ? `Publicando ${Math.round(uploadProgress * 100)}%`
+                    : "Preparando..."
+                  : "Publicar"}
               </Text>
             </Pressable>
           </View>

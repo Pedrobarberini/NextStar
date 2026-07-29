@@ -1,5 +1,17 @@
 export type SubmissionMediaType = "image" | "video";
 
+export type PublicationMediaInput = {
+  durationMs?: number;
+  file?: File;
+  fileName: string;
+  fileSize?: number;
+  height?: number;
+  mediaType: SubmissionMediaType;
+  mimeType?: string;
+  uri: string;
+  width?: number;
+};
+
 export type Player = {
   id: string;
   profileId: string;
@@ -171,6 +183,10 @@ export type VideoSubmission = {
   videoDurationMs?: number;
   videoFileName?: string;
   videoFileSize?: number;
+  mediaHeight?: number;
+  mediaWidth?: number;
+  mimeType?: string;
+  storagePath?: string;
   highlight: string;
   tags?: string[];
   mentions?: string[];

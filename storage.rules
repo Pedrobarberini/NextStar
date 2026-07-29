@@ -1,0 +1,65 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function verifiedUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true;
+    }
+
+    function owns(uid) {
+      return verifiedUser() && request.auth.uid == uid;
+    }
+
+    function validImageUpload() {
+      return request.resource.size > 0
+        && request.resource.size <= 15 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'image/(jpeg|png|webp|heic|heif)'
+        );
+    }
+
+    function validVideoUpload() {
+      return request.resource.size > 0
+        && request.resource.size <= 200 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'video/(mp4|quicktime|webm|x-m4v|3gpp)'
+        );
+    }
+
+    match /posts/{uid}/{postId}/media {
+      allow get: if verifiedUser();
+      allow list: if false;
+      allow create: if owns(uid)
+        && postId.size() >= 1
+        && postId.size() <= 128
+        && request.resource.metadata.ownerUid == uid
+        && request.resource.metadata.postId == postId
+        && request.resource.metadata.mediaType in ['image', 'video']
+        && (
+          (
+            request.resource.metadata.mediaType == 'image'
+            && validImageUpload()
+          )
+          || (
+            request.resource.metadata.mediaType == 'video'
+            && validVideoUpload()
+          )
+        );
+      allow update: if false;
+      allow delete: if owns(uid);
+    }
+
+    match /avatars/{uid}/profile {
+      allow get: if verifiedUser();
+      allow list: if false;
+      allow create, update: if owns(uid)
+        && request.resource.metadata.ownerUid == uid
+        && validImageUpload();
+      allow delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

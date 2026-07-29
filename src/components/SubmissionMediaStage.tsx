@@ -18,7 +18,10 @@ import { startWebCameraRecording } from "../actions/webCameraRecorder";
 import { BackButton } from "./Navigation";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import type { SubmissionMediaType } from "../types";
+import type {
+  PublicationMediaInput,
+  SubmissionMediaType
+} from "../types";
 import { SubmissionMediaPreview } from "./SubmissionComponents";
 
 const CAMERA_TEST_ID = "submission-camera-preview";
@@ -29,17 +32,7 @@ type CaptureMode = "photo" | "video";
 type CameraOutputMode = "picture" | "video";
 type RecordingTrigger = "hold" | "tap";
 
-export type SelectedSubmissionMedia = {
-  durationMs?: number;
-  file?: File;
-  fileName: string;
-  fileSize?: number;
-  height?: number;
-  mediaType: SubmissionMediaType;
-  mimeType?: string;
-  uri: string;
-  width?: number;
-};
+export type SelectedSubmissionMedia = PublicationMediaInput;
 
 export function SubmissionMediaStage({
   galleryMedia,

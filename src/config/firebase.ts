@@ -5,6 +5,7 @@ import {
 } from "firebase/app-check";
 import type { Auth } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore";
+import { FirebaseStorage, getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 import { initializeFirebaseAuth } from "./firebaseAuth";
 
@@ -43,6 +44,7 @@ function readConfig(): FirebasePublicConfig | null {
 const firebaseConfig = readConfig();
 let isAppCheckInitialized = false;
 let firebaseAuth: Auth | null = null;
+let firebaseStorage: FirebaseStorage | null = null;
 
 function initializeClientProtection(app: FirebaseApp) {
   const siteKey =
@@ -90,6 +92,24 @@ export function getFirebaseAuth(): Auth {
 
 export function getFirebaseFirestore(): Firestore {
   return getFirestore(getFirebaseApp());
+}
+
+export function isFirebaseStorageConfigured() {
+  return Boolean(firebaseConfig?.storageBucket);
+}
+
+export function getFirebaseStorage(): FirebaseStorage {
+  if (!isFirebaseStorageConfigured()) {
+    throw new Error(
+      "Firebase Storage não configurado. Defina EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET."
+    );
+  }
+
+  if (!firebaseStorage) {
+    firebaseStorage = getStorage(getFirebaseApp());
+  }
+
+  return firebaseStorage;
 }
 
 export function getGoogleClientIds() {

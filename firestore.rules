@@ -66,6 +66,81 @@ service cloud.firestore {
         );
     }
 
+    function validPost(postId, data) {
+      return data.keys().hasOnly([
+          'authorId', 'createdAt', 'description', 'durationMs', 'fileName',
+          'fileSize', 'height', 'mediaPath', 'mediaType', 'mentions',
+          'mimeType', 'status', 'tags', 'title', 'updatedAt', 'width'
+        ])
+        && data.keys().hasAll([
+          'authorId', 'createdAt', 'description', 'durationMs', 'fileName',
+          'fileSize', 'height', 'mediaPath', 'mediaType', 'mentions',
+          'mimeType', 'status', 'tags', 'title', 'updatedAt', 'width'
+        ])
+        && data.authorId is string && data.authorId.size() >= 1
+        && data.authorId.size() <= 128
+        && data.title is string && data.title.size() >= 4
+        && data.title.size() <= 120
+        && data.description is string && data.description.size() >= 4
+        && data.description.size() <= 2000
+        && data.mediaType in ['image', 'video']
+        && data.mediaPath == 'posts/' + data.authorId + '/' + postId + '/media'
+        && data.mimeType is string && data.mimeType.size() >= 3
+        && data.mimeType.size() <= 100
+        && data.fileName is string && data.fileName.size() >= 1
+        && data.fileName.size() <= 160
+        && data.fileSize is int && data.fileSize > 0
+        && data.durationMs is int && data.durationMs >= 0
+        && data.durationMs <= 120000
+        && (
+          (
+            data.mediaType == 'image'
+            && data.fileSize <= 15 * 1024 * 1024
+            && data.durationMs == 0
+            && data.mimeType.matches('image/(jpeg|png|webp|heic|heif)')
+          )
+          || (
+            data.mediaType == 'video'
+            && data.fileSize <= 200 * 1024 * 1024
+            && data.mimeType.matches('video/(mp4|quicktime|webm|x-m4v|3gpp)')
+          )
+        )
+        && data.width is int && data.width >= 0 && data.width <= 10000
+        && data.height is int && data.height >= 0 && data.height <= 10000
+        && data.tags is list && data.tags.size() <= 10
+        && data.mentions is list && data.mentions.size() <= 10
+        && data.status == 'published'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function validProfileMedia(uid, data) {
+      return data.keys().hasOnly([
+          'avatarPath', 'avatarURL', 'createdAt', 'cropScale', 'focusX',
+          'focusY', 'sourceHeight', 'sourceWidth', 'uid', 'updatedAt'
+        ])
+        && data.keys().hasAll([
+          'avatarPath', 'avatarURL', 'createdAt', 'cropScale', 'focusX',
+          'focusY', 'sourceHeight', 'sourceWidth', 'uid', 'updatedAt'
+        ])
+        && data.uid == uid
+        && data.avatarPath == 'avatars/' + uid + '/profile'
+        && data.avatarURL is string && data.avatarURL.size() >= 1
+        && data.avatarURL.size() <= 2048
+        && (data.cropScale is int || data.cropScale is float)
+        && data.cropScale >= 0.3 && data.cropScale <= 1
+        && (data.focusX is int || data.focusX is float)
+        && data.focusX >= 0 && data.focusX <= 100
+        && (data.focusY is int || data.focusY is float)
+        && data.focusY >= 0 && data.focusY <= 100
+        && data.sourceHeight is int && data.sourceHeight > 0
+        && data.sourceHeight <= 10000
+        && data.sourceWidth is int && data.sourceWidth > 0
+        && data.sourceWidth <= 10000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     match /accounts/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
       allow list: if false;
@@ -78,7 +153,7 @@ service cloud.firestore {
           'authProvider', 'createdAt', 'termsAcceptedAt', 'uid'
         ])
         && request.resource.data.uid == uid
-        && request.resource.data.authProvider in ['password', 'google']
+        && request.resource.data.authProvider in ['password', 'google', 'apple']
         && request.resource.data.createdAt == request.time
         && request.resource.data.termsAcceptedAt == request.time;
       allow update, delete: if false;
@@ -126,6 +201,31 @@ service cloud.firestore {
             /databases/$(database)/documents/profiles/$(request.auth.uid)
           ).data.username
         );
+    }
+
+    match /posts/{postId} {
+      allow get, list: if registeredVerifiedUser();
+      allow create: if registeredVerifiedUser()
+        && request.resource.data.authorId == request.auth.uid
+        && validPost(postId, request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if false;
+      allow delete: if registeredVerifiedUser()
+        && resource.data.authorId == request.auth.uid;
+    }
+
+    match /profileMedia/{uid} {
+      allow get, list: if registeredVerifiedUser();
+      allow create: if owns(uid)
+        && validProfileMedia(uid, request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if owns(uid)
+        && validProfileMedia(uid, request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
 
     match /{document=**} {

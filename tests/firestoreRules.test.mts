@@ -29,3 +29,14 @@ test("perfil e username são validados e vinculados atomicamente", () => {
   assert.match(rules, /usernameOwnedAfter/);
   assert.match(rules, /oldUsernameReleasedAfter/);
 });
+
+test("posts e avatares remotos exigem propriedade e campos permitidos", () => {
+  assert.match(rules, /function validPost/);
+  assert.match(rules, /match \/posts\/\{postId\}/);
+  assert.match(rules, /request\.resource\.data\.authorId == request\.auth\.uid/);
+  assert.match(rules, /data\.mediaPath == 'posts\/'/);
+  assert.match(rules, /data\.durationMs <= 120000/);
+  assert.match(rules, /match \/profileMedia\/\{uid\}/);
+  assert.match(rules, /validProfileMedia/);
+  assert.match(rules, /authProvider in \['password', 'google', 'apple'\]/);
+});
