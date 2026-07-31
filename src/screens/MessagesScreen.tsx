@@ -8,7 +8,8 @@ import {
   Search,
   Send,
   UserCheck,
-  UserPlus
+  UserPlus,
+  X
 } from "lucide-react-native";
 import {
   Alert,
@@ -33,6 +34,10 @@ import {
 import { canExchangeDirectMessages } from "../utils/socialAccess";
 import { MAX_PINNED_CONVERSATIONS } from "../utils/conversations";
 import { getSharedPostCaption } from "../utils/socialSharing";
+import {
+  matchesProfileSearch,
+  normalizeProfileSearchValue
+} from "../utils/profileSearch";
 
 function getInitials(name: string) {
   return name
@@ -95,6 +100,7 @@ export function MessagesScreen({
   profileAvatars: ProfileAvatarsByProfile;
 }) {
   const [draft, setDraft] = useState("");
+  const [contactQuery, setContactQuery] = useState("");
   const [actionContact, setActionContact] = useState<MessageContact | null>(
     null
   );
@@ -121,11 +127,19 @@ export function MessagesScreen({
         : [],
     [activeContact, currentUserId, messages]
   );
-  const followedContacts = contacts.filter(
+  const normalizedContactQuery = normalizeProfileSearchValue(contactQuery);
+  const visibleContacts = contacts.filter((contact) =>
+    matchesProfileSearch(normalizedContactQuery, [
+      contact.name,
+      contact.username,
+      contact.subtitle
+    ])
+  );
+  const followedContacts = visibleContacts.filter(
     (contact) =>
       contact.id === currentUserId || followingSet.has(contact.profileId)
   );
-  const requestContacts = contacts.filter(
+  const requestContacts = visibleContacts.filter(
     (contact) =>
       contact.id !== currentUserId && !followingSet.has(contact.profileId)
   );
@@ -503,6 +517,30 @@ export function MessagesScreen({
         </Text>
       </View>
 
+      <View style={styles.searchField}>
+        <Search color={colors.muted} size={19} />
+        <TextInput
+          accessibilityLabel="Pesquisar conversas"
+          autoCapitalize="none"
+          onChangeText={setContactQuery}
+          placeholder="Nome ou @username"
+          placeholderTextColor={colors.muted}
+          returnKeyType="search"
+          style={styles.searchInput}
+          value={contactQuery}
+        />
+        {contactQuery ? (
+          <Pressable
+            accessibilityLabel="Limpar pesquisa de conversas"
+            hitSlop={8}
+            onPress={() => setContactQuery("")}
+            style={styles.searchClearButton}
+          >
+            <X color={colors.text} size={17} />
+          </Pressable>
+        ) : null}
+      </View>
+
       {contacts.length === 0 ? (
         <View style={styles.messagesEmptyState}>
           <View style={styles.messagesIcon}>
@@ -524,6 +562,16 @@ export function MessagesScreen({
             <Search color={colors.onPrimary} size={18} />
             <Text style={styles.messagesSearchButtonText}>Pesquisar perfis</Text>
           </Pressable>
+        </View>
+      ) : normalizedContactQuery && visibleContacts.length === 0 ? (
+        <View style={styles.discoveryEmptyState}>
+          <Search color={colors.muted} size={28} />
+          <Text style={styles.discoveryEmptyTitle}>
+            Nenhuma conversa encontrada
+          </Text>
+          <Text style={styles.discoveryEmptyBody}>
+            Tente pesquisar por outro nome ou @username.
+          </Text>
         </View>
       ) : (
         <>

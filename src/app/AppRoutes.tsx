@@ -331,6 +331,7 @@ export function AppRoutes(props: AppRoutesProps) {
               {tab === "search" ? (
                 <ScreenFrame key="search">
                   <SearchScreen
+                    followingProfileIds={followingProfileIds}
                     onOpenPlayer={openAthleteProfile}
                     onOpenUser={openAccountProfile}
                     players={availablePlayers}

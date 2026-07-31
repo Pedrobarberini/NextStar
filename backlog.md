@@ -185,6 +185,8 @@ Tipo: Backend/Frontend
 - [x] Implementar follow como regra de liberação de conversa.
 - [x] Permitir compartilhar publicações com mensagem anexada.
 - [x] Fixar até três conversas, silenciar e apagar histórico localmente.
+- [x] Pesquisar conversas por nome público ou @username.
+- [x] Limitar a aba Pesquisar aos perfis que a conta segue.
 - [ ] Criar tabelas Conversation, ConversationMember e Message.
 - [ ] Implementar WebSocket ou serviço realtime.
 - [ ] Persistir recibos de envio, entrega e leitura.

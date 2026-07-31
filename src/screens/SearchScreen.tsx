@@ -11,6 +11,11 @@ import type {
   ProfileAvatarsByProfile
 } from "../types";
 import { getProfessionalCategoryLabel } from "../utils/professional";
+import {
+  filterFollowedProfiles,
+  matchesProfileSearch,
+  normalizeProfileSearchValue
+} from "../utils/profileSearch";
 
 type SearchProfile = {
   id: string;
@@ -27,6 +32,7 @@ type SearchProfile = {
 export function SearchScreen({
   onOpenPlayer,
   onOpenUser,
+  followingProfileIds,
   players,
   professionalSettingsByUser,
   profileAvatars,
@@ -34,6 +40,7 @@ export function SearchScreen({
 }: {
   onOpenPlayer: (player: Player) => void;
   onOpenUser: (user: AppUser) => void;
+  followingProfileIds: string[];
   players: Player[];
   professionalSettingsByUser: ProfessionalSettingsByUser;
   profileAvatars: ProfileAvatarsByProfile;
@@ -102,12 +109,15 @@ export function SearchScreen({
         username: player.username
       }));
 
-    return [...registeredProfiles, ...standaloneProfiles];
-  }, [players, professionalSettingsByUser, users]);
-  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+    return filterFollowedProfiles(
+      [...registeredProfiles, ...standaloneProfiles],
+      followingProfileIds
+    );
+  }, [followingProfileIds, players, professionalSettingsByUser, users]);
+  const normalizedQuery = normalizeProfileSearchValue(query);
   const filteredProfiles = normalizedQuery
     ? profiles.filter((profile) =>
-        profile.searchableText.toLocaleLowerCase("pt-BR").includes(normalizedQuery)
+        matchesProfileSearch(normalizedQuery, [profile.searchableText])
       )
     : profiles;
 
@@ -115,7 +125,7 @@ export function SearchScreen({
     <ScrollView contentContainerStyle={styles.discoveryContent} keyboardShouldPersistTaps="handled">
       <View style={styles.discoveryHeader}>
         <Text style={styles.discoveryTitle}>Pesquisar perfis</Text>
-        <Text style={styles.discoverySubtitle}>Encontre talentos, criadores, marcas, projetos e serviços.</Text>
+        <Text style={styles.discoverySubtitle}>Pesquise entre os perfis que você segue.</Text>
       </View>
 
       <View style={styles.searchField}>
@@ -138,15 +148,23 @@ export function SearchScreen({
       </View>
 
       <View style={styles.searchResultsHeader}>
-        <Text style={styles.searchResultsTitle}>{normalizedQuery ? "Resultados" : "Perfis disponíveis"}</Text>
+        <Text style={styles.searchResultsTitle}>{normalizedQuery ? "Resultados" : "Seguindo"}</Text>
         <Text style={styles.searchResultsCount}>{filteredProfiles.length}</Text>
       </View>
 
       {filteredProfiles.length === 0 ? (
         <View style={styles.discoveryEmptyState}>
           <Search color={colors.muted} size={28} />
-          <Text style={styles.discoveryEmptyTitle}>Nenhum perfil encontrado</Text>
-          <Text style={styles.discoveryEmptyBody}>Tente outro nome, categoria, cidade ou área de atuação.</Text>
+          <Text style={styles.discoveryEmptyTitle}>
+            {normalizedQuery
+              ? "Nenhum perfil seguido encontrado"
+              : "Você ainda não segue nenhum perfil"}
+          </Text>
+          <Text style={styles.discoveryEmptyBody}>
+            {normalizedQuery
+              ? "Tente pesquisar por outro nome ou @username."
+              : "Siga perfis pelo Início para encontrá-los rapidamente aqui."}
+          </Text>
         </View>
       ) : (
         filteredProfiles.map((profile) => {
