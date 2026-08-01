@@ -28,6 +28,10 @@ export const feedStyles = {
     justifyContent: "center",
     width: 48
   },
+  feedBrandSlotPressed: {
+    opacity: 0.62,
+    transform: [{ scale: 0.94 }]
+  },
   feedPager: {
     backgroundColor: colors.media,
     flex: 1

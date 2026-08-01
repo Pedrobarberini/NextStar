@@ -54,7 +54,11 @@ type AppRoutesProps = {
   currentMessageContacts: MessageContact[];
   currentProfessionalSettings: ProfessionalSettings;
   currentUserCampaigns: PromotionCampaign[];
-  addPostComment: (playerId: string, body: string) => boolean;
+  addPostComment: (
+    playerId: string,
+    body: string,
+    replyToCommentId?: string
+  ) => boolean;
   deleteConversation: (contactId: string) => void;
   directMessages: DirectMessage[];
   deletePostComment: (commentId: string) => void;
@@ -319,6 +323,7 @@ export function AppRoutes(props: AppRoutesProps) {
                   onOpenPlayer={openAthleteProfile}
                   onOpenTaggedUser={openAccountProfile}
                   onRecordView={recordPlayerView}
+                  onRefreshFeed={() => openTab("feed")}
                   onShare={(player, contact, message) => sendSharedPost(contact, player, message)}
                   onToggleFollow={(player) => {
                     focusFeedPlayer(player.id);

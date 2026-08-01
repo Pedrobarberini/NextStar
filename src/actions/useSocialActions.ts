@@ -432,10 +432,25 @@ export function useSocialActions({
     });
   }
 
-  function addPostComment(playerId: string, body: string) {
+  function addPostComment(
+    playerId: string,
+    body: string,
+    replyToCommentId?: string
+  ) {
     const normalizedBody = normalizePostCommentBody(body);
+    const replyTarget = replyToCommentId
+      ? postComments.find(
+          (comment) =>
+            comment.id === replyToCommentId && comment.playerId === playerId
+        )
+      : undefined;
 
-    if (!user || !playerId.trim() || !normalizedBody) {
+    if (
+      !user ||
+      !playerId.trim() ||
+      !normalizedBody ||
+      (replyToCommentId && !replyTarget)
+    ) {
       return false;
     }
 
@@ -447,6 +462,15 @@ export function useSocialActions({
       body: normalizedBody,
       createdAt: new Date().toISOString(),
       id: `comment-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ...(replyTarget
+        ? {
+            parentCommentId:
+              replyTarget.parentCommentId ?? replyTarget.id,
+            replyToUserId: replyTarget.authorUserId,
+            replyToUsername:
+              replyTarget.authorUsername || replyTarget.authorName
+          }
+        : {}),
       playerId
     };
 

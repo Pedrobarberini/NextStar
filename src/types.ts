@@ -114,7 +114,10 @@ export type PostComment = {
   body: string;
   createdAt: string;
   id: string;
+  parentCommentId?: string;
   playerId: string;
+  replyToUserId?: string;
+  replyToUsername?: string;
 };
 
 export type FollowingByUser = Record<string, string[]>;

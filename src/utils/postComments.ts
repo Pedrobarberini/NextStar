@@ -36,6 +36,19 @@ export function normalizePostComment(value: unknown): PostComment | null {
     return null;
   }
 
+  const parentCommentId = isNonEmptyString(comment.parentCommentId, 180)
+    ? comment.parentCommentId.trim()
+    : "";
+  const replyToUserId = isNonEmptyString(comment.replyToUserId, 180)
+    ? comment.replyToUserId.trim()
+    : "";
+  const replyToUsername = isNonEmptyString(comment.replyToUsername, 30)
+    ? comment.replyToUsername.trim()
+    : "";
+  const hasReplyMetadata = Boolean(
+    parentCommentId && replyToUserId && replyToUsername
+  );
+
   return {
     authorName: comment.authorName.trim(),
     authorProfileId: comment.authorProfileId.trim(),
@@ -44,6 +57,13 @@ export function normalizePostComment(value: unknown): PostComment | null {
     body: comment.body.trim(),
     createdAt: comment.createdAt,
     id: comment.id.trim(),
+    ...(hasReplyMetadata
+      ? {
+          parentCommentId,
+          replyToUserId,
+          replyToUsername
+        }
+      : {}),
     playerId: comment.playerId.trim()
   };
 }
@@ -64,6 +84,40 @@ export function groupPostCommentsByPlayer(comments: PostComment[]) {
     grouped[comment.playerId] = [...(grouped[comment.playerId] ?? []), comment];
     return grouped;
   }, {});
+}
+
+export type PostCommentThread = {
+  comment: PostComment;
+  replies: PostComment[];
+};
+
+export function buildPostCommentThreads(
+  comments: PostComment[]
+): PostCommentThread[] {
+  const commentIds = new Set(comments.map((comment) => comment.id));
+  const repliesByParent = comments.reduce<Record<string, PostComment[]>>(
+    (grouped, comment) => {
+      if (comment.parentCommentId && commentIds.has(comment.parentCommentId)) {
+        grouped[comment.parentCommentId] = [
+          ...(grouped[comment.parentCommentId] ?? []),
+          comment
+        ];
+      }
+
+      return grouped;
+    },
+    {}
+  );
+
+  return comments
+    .filter(
+      (comment) =>
+        !comment.parentCommentId || !commentIds.has(comment.parentCommentId)
+    )
+    .map((comment) => ({
+      comment,
+      replies: repliesByParent[comment.id] ?? []
+    }));
 }
 
 export function removeOwnedPostComment(

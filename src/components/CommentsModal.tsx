@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { MessageCircle, Send, Trash2, X } from "lucide-react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
+  CornerUpLeft,
+  MessageCircle,
+  Send,
+  Trash2,
+  X
+} from "lucide-react-native";
+import {
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -15,6 +20,7 @@ import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
 import type { PostComment, ProfileAvatarsByProfile } from "../types";
 import {
+  buildPostCommentThreads,
   formatPostCommentAge,
   MAX_POST_COMMENT_LENGTH
 } from "../utils/postComments";
@@ -43,7 +49,7 @@ export function CommentsModal({
 }: {
   comments: PostComment[];
   currentUserId: string;
-  onAddComment: (body: string) => boolean;
+  onAddComment: (body: string, replyToCommentId?: string) => boolean;
   onClose: () => void;
   onDeleteComment: (commentId: string) => void;
   onOpenAuthor: (userId: string) => void;
@@ -53,33 +59,50 @@ export function CommentsModal({
   visible: boolean;
 }) {
   const [draft, setDraft] = useState("");
+  const [pendingDeleteComment, setPendingDeleteComment] =
+    useState<PostComment | null>(null);
+  const [replyTarget, setReplyTarget] = useState<PostComment | null>(null);
+  const inputRef = useRef<TextInput | null>(null);
   const canSubmit = draft.trim().length > 0;
+  const orderedComments = useMemo(
+    () =>
+      buildPostCommentThreads(comments).flatMap(({ comment, replies }) => [
+        comment,
+        ...replies
+      ]),
+    [comments]
+  );
 
   useEffect(() => {
     if (!visible) {
       setDraft("");
+      setPendingDeleteComment(null);
+      setReplyTarget(null);
     }
   }, [videoId, visible]);
 
   function submitComment() {
-    if (canSubmit && onAddComment(draft)) {
+    if (canSubmit && onAddComment(draft, replyTarget?.id)) {
       setDraft("");
+      setReplyTarget(null);
     }
   }
 
-  function confirmDelete(comment: PostComment) {
-    Alert.alert(
-      "Excluir comentário?",
-      "Essa ação remove o comentário desta publicação.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          onPress: () => onDeleteComment(comment.id),
-          style: "destructive",
-          text: "Excluir"
-        }
-      ]
-    );
+  function startReply(comment: PostComment) {
+    setReplyTarget(comment);
+    inputRef.current?.focus();
+  }
+
+  function deletePendingComment() {
+    if (!pendingDeleteComment) {
+      return;
+    }
+
+    onDeleteComment(pendingDeleteComment.id);
+    if (replyTarget?.id === pendingDeleteComment.id) {
+      setReplyTarget(null);
+    }
+    setPendingDeleteComment(null);
   }
 
   return (
@@ -129,17 +152,27 @@ export function CommentsModal({
                 showsVerticalScrollIndicator={false}
                 style={styles.commentsScroll}
               >
-                {comments.map((comment) => {
+                {orderedComments.map((comment) => {
                   const avatar = profileAvatars[comment.authorProfileId];
                   const isOwner = comment.authorUserId === currentUserId;
+                  const isReply = Boolean(comment.parentCommentId);
 
                   return (
-                    <View key={comment.id} style={styles.commentRow}>
+                    <View
+                      key={comment.id}
+                      style={[
+                        styles.commentRow,
+                        isReply ? styles.commentReplyRow : null
+                      ]}
+                    >
                       <Pressable
                         accessibilityLabel={`Abrir perfil de ${comment.authorName}`}
                         accessibilityRole="button"
                         onPress={() => onOpenAuthor(comment.authorUserId)}
-                        style={styles.commentAvatar}
+                        style={[
+                          styles.commentAvatar,
+                          isReply ? styles.commentReplyAvatar : null
+                        ]}
                       >
                         {avatar ? (
                           <ProfileAvatarImage avatar={avatar} />
@@ -172,14 +205,38 @@ export function CommentsModal({
                             {formatPostCommentAge(comment.createdAt)}
                           </Text>
                         </View>
-                        <Text style={styles.commentText}>{comment.body}</Text>
+                        <Text style={styles.commentText}>
+                          {comment.replyToUsername ? (
+                            <Text
+                              onPress={() =>
+                                comment.replyToUserId
+                                  ? onOpenAuthor(comment.replyToUserId)
+                                  : undefined
+                              }
+                              style={styles.commentReplyMention}
+                            >
+                              @{comment.replyToUsername}{" "}
+                            </Text>
+                          ) : null}
+                          {comment.body}
+                        </Text>
+                        <Pressable
+                          accessibilityLabel={`Responder a ${comment.authorName}`}
+                          accessibilityRole="button"
+                          hitSlop={6}
+                          onPress={() => startReply(comment)}
+                          style={styles.commentReplyButton}
+                        >
+                          <CornerUpLeft color={colors.primary} size={13} />
+                          <Text style={styles.commentReplyButtonText}>Responder</Text>
+                        </Pressable>
                       </View>
                       {isOwner ? (
                         <Pressable
                           accessibilityLabel="Excluir comentário"
                           accessibilityRole="button"
                           hitSlop={7}
-                          onPress={() => confirmDelete(comment)}
+                          onPress={() => setPendingDeleteComment(comment)}
                           style={styles.commentDeleteButton}
                         >
                           <Trash2 color={colors.muted} size={17} />
@@ -201,13 +258,30 @@ export function CommentsModal({
               </View>
             )}
 
+            {replyTarget ? (
+              <View style={styles.commentReplyTarget}>
+                <Text numberOfLines={1} style={styles.commentReplyTargetText}>
+                  Respondendo a @{replyTarget.authorUsername || replyTarget.authorName}
+                </Text>
+                <Pressable
+                  accessibilityLabel="Cancelar resposta"
+                  hitSlop={7}
+                  onPress={() => setReplyTarget(null)}
+                  style={styles.commentReplyTargetClose}
+                >
+                  <X color={colors.muted} size={16} />
+                </Pressable>
+              </View>
+            ) : null}
+
             <View style={styles.commentComposer}>
               <TextInput
                 accessibilityLabel="Escrever comentário"
                 maxLength={MAX_POST_COMMENT_LENGTH}
                 multiline
                 onChangeText={setDraft}
-                placeholder="Adicione um comentário..."
+                placeholder={replyTarget ? "Escreva sua resposta..." : "Adicione um comentário..."}
+                ref={inputRef}
                 placeholderTextColor={colors.muted}
                 style={styles.commentInput}
                 value={draft}
@@ -225,6 +299,41 @@ export function CommentsModal({
                 <Send color={colors.onPrimary} size={18} />
               </Pressable>
             </View>
+
+            {pendingDeleteComment ? (
+              <View style={styles.commentDeleteConfirmationOverlay}>
+                <Pressable
+                  accessibilityLabel="Cancelar exclusão"
+                  onPress={() => setPendingDeleteComment(null)}
+                  style={styles.commentDeleteConfirmationBackdrop}
+                />
+                <View style={styles.commentDeleteConfirmationCard}>
+                  <Text style={styles.commentDeleteConfirmationTitle}>
+                    Excluir comentário?
+                  </Text>
+                  <Text style={styles.commentDeleteConfirmationBody}>
+                    Esta ação remove definitivamente o comentário desta publicação.
+                  </Text>
+                  <View style={styles.commentDeleteConfirmationActions}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setPendingDeleteComment(null)}
+                      style={styles.commentDeleteCancelButton}
+                    >
+                      <Text style={styles.commentDeleteCancelText}>Cancelar</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={deletePendingComment}
+                      style={styles.commentDeleteConfirmButton}
+                    >
+                      <Trash2 color={colors.onPrimary} size={16} />
+                      <Text style={styles.commentDeleteConfirmText}>Excluir</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            ) : null}
           </View>
         </KeyboardAvoidingView>
       </View>

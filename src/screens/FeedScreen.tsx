@@ -69,6 +69,7 @@ export function FeedScreen({
   onOpenPlayer,
   onOpenTaggedUser,
   onRecordView,
+  onRefreshFeed,
   onShare,
   onToggleBlockProfile,
   onToggleFollow,
@@ -91,12 +92,17 @@ export function FeedScreen({
   likedPlayerIds: Set<string>;
   likeCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
-  onAddComment: (playerId: string, body: string) => boolean;
+  onAddComment: (
+    playerId: string,
+    body: string,
+    replyToCommentId?: string
+  ) => boolean;
   onBackToProfile?: () => void;
   onDeleteComment: (commentId: string) => void;
   onOpenPlayer: (player: Player) => void;
   onOpenTaggedUser: (user: AppUser) => void;
   onRecordView: (playerId: string) => void;
+  onRefreshFeed: () => void;
   onShare: (
     player: Player,
     contact: MessageContact,
@@ -115,6 +121,7 @@ export function FeedScreen({
   const { height } = useWindowDimensions();
   const [feedHeight, setFeedHeight] = useState(0);
   const [activeFeedIndex, setActiveFeedIndex] = useState(0);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [commentPlayer, setCommentPlayer] = useState<Player | null>(null);
   const [preferencePlayer, setPreferencePlayer] = useState<Player | null>(null);
   const [sharePlayer, setSharePlayer] = useState<Player | null>(null);
@@ -220,6 +227,19 @@ export function FeedScreen({
     });
   }
 
+  function refreshFeed() {
+    onRefreshFeed();
+    setCommentPlayer(null);
+    setMentionedPlayer(null);
+    setPreferencePlayer(null);
+    setSharePlayer(null);
+    sectionOffsetsRef.current = {};
+    activeFeedIndexRef.current = 0;
+    setActiveFeedIndex(0);
+    feedScrollRef.current?.scrollTo({ animated: false, y: 0 });
+    setFeedRefreshKey((current) => current + 1);
+  }
+
   function getNearestFeedIndex(offsetY: number) {
     let nearestIndex = activeFeedIndexRef.current;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -317,7 +337,7 @@ export function FeedScreen({
         ) : feedPlayers.map((player, index) => (
           <View
             collapsable={false}
-            key={player.id}
+            key={`${feedRefreshKey}-${player.id}`}
             nativeID={`xolot-feed-section-${index}`}
             onLayout={(event) => {
               sectionOffsetsRef.current[index] = event.nativeEvent.layout.y;
@@ -353,14 +373,23 @@ export function FeedScreen({
             onPress={onBackToProfile}
           />
         ) : null}
-        <View pointerEvents="none" style={styles.feedBrandSlot}>
+        <Pressable
+          accessibilityLabel="Atualizar feed"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={refreshFeed}
+          style={({ pressed }) => [
+            styles.feedBrandSlot,
+            pressed ? styles.feedBrandSlotPressed : null
+          ]}
+        >
           <Image
             accessibilityLabel="Xolot"
             resizeMode="contain"
             source={XOLOT_SYMBOL}
             style={styles.feedReelBrandMark}
           />
-        </View>
+        </Pressable>
       </View>
       <FeedPostOptionsModal
         blocked={Boolean(
@@ -409,8 +438,10 @@ export function FeedScreen({
       <CommentsModal
         comments={commentPlayer ? commentsByPlayer[commentPlayer.id] ?? [] : []}
         currentUserId={currentUserId}
-        onAddComment={(body) =>
-          commentPlayer ? onAddComment(commentPlayer.id, body) : false
+        onAddComment={(body, replyToCommentId) =>
+          commentPlayer
+            ? onAddComment(commentPlayer.id, body, replyToCommentId)
+            : false
         }
         onClose={() => setCommentPlayer(null)}
         onDeleteComment={onDeleteComment}

@@ -191,6 +191,9 @@ Tipo: Backend/Frontend
 - [x] Limitar a aba Pesquisar aos perfis que a conta segue.
 - [x] Criar comentarios nos reels com contagem, lista, envio e exclusao pelo autor.
 - [x] Persistir comentarios no estado social local durante a fase de testes.
+- [x] Permitir responder comentarios com encadeamento e marcacao do autor.
+- [x] Corrigir a exclusao de comentarios no web com confirmacao interna.
+- [x] Recarregar e retornar ao primeiro reel ao tocar na logo do Inicio.
 - [ ] Migrar comentarios para o Cloud Firestore com paginacao e atualizacao em tempo real.
 - [ ] Criar tabelas Conversation, ConversationMember e Message.
 - [ ] Implementar WebSocket ou serviço realtime.

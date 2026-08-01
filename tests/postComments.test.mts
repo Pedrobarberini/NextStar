@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { PostComment } from "../src/types.ts";
 import {
+  buildPostCommentThreads,
   formatPostCommentAge,
   groupPostCommentsByPlayer,
   normalizePostCommentBody,
@@ -18,6 +19,19 @@ const comment: PostComment = {
   createdAt: "2026-08-01T12:00:00.000Z",
   id: "comment-a",
   playerId: "player-a"
+};
+
+const reply: PostComment = {
+  ...comment,
+  authorName: "Ana Silva",
+  authorProfileId: "profile-user-b",
+  authorUserId: "user-b",
+  authorUsername: "ana",
+  body: "Concordo!",
+  id: "comment-b",
+  parentCommentId: comment.id,
+  replyToUserId: comment.authorUserId,
+  replyToUsername: comment.authorUsername
 };
 
 test("normaliza comentarios validos e descarta entradas corrompidas", () => {
@@ -37,6 +51,27 @@ test("agrupa comentarios pela publicacao", () => {
       "player-b": [{ ...comment, id: "comment-b", playerId: "player-b" }]
     }
   );
+});
+
+test("organiza respostas abaixo do comentario original", () => {
+  const anotherRoot = { ...comment, id: "comment-c" };
+  const threads = buildPostCommentThreads([
+    comment,
+    anotherRoot,
+    reply
+  ]);
+
+  assert.deepEqual(normalizePostComments([reply]), [reply]);
+  assert.deepEqual(threads, [
+    {
+      comment,
+      replies: [reply]
+    },
+    {
+      comment: anotherRoot,
+      replies: []
+    }
+  ]);
 });
 
 test("somente o autor consegue remover o proprio comentario", () => {

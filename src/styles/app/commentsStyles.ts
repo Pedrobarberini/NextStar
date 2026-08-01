@@ -80,6 +80,12 @@ export const commentsStyles = {
     gap: 10,
     paddingVertical: 13
   },
+  commentReplyRow: {
+    borderLeftColor: colors.primarySoft,
+    borderLeftWidth: 2,
+    marginLeft: 32,
+    paddingLeft: 10
+  },
   commentAvatar: {
     alignItems: "center",
     backgroundColor: colors.primarySoft,
@@ -90,6 +96,10 @@ export const commentsStyles = {
     justifyContent: "center",
     overflow: "hidden",
     width: 38
+  },
+  commentReplyAvatar: {
+    height: 30,
+    width: 30
   },
   commentAvatarText: {
     color: colors.primary,
@@ -130,6 +140,23 @@ export const commentsStyles = {
     lineHeight: 18,
     marginTop: 6
   },
+  commentReplyMention: {
+    color: colors.primary,
+    fontWeight: "900"
+  },
+  commentReplyButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: 4,
+    marginTop: 6,
+    paddingVertical: 2
+  },
+  commentReplyButtonText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: "800"
+  },
   commentDeleteButton: {
     alignItems: "center",
     height: 34,
@@ -164,6 +191,28 @@ export const commentsStyles = {
     marginTop: 5,
     textAlign: "center"
   },
+  commentReplyTarget: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  commentReplyTargetText: {
+    color: colors.primary,
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  commentReplyTargetClose: {
+    alignItems: "center",
+    height: 26,
+    justifyContent: "center",
+    width: 26
+  },
   commentComposer: {
     alignItems: "flex-end",
     borderTopColor: colors.border,
@@ -197,5 +246,65 @@ export const commentsStyles = {
   },
   commentSendButtonDisabled: {
     opacity: 0.38
-  }
+  },
+  commentDeleteConfirmationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+    zIndex: 20
+  },
+  commentDeleteConfirmationBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(5, 18, 12, 0.48)"
+  },
+  commentDeleteConfirmationCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderTopWidth: 1,
+    padding: 18
+  },
+  commentDeleteConfirmationTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: "900"
+  },
+  commentDeleteConfirmationBody: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6
+  },
+  commentDeleteConfirmationActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18
+  },
+  commentDeleteCancelButton: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 6,
+    borderWidth: 1,
+    flex: 1,
+    height: 42,
+    justifyContent: "center"
+  },
+  commentDeleteCancelText: {
+    color: colors.text,
+    fontWeight: "800"
+  },
+  commentDeleteConfirmButton: {
+    alignItems: "center",
+    backgroundColor: colors.danger,
+    borderRadius: 6,
+    flex: 1,
+    flexDirection: "row",
+    gap: 7,
+    height: 42,
+    justifyContent: "center"
+  },
+  commentDeleteConfirmText: {
+    color: colors.onPrimary,
+    fontWeight: "900"
+  },
 } as const;
