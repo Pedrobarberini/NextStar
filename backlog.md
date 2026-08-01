@@ -192,6 +192,7 @@ Tipo: Backend/Frontend
 - [x] Criar comentarios nos reels com contagem, lista, envio e exclusao pelo autor.
 - [x] Persistir comentarios no estado social local durante a fase de testes.
 - [x] Permitir responder comentarios com encadeamento e marcacao do autor.
+- [x] Recolher respostas por padrao e permitir ver ou ocultar cada topico.
 - [x] Corrigir a exclusao de comentarios no web com confirmacao interna.
 - [x] Recarregar e retornar ao primeiro reel ao tocar na logo do Inicio.
 - [ ] Migrar comentarios para o Cloud Firestore com paginacao e atualizacao em tempo real.

@@ -62,15 +62,27 @@ export function CommentsModal({
   const [pendingDeleteComment, setPendingDeleteComment] =
     useState<PostComment | null>(null);
   const [replyTarget, setReplyTarget] = useState<PostComment | null>(null);
+  const [expandedThreadIds, setExpandedThreadIds] = useState<string[]>([]);
   const inputRef = useRef<TextInput | null>(null);
   const canSubmit = draft.trim().length > 0;
+  const commentThreads = useMemo(
+    () => buildPostCommentThreads(comments),
+    [comments]
+  );
+  const repliesByParent = useMemo(
+    () =>
+      Object.fromEntries(
+        commentThreads.map(({ comment, replies }) => [comment.id, replies])
+      ) as Record<string, PostComment[]>,
+    [commentThreads]
+  );
   const orderedComments = useMemo(
     () =>
-      buildPostCommentThreads(comments).flatMap(({ comment, replies }) => [
+      commentThreads.flatMap(({ comment, replies }) => [
         comment,
-        ...replies
+        ...(expandedThreadIds.includes(comment.id) ? replies : [])
       ]),
-    [comments]
+    [commentThreads, expandedThreadIds]
   );
 
   useEffect(() => {
@@ -78,19 +90,38 @@ export function CommentsModal({
       setDraft("");
       setPendingDeleteComment(null);
       setReplyTarget(null);
+      setExpandedThreadIds([]);
     }
   }, [videoId, visible]);
 
   function submitComment() {
+    const replyThreadId =
+      replyTarget?.parentCommentId ?? replyTarget?.id;
+
     if (canSubmit && onAddComment(draft, replyTarget?.id)) {
       setDraft("");
       setReplyTarget(null);
+      if (replyThreadId) {
+        setExpandedThreadIds((current) =>
+          current.includes(replyThreadId)
+            ? current
+            : [...current, replyThreadId]
+        );
+      }
     }
   }
 
   function startReply(comment: PostComment) {
     setReplyTarget(comment);
     inputRef.current?.focus();
+  }
+
+  function toggleThread(commentId: string) {
+    setExpandedThreadIds((current) =>
+      current.includes(commentId)
+        ? current.filter((id) => id !== commentId)
+        : [...current, commentId]
+    );
   }
 
   function deletePendingComment() {
@@ -156,6 +187,13 @@ export function CommentsModal({
                   const avatar = profileAvatars[comment.authorProfileId];
                   const isOwner = comment.authorUserId === currentUserId;
                   const isReply = Boolean(comment.parentCommentId);
+                  const replyCount = repliesByParent[comment.id]?.length ?? 0;
+                  const isThreadExpanded = expandedThreadIds.includes(comment.id);
+                  const replyToggleLabel = isThreadExpanded
+                    ? "Ocultar respostas"
+                    : replyCount === 1
+                      ? "Ver 1 resposta"
+                      : `Ver ${replyCount} respostas`;
 
                   return (
                     <View
@@ -230,6 +268,20 @@ export function CommentsModal({
                           <CornerUpLeft color={colors.primary} size={13} />
                           <Text style={styles.commentReplyButtonText}>Responder</Text>
                         </Pressable>
+                        {replyCount > 0 ? (
+                          <Pressable
+                            accessibilityLabel={replyToggleLabel}
+                            accessibilityRole="button"
+                            hitSlop={6}
+                            onPress={() => toggleThread(comment.id)}
+                            style={styles.commentThreadToggle}
+                          >
+                            <View style={styles.commentThreadToggleLine} />
+                            <Text style={styles.commentThreadToggleText}>
+                              {replyToggleLabel}
+                            </Text>
+                          </Pressable>
+                        ) : null}
                       </View>
                       {isOwner ? (
                         <Pressable

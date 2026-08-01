@@ -157,6 +157,24 @@ export const commentsStyles = {
     fontSize: 10,
     fontWeight: "800"
   },
+  commentThreadToggle: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 7,
+    paddingVertical: 3
+  },
+  commentThreadToggleLine: {
+    backgroundColor: colors.borderStrong,
+    height: 1,
+    width: 24
+  },
+  commentThreadToggleText: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "800"
+  },
   commentDeleteButton: {
     alignItems: "center",
     height: 34,
