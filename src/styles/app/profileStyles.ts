@@ -89,6 +89,27 @@ export const profileStyles = {
     fontSize: 15,
     fontWeight: "900"
   },
+  profileAvatarPreviewModalRoot: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center"
+  },
+  profileAvatarPreviewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(5, 18, 12, 0.72)"
+  },
+  profileAvatarPreviewCircle: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.surface,
+    borderRadius: 999,
+    borderWidth: 3,
+    elevation: 12,
+    overflow: "hidden",
+    shadowColor: "#05120C",
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.26,
+    shadowRadius: 18
+  },
   profileTitleBlock: {
     flex: 1,
     minWidth: 0

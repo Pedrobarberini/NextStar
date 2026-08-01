@@ -293,6 +293,7 @@ Tipo: Frontend/UX
 - [x] Padronizar retornos com ícone simples.
 - [x] Padronizar animações de entrada e HUDs.
 - [x] Ajustar avatar com foco e escala por gesto.
+- [x] Abrir o avatar do Perfil em uma visualizacao circular sem acessar o editor.
 - [x] Criar navegação inferior fixa e responsiva.
 - [ ] Testar leitor de tela em Android, iOS e web.
 - [ ] Garantir foco de teclado em todos os modais.

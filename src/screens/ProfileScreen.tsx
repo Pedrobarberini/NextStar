@@ -23,6 +23,7 @@ import {
 import { AvatarPositionModal } from "../components/AvatarPositionModal";
 import { DeleteVideoModal } from "../components/DeleteVideoModal";
 import { BackButton } from "../components/Navigation";
+import { ProfileAvatarPreviewModal } from "../components/ProfileAvatarPreviewModal";
 import {
   ProfileListModal,
   type ProfileListItemData
@@ -117,6 +118,7 @@ export function ProfileScreen({
 }) {
   const [isFollowersVisible, setIsFollowersVisible] = useState(false);
   const [isFollowingVisible, setIsFollowingVisible] = useState(false);
+  const [isAvatarPreviewVisible, setIsAvatarPreviewVisible] = useState(false);
   const [isAvatarPositionVisible, setIsAvatarPositionVisible] = useState(false);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
@@ -324,11 +326,11 @@ export function ProfileScreen({
             <View style={styles.profileHeroTopRow}>
               <Pressable
                 accessibilityLabel={
-                  avatar ? "Ajustar enquadramento da foto" : "Foto do perfil"
+                  avatar ? "Ampliar foto do perfil" : "Foto do perfil"
                 }
                 accessibilityRole={avatar ? "button" : undefined}
                 disabled={!avatar}
-                onPress={() => setIsAvatarPositionVisible(true)}
+                onPress={() => setIsAvatarPreviewVisible(true)}
                 style={styles.profileAvatar}
               >
                 {avatar ? (
@@ -512,6 +514,11 @@ export function ProfileScreen({
         onSelectItem={(profile) => openListedProfile(profile.id)}
         title="Seguindo"
         visible={isFollowingVisible}
+      />
+      <ProfileAvatarPreviewModal
+        avatar={avatar}
+        onClose={() => setIsAvatarPreviewVisible(false)}
+        visible={isAvatarPreviewVisible}
       />
       {avatarPositionModal}
     </>
