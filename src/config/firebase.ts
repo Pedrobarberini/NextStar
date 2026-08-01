@@ -98,6 +98,13 @@ export function isFirebaseStorageConfigured() {
   return Boolean(firebaseConfig?.storageBucket);
 }
 
+export function isFirebaseMediaEnabled() {
+  return (
+    process.env.EXPO_PUBLIC_FIREBASE_MEDIA_ENABLED?.trim().toLowerCase() ===
+      "true" && isFirebaseStorageConfigured()
+  );
+}
+
 export function getFirebaseStorage(): FirebaseStorage {
   if (!isFirebaseStorageConfigured()) {
     throw new Error(

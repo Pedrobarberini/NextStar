@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
+import { isFirebaseMediaEnabled } from "../config/firebase";
 import { subscribeFirebasePosts } from "../services/firebasePostService";
 import type { AppUser, VideoSubmission } from "../types";
 
@@ -11,7 +12,7 @@ export function useFirebasePosts(
   const [postsError, setPostsError] = useState("");
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isFirebaseMediaEnabled()) {
       setLoadedUserId("");
       setPostsError("");
       return;
@@ -44,7 +45,8 @@ export function useFirebasePosts(
   }, [setSubmissions, user?.id]);
 
   return {
-    isPostsLoaded: !user || loadedUserId === user.id,
+    isPostsLoaded:
+      !user || !isFirebaseMediaEnabled() || loadedUserId === user.id,
     postsError
   };
 }

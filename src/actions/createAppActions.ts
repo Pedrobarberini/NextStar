@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { Alert } from "react-native";
+import { isFirebaseMediaEnabled } from "../config/firebase";
 import { signOutFirebaseSession } from "../services/firebaseAccountService";
 import {
   InvalidPublicProfileError,
@@ -24,7 +25,10 @@ import {
   isFirebaseStoredPost,
   publishFirebasePost
 } from "../services/firebasePostService";
-import { deleteStoredVideo } from "../services/videoStorage";
+import {
+  deleteStoredVideo,
+  persistPickedVideo
+} from "../services/videoStorage";
 import { removeOwnedVideoSubmission } from "../utils/videoSubmission";
 import { estimateCampaignReach } from "../utils/professional";
 
@@ -197,6 +201,30 @@ export function createAppActions({
   ) {
     if (!user || submission.userId !== user.id) {
       throw new Error("A publicação não pertence à conta conectada.");
+    }
+
+    if (!isFirebaseMediaEnabled()) {
+      onProgress(0.2);
+      const mediaLink = await persistPickedVideo(submission.id, {
+        file: media.file,
+        fileName: media.fileName,
+        mimeType: media.mimeType,
+        uri: media.uri
+      });
+      const publishedAt = new Date().toISOString();
+      const localSubmission: VideoSubmission = {
+        ...submission,
+        approvedAt: publishedAt,
+        submittedAt: publishedAt,
+        videoLink: mediaLink
+      };
+
+      onProgress(1);
+      setSubmissions((current) => [
+        localSubmission,
+        ...current.filter((item) => item.id !== localSubmission.id)
+      ]);
+      return localSubmission;
     }
 
     const publishedSubmission = await publishFirebasePost(

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { isFirebaseMediaEnabled } from "../config/firebase";
 import {
   getSafeFirebaseAvatarMessage,
   saveFirebaseAvatar,
@@ -40,7 +41,7 @@ export function useProfileActions(user: AppUser | null) {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isFirebaseMediaEnabled()) {
       return;
     }
 
@@ -79,7 +80,12 @@ export function useProfileActions(user: AppUser | null) {
     });
 
     const ownProfileId = user ? `profile-${user.id}` : "";
-    if (!user || profileId !== ownProfileId || !avatar?.uri.trim()) {
+    if (
+      !user ||
+      !isFirebaseMediaEnabled() ||
+      profileId !== ownProfileId ||
+      !avatar?.uri.trim()
+    ) {
       return;
     }
 
