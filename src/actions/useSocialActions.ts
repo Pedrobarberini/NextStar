@@ -12,6 +12,7 @@ import {
   MessageContact,
   MessageContactsByUser,
   Player,
+  PostComment,
   SocialSelectionsByUser
 } from "../types";
 import { buildFollowerUserIdsByProfile } from "../utils/profileFollowers";
@@ -23,6 +24,11 @@ import {
   togglePinnedConversation
 } from "../utils/conversations";
 import { createSharedPostReference } from "../utils/socialSharing";
+import {
+  groupPostCommentsByPlayer,
+  normalizePostCommentBody,
+  removeOwnedPostComment
+} from "../utils/postComments";
 import {
   countSelectionsByPlayer,
   toggleSelection
@@ -64,6 +70,7 @@ export function useSocialActions({
   const [viewedPlayerIdsByUser, setViewedPlayerIdsByUser] =
     useState<SocialSelectionsByUser>({});
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
+  const [postComments, setPostComments] = useState<PostComment[]>([]);
   const [isSocialStateLoaded, setIsSocialStateLoaded] = useState(false);
 
   useEffect(() => {
@@ -87,6 +94,7 @@ export function useSocialActions({
       setLikedPlayerIdsByUser(socialState.likedPlayerIdsByUser);
       setMessageContactsByUser(socialState.messageContactsByUser);
       setMutedContentKeysByUser(socialState.mutedContentKeysByUser);
+      setPostComments(socialState.postComments);
       setViewedPlayerIdsByUser(socialState.viewedPlayerIdsByUser);
       setIsSocialStateLoaded(true);
     });
@@ -111,6 +119,7 @@ export function useSocialActions({
       likedPlayerIdsByUser,
       messageContactsByUser,
       mutedContentKeysByUser,
+      postComments,
       viewedPlayerIdsByUser
     }).catch(() => undefined);
   }, [
@@ -124,6 +133,7 @@ export function useSocialActions({
     likedPlayerIdsByUser,
     messageContactsByUser,
     mutedContentKeysByUser,
+    postComments,
     viewedPlayerIdsByUser
   ]);
 
@@ -208,6 +218,10 @@ export function useSocialActions({
   const viewCountsByPlayer = useMemo(
     () => countSelectionsByPlayer(viewedPlayerIdsByUser),
     [viewedPlayerIdsByUser]
+  );
+  const commentsByPlayer = useMemo(
+    () => groupPostCommentsByPlayer(postComments),
+    [postComments]
   );
   const currentDirectMessages = useMemo(
     () =>
@@ -418,6 +432,38 @@ export function useSocialActions({
     });
   }
 
+  function addPostComment(playerId: string, body: string) {
+    const normalizedBody = normalizePostCommentBody(body);
+
+    if (!user || !playerId.trim() || !normalizedBody) {
+      return false;
+    }
+
+    const comment: PostComment = {
+      authorName: user.name,
+      authorProfileId: ownProfileId ?? `profile-${user.id}`,
+      authorUserId: user.id,
+      authorUsername: user.username,
+      body: normalizedBody,
+      createdAt: new Date().toISOString(),
+      id: `comment-${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      playerId
+    };
+
+    setPostComments((current) => [...current, comment]);
+    return true;
+  }
+
+  function deletePostComment(commentId: string) {
+    if (!user) {
+      return;
+    }
+
+    setPostComments((current) =>
+      removeOwnedPostComment(current, commentId, user.id)
+    );
+  }
+
   function toggleLikePlayer(playerId: string) {
     if (!user) {
       return;
@@ -483,9 +529,12 @@ export function useSocialActions({
 
   return {
     addMessageContact,
+    addPostComment,
     blockedProfileIdSet,
+    commentsByPlayer,
     currentMessageContacts,
     deleteConversation,
+    deletePostComment,
     directMessages: currentDirectMessages,
     followersByProfile,
     followerUserIdsByProfile,

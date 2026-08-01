@@ -189,6 +189,9 @@ Tipo: Backend/Frontend
 - [x] Fixar até três conversas, silenciar e apagar histórico localmente.
 - [x] Pesquisar conversas por nome público ou @username.
 - [x] Limitar a aba Pesquisar aos perfis que a conta segue.
+- [x] Criar comentarios nos reels com contagem, lista, envio e exclusao pelo autor.
+- [x] Persistir comentarios no estado social local durante a fase de testes.
+- [ ] Migrar comentarios para o Cloud Firestore com paginacao e atualizacao em tempo real.
 - [ ] Criar tabelas Conversation, ConversationMember e Message.
 - [ ] Implementar WebSocket ou serviço realtime.
 - [ ] Persistir recibos de envio, entrega e leitura.

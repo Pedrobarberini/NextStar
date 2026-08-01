@@ -27,6 +27,7 @@ import type {
   DirectMessage,
   MessageContact,
   Player,
+  PostComment,
   PublicationMediaInput,
   ProfessionalSettings,
   ProfessionalSettingsByUser,
@@ -46,14 +47,17 @@ type AppRoutesProps = {
   approvedSubmissionPlayers: Player[];
   availablePlayers: Player[];
   blockedProfileIdSet: Set<string>;
+  commentsByPlayer: Record<string, PostComment[]>;
   campaignPlayer: Player | null;
   clearSelectedProfile: () => void;
   closeCampaign: () => void;
   currentMessageContacts: MessageContact[];
   currentProfessionalSettings: ProfessionalSettings;
   currentUserCampaigns: PromotionCampaign[];
+  addPostComment: (playerId: string, body: string) => boolean;
   deleteConversation: (contactId: string) => void;
   directMessages: DirectMessage[];
+  deletePostComment: (commentId: string) => void;
   feedFocusPlayerId: string | null;
   focusFeedPlayer: (playerId: string) => void;
   followersByProfile: Record<string, number>;
@@ -147,13 +151,16 @@ export function AppRoutes(props: AppRoutesProps) {
     approvedSubmissionPlayers,
     availablePlayers,
     blockedProfileIdSet,
+    commentsByPlayer,
     campaignPlayer,
     clearSelectedProfile,
     closeCampaign,
     currentMessageContacts,
     currentProfessionalSettings,
     currentUserCampaigns,
+    addPostComment,
     deleteConversation,
+    deletePostComment,
     directMessages,
     feedFocusPlayerId,
     focusFeedPlayer,
@@ -298,6 +305,7 @@ export function AppRoutes(props: AppRoutesProps) {
                   activeCampaignPlayerIds={activeCampaignPlayerIds}
                   backLabel={reelReturnTarget?.type === "messages" ? "Voltar para mensagens" : "Voltar ao perfil"}
                   blockedProfileIds={blockedProfileIdSet}
+                  commentsByPlayer={commentsByPlayer}
                   currentUserId={user.id}
                   focusPlayerId={feedFocusPlayerId}
                   followingProfileIds={followingProfileIds}
@@ -305,7 +313,9 @@ export function AppRoutes(props: AppRoutesProps) {
                   likedPlayerIds={likedPlayerIdSet}
                   likeCountsByPlayer={likeCountsByPlayer}
                   mutedContentKeys={mutedContentKeySet}
+                  onAddComment={addPostComment}
                   onBackToProfile={reelReturnTarget ? returnToReelOrigin : undefined}
+                  onDeleteComment={deletePostComment}
                   onOpenPlayer={openAthleteProfile}
                   onOpenTaggedUser={openAccountProfile}
                   onRecordView={recordPlayerView}

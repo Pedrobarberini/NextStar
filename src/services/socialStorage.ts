@@ -5,8 +5,10 @@ import {
   FollowingByUser,
   HiddenPlayerIdsByUser,
   MessageContactsByUser,
+  PostComment,
   SocialSelectionsByUser
 } from "../types";
+import { normalizePostComments } from "../utils/postComments";
 
 const SOCIAL_STORAGE_KEY = "@xolot/social-state-v1";
 const LEGACY_SOCIAL_STORAGE_KEY = "@nextstar/social-state-v1";
@@ -21,6 +23,7 @@ export type SocialState = {
   likedPlayerIdsByUser: SocialSelectionsByUser;
   messageContactsByUser: MessageContactsByUser;
   mutedContentKeysByUser: SocialSelectionsByUser;
+  postComments: PostComment[];
   viewedPlayerIdsByUser: SocialSelectionsByUser;
 };
 
@@ -34,6 +37,7 @@ export const emptySocialState: SocialState = {
   likedPlayerIdsByUser: {},
   messageContactsByUser: {},
   mutedContentKeysByUser: {},
+  postComments: [],
   viewedPlayerIdsByUser: {}
 };
 
@@ -148,6 +152,7 @@ export async function loadSocialState(): Promise<SocialState> {
       mutedContentKeysByUser: normalizeSelectionsByUser(
         parsedState.mutedContentKeysByUser
       ),
+      postComments: normalizePostComments(parsedState.postComments),
       viewedPlayerIdsByUser: normalizeSelectionsByUser(
         parsedState.viewedPlayerIdsByUser
       )

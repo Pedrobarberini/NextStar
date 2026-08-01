@@ -106,6 +106,17 @@ export type DirectMessage = {
   sharedPost?: SharedPostReference;
 };
 
+export type PostComment = {
+  authorName: string;
+  authorProfileId: string;
+  authorUserId: string;
+  authorUsername: string;
+  body: string;
+  createdAt: string;
+  id: string;
+  playerId: string;
+};
+
 export type FollowingByUser = Record<string, string[]>;
 
 export type HiddenPlayerIdsByUser = Record<string, string[]>;

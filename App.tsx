@@ -97,9 +97,12 @@ export default function App() {
   const { profileAvatars, setProfileAvatar } = useProfileActions(user);
   const {
     addMessageContact,
+    addPostComment,
     blockedProfileIdSet,
+    commentsByPlayer,
     currentMessageContacts,
     deleteConversation,
+    deletePostComment,
     directMessages,
     followersByProfile,
     followerUserIdsByProfile,
@@ -275,14 +278,17 @@ export default function App() {
       approvedSubmissionPlayers={approvedSubmissionPlayers}
       availablePlayers={availablePlayers}
       blockedProfileIdSet={blockedProfileIdSet}
+      commentsByPlayer={commentsByPlayer}
       campaignPlayer={campaignPlayer}
       clearSelectedProfile={clearSelectedProfile}
       closeCampaign={closeCampaign}
       currentMessageContacts={currentMessageContacts}
       currentProfessionalSettings={currentProfessionalSettings}
       currentUserCampaigns={currentUserCampaigns}
+      addPostComment={addPostComment}
       deleteConversation={deleteConversation}
       directMessages={directMessages}
+      deletePostComment={deletePostComment}
       feedFocusPlayerId={feedFocusPlayerId}
       focusFeedPlayer={focusFeedPlayer}
       followersByProfile={followersByProfile}

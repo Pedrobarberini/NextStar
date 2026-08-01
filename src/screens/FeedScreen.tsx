@@ -6,6 +6,7 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import {
   Expand,
   Heart,
+  MessageCircle,
   MoreVertical,
   Play,
   Share2,
@@ -23,6 +24,7 @@ import {
 } from "../actions/appActions";
 import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
 import { BackButton } from "../components/Navigation";
+import { CommentsModal } from "../components/CommentsModal";
 import { FeedPostOptionsModal } from "../components/FeedPostOptionsModal";
 import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import {
@@ -39,6 +41,7 @@ import type {
   AppUser,
   MessageContact,
   Player,
+  PostComment,
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
@@ -52,6 +55,7 @@ export function FeedScreen({
   activeCampaignPlayerIds,
   backLabel = "Voltar ao perfil",
   blockedProfileIds,
+  commentsByPlayer,
   currentUserId,
   focusPlayerId,
   followingProfileIds,
@@ -59,7 +63,9 @@ export function FeedScreen({
   likedPlayerIds,
   likeCountsByPlayer,
   mutedContentKeys,
+  onAddComment,
   onBackToProfile,
+  onDeleteComment,
   onOpenPlayer,
   onOpenTaggedUser,
   onRecordView,
@@ -77,6 +83,7 @@ export function FeedScreen({
   activeCampaignPlayerIds: Set<string>;
   backLabel?: string;
   blockedProfileIds: Set<string>;
+  commentsByPlayer: Record<string, PostComment[]>;
   currentUserId: string;
   focusPlayerId?: string | null;
   followingProfileIds: string[];
@@ -84,7 +91,9 @@ export function FeedScreen({
   likedPlayerIds: Set<string>;
   likeCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
+  onAddComment: (playerId: string, body: string) => boolean;
   onBackToProfile?: () => void;
+  onDeleteComment: (commentId: string) => void;
   onOpenPlayer: (player: Player) => void;
   onOpenTaggedUser: (user: AppUser) => void;
   onRecordView: (playerId: string) => void;
@@ -106,6 +115,7 @@ export function FeedScreen({
   const { height } = useWindowDimensions();
   const [feedHeight, setFeedHeight] = useState(0);
   const [activeFeedIndex, setActiveFeedIndex] = useState(0);
+  const [commentPlayer, setCommentPlayer] = useState<Player | null>(null);
   const [preferencePlayer, setPreferencePlayer] = useState<Player | null>(null);
   const [sharePlayer, setSharePlayer] = useState<Player | null>(null);
   const [mentionedPlayer, setMentionedPlayer] = useState<Player | null>(null);
@@ -317,10 +327,12 @@ export function FeedScreen({
               avatar={profileAvatars[player.profileId]}
               currentUserId={currentUserId}
               isFollowing={followingProfileIds.includes(player.profileId)}
-              isActive={index === activeFeedIndex}
+              commentCount={commentsByPlayer[player.id]?.length ?? 0}
+              isActive={index === activeFeedIndex && !commentPlayer}
               isLiked={likedPlayerIds.has(player.id)}
               isSponsored={activeCampaignPlayerIds.has(player.id)}
               likeCount={likeCountsByPlayer[player.id] ?? 0}
+              onComments={() => setCommentPlayer(player)}
               onMore={() => setPreferencePlayer(player)}
               onOpenMentions={() => setMentionedPlayer(player)}
               onOpen={() => onOpenPlayer(player)}
@@ -394,6 +406,26 @@ export function FeedScreen({
         }}
         visible={Boolean(preferencePlayer)}
       />
+      <CommentsModal
+        comments={commentPlayer ? commentsByPlayer[commentPlayer.id] ?? [] : []}
+        currentUserId={currentUserId}
+        onAddComment={(body) =>
+          commentPlayer ? onAddComment(commentPlayer.id, body) : false
+        }
+        onClose={() => setCommentPlayer(null)}
+        onDeleteComment={onDeleteComment}
+        onOpenAuthor={(authorUserId) => {
+          const account = users.find((item) => item.id === authorUserId);
+          setCommentPlayer(null);
+          if (account) {
+            onOpenTaggedUser(account);
+          }
+        }}
+        profileAvatars={profileAvatars}
+        videoId={commentPlayer?.id ?? ""}
+        videoTitle={commentPlayer?.videoTitle ?? ""}
+        visible={Boolean(commentPlayer)}
+      />
       <SharePostModal
         contacts={shareContacts}
         onClose={() => setSharePlayer(null)}
@@ -429,12 +461,14 @@ export function FeedScreen({
 
 function FeedReel({
   avatar,
+  commentCount,
   currentUserId,
   isFollowing,
   isActive,
   isLiked,
   isSponsored,
   likeCount,
+  onComments,
   onMore,
   onOpen,
   onOpenMentions,
@@ -446,12 +480,14 @@ function FeedReel({
   reelHeight
 }: {
   avatar?: ProfileAvatar;
+  commentCount: number;
   currentUserId: string;
   isFollowing: boolean;
   isActive: boolean;
   isLiked: boolean;
   isSponsored: boolean;
   likeCount: number;
+  onComments: () => void;
   onMore: () => void;
   onOpen: () => void;
   onOpenMentions: () => void;
@@ -573,6 +609,18 @@ function FeedReel({
                 <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
               </View>
               <Text style={styles.feedSocialActionCount}>{likeCount}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Ver comentários de ${player.videoTitle}`}
+              accessibilityRole="button"
+              hitSlop={5}
+              onPress={onComments}
+              style={styles.feedSocialAction}
+            >
+              <View style={styles.feedSocialActionIcon}>
+                <MessageCircle color={colors.onPrimary} size={24} strokeWidth={2.2} />
+              </View>
+              <Text style={styles.feedSocialActionCount}>{commentCount}</Text>
             </Pressable>
             <Pressable accessibilityLabel={`Compartilhar ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onShare} style={styles.feedSocialAction}>
               <View style={styles.feedSocialActionIcon}>

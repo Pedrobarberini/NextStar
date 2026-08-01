@@ -9,6 +9,7 @@ import { submissionAdminStyles } from "./app/submissionAdminStyles";
 import { profileStyles } from "./app/profileStyles";
 import { accountAvatarSettingsStyles } from "./app/accountAvatarSettingsStyles";
 import { discoveryMessagesStyles } from "./app/discoveryMessagesStyles";
+import { commentsStyles } from "./app/commentsStyles";
 
 export const styles = StyleSheet.create({
   ...baseStyles,
@@ -20,5 +21,6 @@ export const styles = StyleSheet.create({
   ...submissionAdminStyles,
   ...profileStyles,
   ...accountAvatarSettingsStyles,
-  ...discoveryMessagesStyles
+  ...discoveryMessagesStyles,
+  ...commentsStyles
 });
