@@ -1147,7 +1147,7 @@ function ResolvedFeedVideoPlayback({
     <View style={styles.feedVideoPlayback}>
       <VideoView
         allowsFullscreen
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
         player={videoPlayer}
         playsInline

@@ -164,6 +164,7 @@ Status: Cliente, Firestore e regras preparados em 2026-07-29. A ativação do bu
 - [x] Adicionar chave de recurso para manter mídia local enquanto o Storage estiver inativo.
 - [x] Preservar feed, envio e avatar locais sem bloquear o restante do app.
 - [x] Pausar vídeos fora da área visível.
+- [x] Preservar a proporção completa dos vídeos no feed sem cortar as bordas.
 - [x] Suportar foto, vídeo, descrição, tags e marcações no frontend.
 - [x] Escolher Firebase Storage para mídia e Cloud Firestore para metadados.
 - [x] Criar upload autenticado e resumível pelo SDK Firebase, com progresso visual.
