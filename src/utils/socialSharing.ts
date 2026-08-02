@@ -41,6 +41,18 @@ export function getSharedPostCaption(message: DirectMessage) {
     : body;
 }
 
+export function countSharedPostsByPlayer(messages: DirectMessage[]) {
+  return messages.reduce<Record<string, number>>((counts, message) => {
+    const playerId = message.sharedPost?.playerId;
+
+    if (playerId) {
+      counts[playerId] = (counts[playerId] ?? 0) + 1;
+    }
+
+    return counts;
+  }, {});
+}
+
 export function selectShareContacts({
   contacts,
   currentUserId,

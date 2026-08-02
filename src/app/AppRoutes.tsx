@@ -103,6 +103,7 @@ type AppRoutesProps = {
   isBrandLaunchVisible: boolean;
   likedPlayerIdSet: Set<string>;
   likeCountsByPlayer: Record<string, number>;
+  shareCountsByPlayer: Record<string, number>;
   mutedContactIds: string[];
   mutedContentKeySet: Set<string>;
   onBrandLaunchFinish: () => void;
@@ -184,6 +185,7 @@ export function AppRoutes(props: AppRoutesProps) {
     isBrandLaunchVisible,
     likedPlayerIdSet,
     likeCountsByPlayer,
+    shareCountsByPlayer,
     mutedContactIds,
     mutedContentKeySet,
     onBrandLaunchFinish,
@@ -316,6 +318,7 @@ export function AppRoutes(props: AppRoutesProps) {
                   interestedContentKeys={interestedContentKeySet}
                   likedPlayerIds={likedPlayerIdSet}
                   likeCountsByPlayer={likeCountsByPlayer}
+                  shareCountsByPlayer={shareCountsByPlayer}
                   mutedContentKeys={mutedContentKeySet}
                   onAddComment={addPostComment}
                   onBackToProfile={reelReturnTarget ? returnToReelOrigin : undefined}

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { AppUser, DirectMessage, Player } from "../src/types.ts";
 import {
+  countSharedPostsByPlayer,
   createSharedPostReference,
   getSharedPostCaption,
   selectShareContacts
@@ -87,6 +88,32 @@ test("recupera a mensagem anexada pelo campo persistido ou pelo corpo", () => {
       sharedPost: createSharedPostReference(player)
     }),
     ""
+  );
+});
+
+test("conta apenas mensagens que compartilham uma publicacao", () => {
+  const sharedMessage: DirectMessage = {
+    body: "Compartilhou uma publicacao",
+    createdAt: "2026-07-24T00:00:00.000Z",
+    id: "message-share-a",
+    recipientUserId: "user-b",
+    senderUserId: "user-a",
+    sharedPost: createSharedPostReference(player)
+  };
+
+  assert.deepEqual(
+    countSharedPostsByPlayer([
+      sharedMessage,
+      { ...sharedMessage, id: "message-share-b" },
+      {
+        body: "Mensagem comum",
+        createdAt: "2026-07-24T00:01:00.000Z",
+        id: "message-plain",
+        recipientUserId: "user-b",
+        senderUserId: "user-a"
+      }
+    ]),
+    { [player.id]: 2 }
   );
 });
 

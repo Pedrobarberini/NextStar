@@ -414,16 +414,6 @@ export const feedStyles = {
     minHeight: 44,
     minWidth: 44
   },
-  feedSocialActionIcon: {
-    alignItems: "center",
-    backgroundColor: "rgba(5, 10, 7, 0.66)",
-    borderColor: "rgba(255, 255, 255, 0.28)",
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: "center",
-    width: 42
-  },
   feedSocialActionCount: {
     color: colors.onPrimary,
     fontSize: 11,

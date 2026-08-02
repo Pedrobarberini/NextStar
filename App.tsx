@@ -119,6 +119,7 @@ export default function App() {
     recordPlayerView,
     sendDirectMessage,
     sendSharedPost,
+    shareCountsByPlayer,
     setPlayerHidden,
     toggleBlockedProfile,
     toggleFollowProfile,
@@ -334,6 +335,7 @@ export default function App() {
       selectedProfileVideos={selectedProfileVideos}
       sendDirectMessage={sendDirectMessage}
       sendSharedPost={sendSharedPost}
+      shareCountsByPlayer={shareCountsByPlayer}
       setPlayerHidden={setPlayerHidden}
       setActiveMessageContactId={setActiveMessageContactId}
       setProfileAvatar={setProfileAvatar}

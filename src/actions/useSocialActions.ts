@@ -23,7 +23,10 @@ import {
   toggleConversationId,
   togglePinnedConversation
 } from "../utils/conversations";
-import { createSharedPostReference } from "../utils/socialSharing";
+import {
+  countSharedPostsByPlayer,
+  createSharedPostReference
+} from "../utils/socialSharing";
 import {
   groupPostCommentsByPlayer,
   normalizePostCommentBody,
@@ -214,6 +217,10 @@ export function useSocialActions({
   const likeCountsByPlayer = useMemo(
     () => countSelectionsByPlayer(likedPlayerIdsByUser),
     [likedPlayerIdsByUser]
+  );
+  const shareCountsByPlayer = useMemo(
+    () => countSharedPostsByPlayer(directMessages),
+    [directMessages]
   );
   const viewCountsByPlayer = useMemo(
     () => countSelectionsByPlayer(viewedPlayerIdsByUser),
@@ -576,6 +583,7 @@ export function useSocialActions({
     recordPlayerView,
     sendDirectMessage,
     sendSharedPost,
+    shareCountsByPlayer,
     setPlayerHidden,
     toggleBlockedProfile,
     toggleFollowProfile,

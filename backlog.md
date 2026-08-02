@@ -51,6 +51,7 @@ Status: Concluído em 2026-07-25.
 - [x] Adicionar link profissional externo.
 - [x] Exibir categoria profissional na Pesquisa e no perfil público.
 - [x] Criar painel com publicações, visualizações, curtidas e mensagens.
+- [x] Exibir a quantidade de compartilhamentos no Início e simplificar os controles laterais para ícones sem círculos.
 - [x] Manter o perfil social e a galeria como vitrine principal.
 - [x] Substituir o item secundário do menu do Perfil por `Painel profissional`.
 

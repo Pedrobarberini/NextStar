@@ -62,6 +62,7 @@ export function FeedScreen({
   interestedContentKeys,
   likedPlayerIds,
   likeCountsByPlayer,
+  shareCountsByPlayer,
   mutedContentKeys,
   onAddComment,
   onBackToProfile,
@@ -91,6 +92,7 @@ export function FeedScreen({
   interestedContentKeys: Set<string>;
   likedPlayerIds: Set<string>;
   likeCountsByPlayer: Record<string, number>;
+  shareCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
   onAddComment: (
     playerId: string,
@@ -352,6 +354,7 @@ export function FeedScreen({
               isLiked={likedPlayerIds.has(player.id)}
               isSponsored={activeCampaignPlayerIds.has(player.id)}
               likeCount={likeCountsByPlayer[player.id] ?? 0}
+              shareCount={shareCountsByPlayer[player.id] ?? 0}
               onComments={() => setCommentPlayer(player)}
               onMore={() => setPreferencePlayer(player)}
               onOpenMentions={() => setMentionedPlayer(player)}
@@ -499,6 +502,7 @@ function FeedReel({
   isLiked,
   isSponsored,
   likeCount,
+  shareCount,
   onComments,
   onMore,
   onOpen,
@@ -518,6 +522,7 @@ function FeedReel({
   isLiked: boolean;
   isSponsored: boolean;
   likeCount: number;
+  shareCount: number;
   onComments: () => void;
   onMore: () => void;
   onOpen: () => void;
@@ -636,9 +641,7 @@ function FeedReel({
               onPress={onToggleLike}
               style={styles.feedSocialAction}
             >
-              <View style={styles.feedSocialActionIcon}>
-                <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
-              </View>
+              <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
               <Text style={styles.feedSocialActionCount}>{likeCount}</Text>
             </Pressable>
             <Pressable
@@ -648,20 +651,15 @@ function FeedReel({
               onPress={onComments}
               style={styles.feedSocialAction}
             >
-              <View style={styles.feedSocialActionIcon}>
-                <MessageCircle color={colors.onPrimary} size={24} strokeWidth={2.2} />
-              </View>
+              <MessageCircle color={colors.onPrimary} size={24} strokeWidth={2.2} />
               <Text style={styles.feedSocialActionCount}>{commentCount}</Text>
             </Pressable>
             <Pressable accessibilityLabel={`Compartilhar ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onShare} style={styles.feedSocialAction}>
-              <View style={styles.feedSocialActionIcon}>
-                <Share2 color={colors.onPrimary} size={24} strokeWidth={2.2} />
-              </View>
+              <Share2 color={colors.onPrimary} size={24} strokeWidth={2.2} />
+              <Text style={styles.feedSocialActionCount}>{shareCount}</Text>
             </Pressable>
             <Pressable accessibilityLabel={`Mais opções de ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onMore} style={styles.feedSocialAction}>
-              <View style={styles.feedSocialActionIcon}>
-                <MoreVertical color={colors.onPrimary} size={25} strokeWidth={2.3} />
-              </View>
+              <MoreVertical color={colors.onPrimary} size={25} strokeWidth={2.3} />
             </Pressable>
           </View>
 
