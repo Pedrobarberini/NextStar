@@ -52,6 +52,7 @@ Status: Concluído em 2026-07-25.
 - [x] Exibir categoria profissional na Pesquisa e no perfil público.
 - [x] Criar painel com publicações, visualizações, curtidas e mensagens.
 - [x] Exibir a quantidade de compartilhamentos no Início e simplificar os controles laterais para ícones sem círculos.
+- [x] Animar o coração ao curtir uma publicação e manter o estado ativo em vermelho.
 - [x] Manter o perfil social e a galeria como vitrine principal.
 - [x] Substituir o item secundário do menu do Perfil por `Painel profissional`.
 

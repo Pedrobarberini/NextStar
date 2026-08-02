@@ -537,6 +537,7 @@ function FeedReel({
   const { width } = useWindowDimensions();
   const [isExpanded, setIsExpanded] = useState(false);
   const expansionProgress = useRef(new Animated.Value(0)).current;
+  const likeScale = useRef(new Animated.Value(1)).current;
   const revealProgress = useRef(new Animated.Value(0)).current;
   const isWide = !USE_CENTERED_WEB_LAYOUT && width >= 900;
   const canFollow =
@@ -564,6 +565,36 @@ function FeedReel({
     ? Math.max(540, Math.min(reelHeight - 44, 700))
     : reelHeight;
   const canvasWidth = isWide ? Math.min(width - 80, 1080) : width;
+
+  function handleToggleLike() {
+    if (!isLiked) {
+      likeScale.stopAnimation();
+      likeScale.setValue(1);
+      Animated.sequence([
+        Animated.timing(likeScale, {
+          duration: 120,
+          easing: Easing.out(Easing.cubic),
+          toValue: 1.35,
+          useNativeDriver: true
+        }),
+        Animated.timing(likeScale, {
+          duration: 90,
+          easing: Easing.inOut(Easing.quad),
+          toValue: 0.9,
+          useNativeDriver: true
+        }),
+        Animated.spring(likeScale, {
+          damping: 8,
+          mass: 0.7,
+          stiffness: 240,
+          toValue: 1,
+          useNativeDriver: true
+        })
+      ]).start();
+    }
+
+    onToggleLike();
+  }
 
   function animateDescription(nextExpanded: boolean) {
     expansionProgress.stopAnimation();
@@ -637,11 +668,14 @@ function FeedReel({
             <Pressable
               accessibilityLabel={isLiked ? `Remover curtida de ${player.videoTitle}` : `Curtir ${player.videoTitle}`}
               accessibilityRole="button"
+              accessibilityState={{ selected: isLiked }}
               hitSlop={5}
-              onPress={onToggleLike}
+              onPress={handleToggleLike}
               style={styles.feedSocialAction}
             >
-              <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
+              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
+              </Animated.View>
               <Text style={styles.feedSocialActionCount}>{likeCount}</Text>
             </Pressable>
             <Pressable
