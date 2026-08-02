@@ -51,6 +51,8 @@ import {
   getPlayerContentLabel
 } from "../utils/feedEngagement";
 
+const FEED_DOUBLE_PRESS_DELAY_MS = 260;
+
 export function FeedScreen({
   activeCampaignPlayerIds,
   backLabel = "Voltar ao perfil",
@@ -556,6 +558,8 @@ function FeedReel({
   const { width } = useWindowDimensions();
   const [isExpanded, setIsExpanded] = useState(false);
   const expansionProgress = useRef(new Animated.Value(0)).current;
+  const doubleTapHeartOpacity = useRef(new Animated.Value(0)).current;
+  const doubleTapHeartScale = useRef(new Animated.Value(0.45)).current;
   const likeScale = useRef(new Animated.Value(1)).current;
   const revealProgress = useRef(new Animated.Value(0)).current;
   const isWide = !USE_CENTERED_WEB_LAYOUT && width >= 900;
@@ -613,6 +617,47 @@ function FeedReel({
     }
 
     onToggleLike();
+  }
+
+  function handleDoublePressLike() {
+    doubleTapHeartOpacity.stopAnimation();
+    doubleTapHeartScale.stopAnimation();
+    doubleTapHeartOpacity.setValue(0);
+    doubleTapHeartScale.setValue(0.45);
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(doubleTapHeartScale, {
+          damping: 7,
+          mass: 0.7,
+          stiffness: 230,
+          toValue: 1.16,
+          useNativeDriver: true
+        }),
+        Animated.timing(doubleTapHeartScale, {
+          duration: 100,
+          toValue: 1,
+          useNativeDriver: true
+        })
+      ]),
+      Animated.sequence([
+        Animated.timing(doubleTapHeartOpacity, {
+          duration: 80,
+          toValue: 1,
+          useNativeDriver: true
+        }),
+        Animated.delay(260),
+        Animated.timing(doubleTapHeartOpacity, {
+          duration: 180,
+          toValue: 0,
+          useNativeDriver: true
+        })
+      ])
+    ]).start();
+
+    if (!isLiked) {
+      handleToggleLike();
+    }
   }
 
   function animateDescription(nextExpanded: boolean) {
@@ -681,7 +726,21 @@ function FeedReel({
             isWide={isWide}
             palette={palette}
             player={player}
+            onDoublePress={handleDoublePressLike}
           />
+
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.feedDoubleTapHeart,
+              {
+                opacity: doubleTapHeartOpacity,
+                transform: [{ scale: doubleTapHeartScale }]
+              }
+            ]}
+          >
+            <Heart color={colors.onPrimary} fill={colors.like} size={92} strokeWidth={1.8} />
+          </Animated.View>
 
           <View style={[styles.feedSocialActionRail, isWide ? styles.feedSocialActionRailWide : null]}>
             <Pressable
@@ -897,11 +956,13 @@ function FeedMentionsButton({
 function FeedVideoBox({
   isActive,
   isWide,
+  onDoublePress,
   palette,
   player
 }: {
   isActive: boolean;
   isWide: boolean;
+  onDoublePress: () => void;
   palette: CardPalette;
   player: Player;
 }) {
@@ -914,7 +975,7 @@ function FeedVideoBox({
       ]}
     >
       {player.mediaType === "image" ? (
-        <FeedImagePlayback uri={player.videoUri} />
+        <FeedImagePlayback onDoublePress={onDoublePress} uri={player.videoUri} />
       ) : (
         <FeedVideoPlayback
           accent={palette.accent}
@@ -924,6 +985,7 @@ function FeedVideoBox({
           isActive={isActive}
           isWide={isWide}
           onAccent={palette.onAccent}
+          onDoublePress={onDoublePress}
           trackColor={palette.progressTrack}
           uri={player.videoUri}
         />
@@ -931,7 +993,62 @@ function FeedVideoBox({
     </View>
   );
 }
-function FeedImagePlayback({ uri }: { uri: string | number }) {
+
+function FeedMediaTapTarget({
+  accessibilityLabel,
+  children,
+  onDoublePress,
+  onSinglePress
+}: {
+  accessibilityLabel?: string;
+  children?: React.ReactNode;
+  onDoublePress: () => void;
+  onSinglePress?: () => void;
+}) {
+  const onDoublePressRef = useRef(onDoublePress);
+  const onSinglePressRef = useRef(onSinglePress);
+  const pendingSinglePressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  onDoublePressRef.current = onDoublePress;
+  onSinglePressRef.current = onSinglePress;
+
+  useEffect(
+    () => () => {
+      if (pendingSinglePressRef.current) {
+        clearTimeout(pendingSinglePressRef.current);
+      }
+    },
+    []
+  );
+
+  function handlePress() {
+    if (pendingSinglePressRef.current) {
+      clearTimeout(pendingSinglePressRef.current);
+      pendingSinglePressRef.current = null;
+      onDoublePressRef.current();
+      return;
+    }
+
+    pendingSinglePressRef.current = setTimeout(() => {
+      pendingSinglePressRef.current = null;
+      onSinglePressRef.current?.();
+    }, FEED_DOUBLE_PRESS_DELAY_MS);
+  }
+
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole={onSinglePress ? "button" : undefined}
+      accessible={Boolean(onSinglePress)}
+      onPress={handlePress}
+      style={styles.feedVideoTapTarget}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+function FeedImagePlayback({ onDoublePress, uri }: { onDoublePress: () => void; uri: string | number }) {
   const resolvedImage = useResolvedVideoSource(uri);
 
   if (!resolvedImage.source) {
@@ -963,6 +1080,7 @@ function FeedImagePlayback({ uri }: { uri: string | number }) {
         }
         style={styles.feedVideoMedia}
       />
+      <FeedMediaTapTarget onDoublePress={onDoublePress} />
     </View>
   );
 }
@@ -975,6 +1093,7 @@ type FeedVideoPlaybackProps = {
   isActive: boolean;
   isWide: boolean;
   onAccent: string;
+  onDoublePress: () => void;
   trackColor: string;
   uri: string | number;
 };
@@ -1010,6 +1129,7 @@ function ResolvedFeedVideoPlayback({
   isActive,
   isWide,
   onAccent,
+  onDoublePress,
   trackColor,
   uri
 }: FeedVideoPlaybackProps) {
@@ -1155,11 +1275,10 @@ function ResolvedFeedVideoPlayback({
         style={styles.feedVideoMedia}
         surfaceType="textureView"
       />
-      <Pressable
+      <FeedMediaTapTarget
         accessibilityLabel={isPlaying ? "Pausar vídeo" : "Reproduzir vídeo"}
-        accessibilityRole="button"
-        onPress={togglePlayback}
-        style={styles.feedVideoTapTarget}
+        onDoublePress={onDoublePress}
+        onSinglePress={isActive ? togglePlayback : undefined}
       >
         {!isPlaying ? (
           <View
@@ -1172,7 +1291,7 @@ function ResolvedFeedVideoPlayback({
             <Play color={onAccent} fill={onAccent} size={24} />
           </View>
         ) : null}
-      </Pressable>
+      </FeedMediaTapTarget>
       <View style={styles.feedVideoFloatingControls}>
         <Pressable
           accessibilityLabel="Abrir vídeo em tela cheia"

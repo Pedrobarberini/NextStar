@@ -54,6 +54,7 @@ Status: Concluído em 2026-07-25.
 - [x] Exibir a quantidade de compartilhamentos no Início e simplificar os controles laterais para ícones sem círculos.
 - [x] Animar o coração ao curtir uma publicação e manter o estado ativo em vermelho.
 - [x] Remover fundo e borda dos controles flutuantes de tela cheia e volume.
+- [x] Permitir curtir fotos e vídeos com dois toques e exibir confirmação animada.
 - [x] Manter o perfil social e a galeria como vitrine principal.
 - [x] Substituir o item secundário do menu do Perfil por `Painel profissional`.
 

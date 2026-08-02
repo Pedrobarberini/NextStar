@@ -198,6 +198,12 @@ export const feedStyles = {
     height: "100%",
     width: "100%"
   },
+  feedDoubleTapHeart: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2
+  },
   feedVideoTapTarget: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
