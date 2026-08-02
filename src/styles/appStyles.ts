@@ -10,6 +10,7 @@ import { profileStyles } from "./app/profileStyles";
 import { accountAvatarSettingsStyles } from "./app/accountAvatarSettingsStyles";
 import { discoveryMessagesStyles } from "./app/discoveryMessagesStyles";
 import { commentsStyles } from "./app/commentsStyles";
+import { securityStyles } from "./app/securityStyles";
 
 export const styles = StyleSheet.create({
   ...baseStyles,
@@ -22,5 +23,6 @@ export const styles = StyleSheet.create({
   ...profileStyles,
   ...accountAvatarSettingsStyles,
   ...discoveryMessagesStyles,
-  ...commentsStyles
+  ...commentsStyles,
+  ...securityStyles
 });

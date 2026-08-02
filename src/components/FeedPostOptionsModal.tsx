@@ -2,6 +2,7 @@ import React from "react";
 import {
   CheckCircle2,
   EyeOff,
+  Flag,
   MoreVertical,
   ThumbsUp,
   UserRoundX,
@@ -14,24 +15,30 @@ import { colors } from "../theme";
 export function FeedPostOptionsModal({
   blocked,
   canBlock,
+  canReport,
   contentLabel,
   interested,
   muted,
   onClose,
+  onReport,
   onToggleBlock,
   onToggleInterest,
   onToggleMuted,
+  reported,
   visible
 }: {
   blocked: boolean;
   canBlock: boolean;
+  canReport: boolean;
   contentLabel: string;
   interested: boolean;
   muted: boolean;
   onClose: () => void;
+  onReport: () => void;
   onToggleBlock: () => void;
   onToggleInterest: () => void;
   onToggleMuted: () => void;
+  reported: boolean;
   visible: boolean;
 }) {
   return (
@@ -108,6 +115,34 @@ export function FeedPostOptionsModal({
               <Text style={styles.feedPreferenceHint}>{contentLabel}</Text>
             </View>
           </Pressable>
+
+          {canReport ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: reported }}
+              disabled={reported}
+              onPress={onReport}
+              style={[
+                styles.videoActionRow,
+                reported ? styles.videoActionDisabled : null
+              ]}
+            >
+              <Flag
+                color={reported ? colors.muted : colors.danger}
+                size={20}
+              />
+              <View style={styles.feedPreferenceTextBlock}>
+                <Text style={reported ? styles.videoActionText : styles.videoActionDangerText}>
+                  {reported ? "Denúncia enviada" : "Denunciar publicação"}
+                </Text>
+                <Text style={styles.feedPreferenceHint}>
+                  {reported
+                    ? "Revise ou desfaça em Segurança."
+                    : "Registrar esta publicação para revisão."}
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
 
           {canBlock ? (
             <Pressable

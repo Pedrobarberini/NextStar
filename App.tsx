@@ -117,10 +117,12 @@ export default function App() {
     mutedContactIds,
     pinnedContactIds,
     recordPlayerView,
+    reportedPlayerIdSet,
     sendDirectMessage,
     sendSharedPost,
     shareCountsByPlayer,
     setPlayerHidden,
+    setPlayerReported,
     toggleBlockedProfile,
     toggleFollowProfile,
     toggleInterestedContent,
@@ -325,6 +327,7 @@ export default function App() {
       professionalSettingsByUser={professionalSettingsByUser}
       profileAvatars={profileAvatars}
       recordPlayerView={recordPlayerView}
+      reportedPlayerIdSet={reportedPlayerIdSet}
       registeredUsers={registeredUsers}
       reelReturnTarget={reelReturnTarget}
       returnToReelOrigin={returnToReelOrigin}
@@ -337,6 +340,7 @@ export default function App() {
       sendSharedPost={sendSharedPost}
       shareCountsByPlayer={shareCountsByPlayer}
       setPlayerHidden={setPlayerHidden}
+      setPlayerReported={setPlayerReported}
       setActiveMessageContactId={setActiveMessageContactId}
       setProfileAvatar={setProfileAvatar}
       shareContacts={shareContacts}

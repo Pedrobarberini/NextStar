@@ -121,6 +121,7 @@ type AppRoutesProps = {
   professionalSettingsByUser: ProfessionalSettingsByUser;
   profileAvatars: ProfileAvatarsByProfile;
   recordPlayerView: (playerId: string) => void;
+  reportedPlayerIdSet: Set<string>;
   registeredUsers: AppUser[];
   reelReturnTarget: ReelReturnTarget | null;
   returnToReelOrigin: () => void;
@@ -132,6 +133,7 @@ type AppRoutesProps = {
   sendDirectMessage: (contactId: string, body: string) => void;
   sendSharedPost: (contact: MessageContact, player: Player, message?: string) => void;
   setPlayerHidden: (playerId: string, hidden: boolean) => void;
+  setPlayerReported: (playerId: string, reported: boolean) => void;
   setActiveMessageContactId: Dispatch<SetStateAction<string | null>>;
   setProfileAvatar: (profileId: string, avatar: ProfileAvatar | null) => void;
   shareContacts: MessageContact[];
@@ -203,6 +205,7 @@ export function AppRoutes(props: AppRoutesProps) {
     professionalSettingsByUser,
     profileAvatars,
     recordPlayerView,
+    reportedPlayerIdSet,
     registeredUsers,
     reelReturnTarget,
     returnToReelOrigin,
@@ -214,6 +217,7 @@ export function AppRoutes(props: AppRoutesProps) {
     sendDirectMessage,
     sendSharedPost,
     setPlayerHidden,
+    setPlayerReported,
     setActiveMessageContactId,
     setProfileAvatar,
     shareContacts,
@@ -327,6 +331,8 @@ export function AppRoutes(props: AppRoutesProps) {
                   onOpenTaggedUser={openAccountProfile}
                   onRecordView={recordPlayerView}
                   onRefreshFeed={() => openTab("feed")}
+                  onReportPlayer={(player) => setPlayerReported(player.id, true)}
+                  reportedPlayerIds={reportedPlayerIdSet}
                   onShare={(player, contact, message) => sendSharedPost(contact, player, message)}
                   onToggleFollow={(player) => {
                     focusFeedPlayer(player.id);
@@ -406,6 +412,7 @@ export function AppRoutes(props: AppRoutesProps) {
                   <ProfileScreen
                     accounts={registeredUsers}
                     avatar={ownProfileId ? profileAvatars[ownProfileId] : undefined}
+                    blockedProfileIds={blockedProfileIdSet}
                     campaigns={currentUserCampaigns}
                     followers={selectProfileFollowers(ownProfileId, followerUserIdsByProfile, registeredUsers)}
                     following={selectProfileFollowing(followingProfileIds, registeredUsers)}
@@ -421,6 +428,7 @@ export function AppRoutes(props: AppRoutesProps) {
                       if (reelPlayer) openReel(reelPlayer, { type: "own-profile" });
                     }}
                     onPromotePost={openCampaign}
+                    onSetPlayerReported={setPlayerReported}
                     onSetVideoHidden={setPlayerHidden}
                     onShareVideo={(submission, contact, message) => {
                       const sharedPlayer = selectApprovedPlayerForSubmission(approvedSubmissionPlayers, submission.id);
@@ -430,12 +438,15 @@ export function AppRoutes(props: AppRoutesProps) {
                       if (ownProfileId) setProfileAvatar(ownProfileId, avatar);
                     }}
                     onSignOut={signOutSession}
+                    onToggleBlockedProfile={toggleBlockedProfile}
                     onToggleCampaign={handleToggleCampaign}
                     onUpdateProfessionalSettings={handleUpdateProfessionalSettings}
                     onUpdateProfile={handleUpdateProfile}
                     professionalPosts={ownProfilePlayers}
                     professionalSettings={currentProfessionalSettings}
                     profileAvatars={profileAvatars}
+                    reportedPlayerIds={reportedPlayerIdSet}
+                    securityPlayers={availablePlayers}
                     shareContacts={shareContacts}
                     submissions={submissions}
                     user={user}

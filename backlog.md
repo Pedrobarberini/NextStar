@@ -210,6 +210,9 @@ Tipo: Backend/Frontend
 Tipo: Backend/Produto/Jurídico
 
 - [x] Implementar bloqueio e preferências locais de conteúdo.
+- [x] Criar denúncia local de publicação no feed com opção de retirada.
+- [x] Criar central de Segurança para revisar ocultações, denúncias e bloqueios.
+- [x] Padronizar em branco a seta de retorno sobre o vídeo.
 - [ ] Criar denúncia de perfil, publicação e mensagem.
 - [ ] Implementar moderação automática de texto, imagem e vídeo.
 - [ ] Criar fila humana para exceções e recursos.

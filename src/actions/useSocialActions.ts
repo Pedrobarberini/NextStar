@@ -23,6 +23,7 @@ import {
   toggleConversationId,
   togglePinnedConversation
 } from "../utils/conversations";
+import { setContentSafetySelection } from "../utils/contentSafety";
 import {
   countSharedPostsByPlayer,
   createSharedPostReference
@@ -70,6 +71,8 @@ export function useSocialActions({
     useState<SocialSelectionsByUser>({});
   const [mutedContentKeysByUser, setMutedContentKeysByUser] =
     useState<SocialSelectionsByUser>({});
+  const [reportedPlayerIdsByUser, setReportedPlayerIdsByUser] =
+    useState<SocialSelectionsByUser>({});
   const [viewedPlayerIdsByUser, setViewedPlayerIdsByUser] =
     useState<SocialSelectionsByUser>({});
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
@@ -98,6 +101,7 @@ export function useSocialActions({
       setMessageContactsByUser(socialState.messageContactsByUser);
       setMutedContentKeysByUser(socialState.mutedContentKeysByUser);
       setPostComments(socialState.postComments);
+      setReportedPlayerIdsByUser(socialState.reportedPlayerIdsByUser);
       setViewedPlayerIdsByUser(socialState.viewedPlayerIdsByUser);
       setIsSocialStateLoaded(true);
     });
@@ -123,6 +127,7 @@ export function useSocialActions({
       messageContactsByUser,
       mutedContentKeysByUser,
       postComments,
+      reportedPlayerIdsByUser,
       viewedPlayerIdsByUser
     }).catch(() => undefined);
   }, [
@@ -137,6 +142,7 @@ export function useSocialActions({
     messageContactsByUser,
     mutedContentKeysByUser,
     postComments,
+    reportedPlayerIdsByUser,
     viewedPlayerIdsByUser
   ]);
 
@@ -213,6 +219,14 @@ export function useSocialActions({
   const mutedContentKeySet = useMemo(
     () => new Set(mutedContentKeys),
     [mutedContentKeys]
+  );
+  const reportedPlayerIds = useMemo(
+    () => (user ? reportedPlayerIdsByUser[user.id] ?? [] : []),
+    [reportedPlayerIdsByUser, user]
+  );
+  const reportedPlayerIdSet = useMemo(
+    () => new Set(reportedPlayerIds),
+    [reportedPlayerIds]
   );
   const likeCountsByPlayer = useMemo(
     () => countSelectionsByPlayer(likedPlayerIdsByUser),
@@ -428,9 +442,31 @@ export function useSocialActions({
 
     setHiddenPlayerIdsByUser((current) => {
       const currentPlayerIds = current[user.id] ?? [];
-      const nextPlayerIds = hidden
-        ? [...new Set([...currentPlayerIds, playerId])]
-        : currentPlayerIds.filter((item) => item !== playerId);
+      const nextPlayerIds = setContentSafetySelection(
+        currentPlayerIds,
+        playerId,
+        hidden
+      );
+
+      return {
+        ...current,
+        [user.id]: nextPlayerIds
+      };
+    });
+  }
+
+  function setPlayerReported(playerId: string, reported: boolean) {
+    if (!user) {
+      return;
+    }
+
+    setReportedPlayerIdsByUser((current) => {
+      const currentPlayerIds = current[user.id] ?? [];
+      const nextPlayerIds = setContentSafetySelection(
+        currentPlayerIds,
+        playerId,
+        reported
+      );
 
       return {
         ...current,
@@ -581,10 +617,13 @@ export function useSocialActions({
     mutedContactIds: currentConversationPreferences.mutedContactIds,
     pinnedContactIds: currentConversationPreferences.pinnedContactIds,
     recordPlayerView,
+    reportedPlayerIds,
+    reportedPlayerIdSet,
     sendDirectMessage,
     sendSharedPost,
     shareCountsByPlayer,
     setPlayerHidden,
+    setPlayerReported,
     toggleBlockedProfile,
     toggleFollowProfile,
     toggleInterestedContent,

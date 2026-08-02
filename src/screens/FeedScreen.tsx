@@ -64,6 +64,7 @@ export function FeedScreen({
   likeCountsByPlayer,
   shareCountsByPlayer,
   mutedContentKeys,
+  reportedPlayerIds,
   onAddComment,
   onBackToProfile,
   onDeleteComment,
@@ -71,6 +72,7 @@ export function FeedScreen({
   onOpenTaggedUser,
   onRecordView,
   onRefreshFeed,
+  onReportPlayer,
   onShare,
   onToggleBlockProfile,
   onToggleFollow,
@@ -94,6 +96,7 @@ export function FeedScreen({
   likeCountsByPlayer: Record<string, number>;
   shareCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
+  reportedPlayerIds: Set<string>;
   onAddComment: (
     playerId: string,
     body: string,
@@ -105,6 +108,7 @@ export function FeedScreen({
   onOpenTaggedUser: (user: AppUser) => void;
   onRecordView: (playerId: string) => void;
   onRefreshFeed: () => void;
+  onReportPlayer: (player: Player) => void;
   onShare: (
     player: Player,
     contact: MessageContact,
@@ -373,6 +377,7 @@ export function FeedScreen({
         {onBackToProfile ? (
           <BackButton
             accessibilityLabel={backLabel}
+            inverse
             onPress={onBackToProfile}
           />
         ) : null}
@@ -404,6 +409,11 @@ export function FeedScreen({
             preferencePlayer.ownerUserId !== currentUserId &&
             preferencePlayer.profileId !== `profile-${currentUserId}`
         )}
+        canReport={Boolean(
+          preferencePlayer &&
+            preferencePlayer.ownerUserId !== currentUserId &&
+            preferencePlayer.profileId !== `profile-${currentUserId}`
+        )}
         contentLabel={
           preferencePlayer
             ? getPlayerContentLabel(preferencePlayer)
@@ -418,6 +428,12 @@ export function FeedScreen({
             mutedContentKeys.has(getPlayerContentKey(preferencePlayer))
         )}
         onClose={() => setPreferencePlayer(null)}
+        onReport={() => {
+          if (preferencePlayer) {
+            onReportPlayer(preferencePlayer);
+          }
+          setPreferencePlayer(null);
+        }}
         onToggleBlock={() => {
           if (preferencePlayer) {
             onToggleBlockProfile(preferencePlayer);
@@ -436,6 +452,9 @@ export function FeedScreen({
           }
           setPreferencePlayer(null);
         }}
+        reported={Boolean(
+          preferencePlayer && reportedPlayerIds.has(preferencePlayer.id)
+        )}
         visible={Boolean(preferencePlayer)}
       />
       <CommentsModal

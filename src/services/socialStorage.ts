@@ -24,6 +24,7 @@ export type SocialState = {
   messageContactsByUser: MessageContactsByUser;
   mutedContentKeysByUser: SocialSelectionsByUser;
   postComments: PostComment[];
+  reportedPlayerIdsByUser: SocialSelectionsByUser;
   viewedPlayerIdsByUser: SocialSelectionsByUser;
 };
 
@@ -38,6 +39,7 @@ export const emptySocialState: SocialState = {
   messageContactsByUser: {},
   mutedContentKeysByUser: {},
   postComments: [],
+  reportedPlayerIdsByUser: {},
   viewedPlayerIdsByUser: {}
 };
 
@@ -153,6 +155,9 @@ export async function loadSocialState(): Promise<SocialState> {
         parsedState.mutedContentKeysByUser
       ),
       postComments: normalizePostComments(parsedState.postComments),
+      reportedPlayerIdsByUser: normalizeSelectionsByUser(
+        parsedState.reportedPlayerIdsByUser
+      ),
       viewedPlayerIdsByUser: normalizeSelectionsByUser(
         parsedState.viewedPlayerIdsByUser
       )

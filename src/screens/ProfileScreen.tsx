@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   Play,
+  ShieldCheck,
   Settings,
   UserRoundPen
 } from "lucide-react-native";
@@ -50,12 +51,14 @@ import type {
 import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
 import { AccountSetupScreen } from "./AccountSetupScreen";
 import { ProfessionalDashboardScreen } from "./ProfessionalDashboardScreen";
+import { SecurityScreen } from "./SecurityScreen";
 
-type ProfileView = "edit-profile" | "overview" | "professional" | "settings";
+type ProfileView = "edit-profile" | "overview" | "professional" | "security" | "settings";
 
 export function ProfileScreen({
   accounts,
   avatar,
+  blockedProfileIds,
   campaigns,
   followers,
   followersCount,
@@ -69,15 +72,19 @@ export function ProfileScreen({
   onOpenProfile,
   onOpenVideo,
   onPromotePost,
+  onSetPlayerReported,
   onSetVideoHidden,
   onShareVideo,
   onSignOut,
+  onToggleBlockedProfile,
   onToggleCampaign,
   onUpdateProfessionalSettings,
   onUpdateProfile,
   professionalPosts,
   professionalSettings,
   profileAvatars,
+  reportedPlayerIds,
+  securityPlayers,
   shareContacts,
   submissions,
   user,
@@ -85,6 +92,7 @@ export function ProfileScreen({
 }: {
   accounts: AppUser[];
   avatar?: ProfileAvatar;
+  blockedProfileIds: Set<string>;
   campaigns: PromotionCampaign[];
   followers: AppUser[];
   followersCount: number;
@@ -98,6 +106,7 @@ export function ProfileScreen({
   onOpenProfile: (account: AppUser) => void;
   onOpenVideo: (video: VideoSubmission) => void;
   onPromotePost: (player: Player) => void;
+  onSetPlayerReported: (playerId: string, reported: boolean) => void;
   onSetVideoHidden: (playerId: string, hidden: boolean) => void;
   onShareVideo: (
     video: VideoSubmission,
@@ -105,12 +114,15 @@ export function ProfileScreen({
     message: string
   ) => void;
   onSignOut: () => void;
+  onToggleBlockedProfile: (profileId: string) => void;
   onToggleCampaign: (campaignId: string) => void;
   onUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
   onUpdateProfile: (profile: AccountProfile) => Promise<boolean>;
   professionalPosts: Player[];
   professionalSettings: ProfessionalSettings;
   profileAvatars: ProfileAvatarsByProfile;
+  reportedPlayerIds: Set<string>;
+  securityPlayers: Player[];
   shareContacts: MessageContact[];
   submissions: VideoSubmission[];
   user: AppUser;
@@ -274,6 +286,27 @@ export function ProfileScreen({
     setIsFollowersVisible(false);
     setIsFollowingVisible(false);
     onOpenProfile(account);
+  }
+
+  if (profileView === "security") {
+    return (
+      <ScreenTransition key="security" style={styles.profileViewScene}>
+        <SecurityScreen
+          blockedProfileIds={blockedProfileIds}
+          hiddenPlayerIds={hiddenPlayerIds}
+          onBack={() => setProfileView("overview")}
+          onRestorePlayer={(playerId) => onSetVideoHidden(playerId, false)}
+          onUnblockProfile={onToggleBlockedProfile}
+          onWithdrawReport={(playerId) =>
+            onSetPlayerReported(playerId, false)
+          }
+          players={securityPlayers}
+          profileAvatars={profileAvatars}
+          reportedPlayerIds={reportedPlayerIds}
+          users={accounts}
+        />
+      </ScreenTransition>
+    );
   }
 
   if (profileView === "settings") {
@@ -473,6 +506,7 @@ export function ProfileScreen({
       <ProfileOptionsMenu
         onClose={() => setIsOptionsVisible(false)}
         onOpenProfessional={() => openProfileView("professional")}
+        onOpenSecurity={() => openProfileView("security")}
         onOpenSettings={() => openProfileView("settings")}
         onSignOut={() => {
           setIsOptionsVisible(false);
@@ -545,6 +579,7 @@ function toProfileListItem(
 function ProfileOptionsMenu({
   onClose,
   onOpenProfessional,
+  onOpenSecurity,
   onOpenSettings,
   onSignOut,
   showProfessional,
@@ -552,6 +587,7 @@ function ProfileOptionsMenu({
 }: {
   onClose: () => void;
   onOpenProfessional: () => void;
+  onOpenSecurity: () => void;
   onOpenSettings: () => void;
   onSignOut: () => void;
   showProfessional: boolean;
@@ -583,6 +619,15 @@ function ProfileOptionsMenu({
             >
               <Settings color={colors.text} size={20} />
               <Text style={styles.profileMenuItemText}>Configurações</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Abrir segurança"
+              accessibilityRole="button"
+              onPress={onOpenSecurity}
+              style={styles.profileMenuItem}
+            >
+              <ShieldCheck color={colors.text} size={20} />
+              <Text style={styles.profileMenuItemText}>Segurança</Text>
             </Pressable>
             {showProfessional ? (
               <Pressable

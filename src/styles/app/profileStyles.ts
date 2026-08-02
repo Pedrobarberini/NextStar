@@ -484,6 +484,9 @@ export const profileStyles = {
   videoActionDanger: {
     borderBottomWidth: 0
   },
+  videoActionDisabled: {
+    opacity: 0.58
+  },
   videoActionDangerText: {
     color: colors.danger,
     fontSize: 14,
