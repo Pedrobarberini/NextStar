@@ -420,6 +420,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     followingCount={followingProfileIds.length}
                     hiddenPlayerIds={hiddenPlayerIdSet}
                     likeCountsByPlayer={likeCountsByPlayer}
+                    mutedContentKeys={mutedContentKeySet}
                     messagesCount={directMessages.filter((message) => message.recipientUserId === user.id).length}
                     onDeleteVideo={handleDeleteVideo}
                     onOpenProfile={openAccountProfile}
@@ -428,6 +429,7 @@ export function AppRoutes(props: AppRoutesProps) {
                       if (reelPlayer) openReel(reelPlayer, { type: "own-profile" });
                     }}
                     onPromotePost={openCampaign}
+                    onRestoreMutedContent={toggleMutedContent}
                     onSetPlayerReported={setPlayerReported}
                     onSetVideoHidden={setPlayerHidden}
                     onShareVideo={(submission, contact, message) => {

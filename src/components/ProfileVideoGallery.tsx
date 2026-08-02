@@ -12,6 +12,7 @@ import type {
 } from "../types";
 import {
   addProfileVideoSelection,
+  isProfileVideoHidden,
   toggleProfileVideoSelection
 } from "../utils/profileVideoSelection";
 import { SharePostModal } from "./SharePostModal";
@@ -72,7 +73,9 @@ export function ProfileVideoGallery({
   const isSelectionMode = selectedVideoIds.length > 0;
   const areAllSelectedVideosHidden =
     selectedVideos.length > 0 &&
-    selectedVideos.every((video) => hiddenVideoIds.has(video.id));
+    selectedVideos.every((video) =>
+      isProfileVideoHidden(hiddenVideoIds, video)
+    );
 
   useEffect(() => {
     setSelectedVideoIds((current) => {
@@ -251,7 +254,9 @@ export function ProfileVideoGallery({
 
       <VideoActionsModal
         canDelete={Boolean(onDeleteVideo)}
-        hidden={Boolean(actionVideo && hiddenVideoIds.has(actionVideo.id))}
+        hidden={Boolean(
+          actionVideo && isProfileVideoHidden(hiddenVideoIds, actionVideo)
+        )}
         onClose={() => setActionVideo(null)}
         onDelete={() => {
           if (actionVideo && onDeleteVideo) {
@@ -265,7 +270,10 @@ export function ProfileVideoGallery({
         }}
         onToggleHidden={() => {
           if (actionVideo && onSetVideoHidden) {
-            onSetVideoHidden(actionVideo, !hiddenVideoIds.has(actionVideo.id));
+            onSetVideoHidden(
+              actionVideo,
+              !isProfileVideoHidden(hiddenVideoIds, actionVideo)
+            );
           }
           setActionVideo(null);
         }}

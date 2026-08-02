@@ -19,6 +19,10 @@ import type {
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
+import {
+  getPlayerContentKey,
+  getPlayerContentLabel
+} from "../utils/feedEngagement";
 
 type SecuritySection = "blocked" | "hidden" | "reported";
 
@@ -35,7 +39,9 @@ const sectionOptions: Array<{
 export function SecurityScreen({
   blockedProfileIds,
   hiddenPlayerIds,
+  mutedContentKeys,
   onBack,
+  onRestoreMutedContent,
   onRestorePlayer,
   onUnblockProfile,
   onWithdrawReport,
@@ -46,7 +52,9 @@ export function SecurityScreen({
 }: {
   blockedProfileIds: Set<string>;
   hiddenPlayerIds: Set<string>;
+  mutedContentKeys: Set<string>;
   onBack: () => void;
+  onRestoreMutedContent: (contentKey: string) => void;
   onRestorePlayer: (playerId: string) => void;
   onUnblockProfile: (profileId: string) => void;
   onWithdrawReport: (playerId: string) => void;
@@ -61,6 +69,10 @@ export function SecurityScreen({
     () => buildPlayerEntries(hiddenPlayerIds, players),
     [hiddenPlayerIds, players]
   );
+  const mutedContentPreferences = useMemo(
+    () => buildMutedContentEntries(mutedContentKeys, players),
+    [mutedContentKeys, players]
+  );
   const reportedPlayers = useMemo(
     () => buildPlayerEntries(reportedPlayerIds, players),
     [players, reportedPlayerIds]
@@ -74,7 +86,7 @@ export function SecurityScreen({
   );
   const counts: Record<SecuritySection, number> = {
     blocked: blockedProfiles.length,
-    hidden: hiddenPlayers.length,
+    hidden: hiddenPlayers.length + mutedContentPreferences.length,
     reported: reportedPlayers.length
   };
 
@@ -138,19 +150,30 @@ export function SecurityScreen({
         </View>
 
         {activeSection === "hidden" ? (
-          hiddenPlayers.length > 0 ? (
-            hiddenPlayers.map((entry) => (
-              <SecurityPlayerRow
-                actionLabel="Voltar a mostrar publicação"
-                entry={entry}
-                key={entry.id}
-                onRestore={() => onRestorePlayer(entry.id)}
-              />
-            ))
+          hiddenPlayers.length > 0 || mutedContentPreferences.length > 0 ? (
+            <>
+              {hiddenPlayers.map((entry) => (
+                <SecurityPlayerRow
+                  actionLabel="Voltar a mostrar publicação"
+                  entry={entry}
+                  key={entry.id}
+                  onRestore={() =>
+                    entry.selectionIds.forEach(onRestorePlayer)
+                  }
+                />
+              ))}
+              {mutedContentPreferences.map((entry) => (
+                <SecurityMutedContentRow
+                  entry={entry}
+                  key={entry.contentKey}
+                  onRestore={() => onRestoreMutedContent(entry.contentKey)}
+                />
+              ))}
+            </>
           ) : (
             <SecurityEmptyState
-              body="As publicações ocultadas aparecerão aqui."
-              title="Nenhum vídeo ocultado"
+              body="Publicações ocultadas e tipos marcados como sem interesse aparecerão aqui."
+              title="Nenhum conteúdo ocultado"
             />
           )
         ) : null}
@@ -162,7 +185,9 @@ export function SecurityScreen({
                 actionLabel="Retirar denúncia"
                 entry={entry}
                 key={entry.id}
-                onRestore={() => onWithdrawReport(entry.id)}
+                onRestore={() =>
+                  entry.selectionIds.forEach(onWithdrawReport)
+                }
               />
             ))
           ) : (
@@ -199,22 +224,71 @@ type PlayerEntry = {
   id: string;
   mediaType: Player["mediaType"];
   meta: string;
+  selectionIds: string[];
   title: string;
 };
 
 function buildPlayerEntries(playerIds: Set<string>, players: Player[]) {
-  return [...playerIds].map<PlayerEntry>((playerId) => {
-    const player = players.find((item) => item.id === playerId);
+  const entries = new Map<string, PlayerEntry>();
 
-    return {
-      id: playerId,
+  playerIds.forEach((selectionId) => {
+    const player = players.find(
+      (item) =>
+        item.id === selectionId || item.id === `approved-${selectionId}`
+    );
+    const entryId = player?.id ?? selectionId;
+    const currentEntry = entries.get(entryId);
+
+    if (currentEntry) {
+      currentEntry.selectionIds.push(selectionId);
+      return;
+    }
+
+    entries.set(entryId, {
+      id: entryId,
       mediaType: player?.mediaType,
       meta: player
         ? `@${player.username ?? "perfil"} · ${player.position} | ${player.city}`
         : "Publicação não disponível no feed atual",
+      selectionIds: [selectionId],
       title: player?.videoTitle ?? "Publicação indisponível"
+    });
+  });
+
+  return [...entries.values()];
+}
+
+type MutedContentEntry = {
+  contentKey: string;
+  label: string;
+};
+
+function buildMutedContentEntries(
+  mutedContentKeys: Set<string>,
+  players: Player[]
+) {
+  return [...mutedContentKeys].map<MutedContentEntry>((contentKey) => {
+    const player = players.find(
+      (item) => getPlayerContentKey(item) === contentKey
+    );
+
+    return {
+      contentKey,
+      label: player
+        ? getPlayerContentLabel(player)
+        : getStoredContentLabel(contentKey)
     };
   });
+}
+
+function getStoredContentLabel(contentKey: string) {
+  if (contentKey === "media:image") return "fotos";
+  if (contentKey === "media:video") return "vídeos";
+  if (contentKey.startsWith("tag:")) {
+    return `#${contentKey.slice(4).replace(/-/g, " ")}`;
+  }
+
+  return "publicações semelhantes";
 }
 
 type BlockedProfileEntry = {
@@ -267,6 +341,34 @@ function SecurityPlayerRow({
         </Text>
       </View>
       <RestoreButton accessibilityLabel={actionLabel} onPress={onRestore} />
+    </View>
+  );
+}
+
+function SecurityMutedContentRow({
+  entry,
+  onRestore
+}: {
+  entry: MutedContentEntry;
+  onRestore: () => void;
+}) {
+  return (
+    <View style={styles.securityListRow}>
+      <View style={styles.securityMediaIcon}>
+        <EyeOff color={colors.primary} size={20} strokeWidth={2.1} />
+      </View>
+      <View style={styles.securityRowBody}>
+        <Text numberOfLines={1} style={styles.securityRowTitle}>
+          Conteúdo {entry.label}
+        </Text>
+        <Text numberOfLines={2} style={styles.securityRowMeta}>
+          Você marcou este tipo de publicação como sem interesse.
+        </Text>
+      </View>
+      <RestoreButton
+        accessibilityLabel={`Voltar a mostrar ${entry.label}`}
+        onPress={onRestore}
+      />
     </View>
   );
 }

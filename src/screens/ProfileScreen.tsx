@@ -49,6 +49,7 @@ import type {
   VideoSubmission
 } from "../types";
 import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
+import { getProfileVideoVisibilityIds } from "../utils/profileVideoSelection";
 import { AccountSetupScreen } from "./AccountSetupScreen";
 import { ProfessionalDashboardScreen } from "./ProfessionalDashboardScreen";
 import { SecurityScreen } from "./SecurityScreen";
@@ -66,12 +67,14 @@ export function ProfileScreen({
   followingCount,
   hiddenPlayerIds,
   likeCountsByPlayer,
+  mutedContentKeys,
   messagesCount,
   onChangeAvatar,
   onDeleteVideo,
   onOpenProfile,
   onOpenVideo,
   onPromotePost,
+  onRestoreMutedContent,
   onSetPlayerReported,
   onSetVideoHidden,
   onShareVideo,
@@ -100,12 +103,14 @@ export function ProfileScreen({
   followingCount: number;
   hiddenPlayerIds: Set<string>;
   likeCountsByPlayer: Record<string, number>;
+  mutedContentKeys: Set<string>;
   messagesCount: number;
   onChangeAvatar: (avatar: ProfileAvatar | null) => void;
   onDeleteVideo: (video: VideoSubmission) => Promise<boolean>;
   onOpenProfile: (account: AppUser) => void;
   onOpenVideo: (video: VideoSubmission) => void;
   onPromotePost: (player: Player) => void;
+  onRestoreMutedContent: (contentKey: string) => void;
   onSetPlayerReported: (playerId: string, reported: boolean) => void;
   onSetVideoHidden: (playerId: string, hidden: boolean) => void;
   onShareVideo: (
@@ -294,7 +299,9 @@ export function ProfileScreen({
         <SecurityScreen
           blockedProfileIds={blockedProfileIds}
           hiddenPlayerIds={hiddenPlayerIds}
+          mutedContentKeys={mutedContentKeys}
           onBack={() => setProfileView("overview")}
+          onRestoreMutedContent={onRestoreMutedContent}
           onRestorePlayer={(playerId) => onSetVideoHidden(playerId, false)}
           onUnblockProfile={onToggleBlockedProfile}
           onWithdrawReport={(playerId) =>
@@ -484,9 +491,16 @@ export function ProfileScreen({
                 onOpenVideo(selectedVideo);
               }
             }}
-            onSetVideoHidden={(video, hidden) =>
-              onSetVideoHidden(video.id, hidden)
-            }
+            onSetVideoHidden={(video, hidden) => {
+              if (hidden) {
+                onSetVideoHidden(video.id, true);
+                return;
+              }
+
+              getProfileVideoVisibilityIds(video).forEach((videoId) =>
+                onSetVideoHidden(videoId, false)
+              );
+            }}
             onShareVideo={(video, contact, message) => {
               const selectedVideo = publishedVideos.find(
                 (item) => item.id === video.sourceId

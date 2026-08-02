@@ -211,6 +211,7 @@ Tipo: Backend/Frontend
 Tipo: Backend/Produto/Jurídico
 
 - [x] Implementar bloqueio e preferências locais de conteúdo.
+- [x] Permitir restaurar publicações próprias ocultadas e tipos marcados como sem interesse.
 - [x] Criar denúncia local de publicação no feed com opção de retirada.
 - [x] Criar central de Segurança para revisar ocultações, denúncias e bloqueios.
 - [x] Padronizar em branco a seta de retorno sobre o vídeo.
