@@ -53,6 +53,7 @@ Status: Concluído em 2026-07-25.
 - [x] Criar painel com publicações, visualizações, curtidas e mensagens.
 - [x] Exibir a quantidade de compartilhamentos no Início e simplificar os controles laterais para ícones sem círculos.
 - [x] Animar o coração ao curtir uma publicação e manter o estado ativo em vermelho.
+- [x] Remover fundo e borda dos controles flutuantes de tela cheia e volume.
 - [x] Manter o perfil social e a galeria como vitrine principal.
 - [x] Substituir o item secundário do menu do Perfil por `Painel profissional`.
 
@@ -223,6 +224,24 @@ Tipo: Backend/Produto/Jurídico
 - [ ] Criar exportação e exclusão de dados conforme LGPD.
 - [ ] Definir política de publicidade e conteúdo proibido.
 - [ ] Registrar por que um anúncio foi mostrado ao usuário.
+
+### Task P0-005 - Personalização orgânica do Início
+
+Tipo: Backend/Data/Frontend/Produto
+
+- [ ] Permitir selecionar de uma a seis hashtags de interesse ao concluir o perfil.
+- [ ] Permitir editar as hashtags de interesse nas configurações da conta.
+- [ ] Exigir de uma a cinco hashtags normalizadas em cada publicação.
+- [ ] Criar catálogo pesquisável de hashtags e impedir duplicatas ou variações equivalentes.
+- [ ] Armazenar preferências e afinidades em documentos privados do usuário.
+- [ ] Registrar impressão, tempo assistido, conclusão, curtida, comentário, compartilhamento, follow, pulo rápido e desinteresse.
+- [ ] Agregar eventos no backend e impedir que o cliente altere diretamente a própria pontuação.
+- [ ] Implementar ranking inicial configurável: 55% interesse declarado, 25% afinidade aprendida, 10% perfis seguidos e 10% novidade/diversidade.
+- [ ] Aplicar decaimento gradual das afinidades para que interesses antigos não dominem o feed para sempre.
+- [ ] Reservar exploração controlada para conteúdos novos sem abandonar as hashtags escolhidas.
+- [ ] Inserir campanhas promovidas em frequência limitada e sempre identificadas, separadas do score orgânico.
+- [ ] Exibir uma explicação curta de por que cada publicação foi recomendada.
+- [ ] Cobrir cálculo, desempate, diversidade e privacidade com testes automatizados.
 
 ## P1 - Plataforma de publicidade
 

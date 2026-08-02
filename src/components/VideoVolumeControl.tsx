@@ -84,6 +84,7 @@ export function VideoVolumeControl({
           isVisible ? "Fechar controle de volume" : "Abrir controle de volume"
         }
         accessibilityRole="button"
+        hitSlop={8}
         onPress={() => setIsVisible((current) => !current)}
         style={styles.feedVideoControlButton}
       >

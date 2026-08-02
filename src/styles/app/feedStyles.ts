@@ -218,10 +218,7 @@ export const feedStyles = {
   },
   feedVideoControlButton: {
     alignItems: "center",
-    backgroundColor: "rgba(5, 5, 3, 0.72)",
-    borderColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 999,
-    borderWidth: 1,
+    backgroundColor: "transparent",
     height: 34,
     justifyContent: "center",
     width: 34

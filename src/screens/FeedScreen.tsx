@@ -1177,6 +1177,7 @@ function ResolvedFeedVideoPlayback({
         <Pressable
           accessibilityLabel="Abrir vídeo em tela cheia"
           accessibilityRole="button"
+          hitSlop={8}
           onPress={openFullscreen}
           style={styles.feedVideoControlButton}
         >
