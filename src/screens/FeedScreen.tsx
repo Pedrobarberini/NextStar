@@ -955,7 +955,7 @@ function FeedImagePlayback({ uri }: { uri: string | number }) {
     <View style={styles.feedVideoPlayback}>
       <Image
         accessibilityLabel="Foto da publicação"
-        resizeMode="cover"
+        resizeMode="contain"
         source={
           typeof resolvedImage.source === "number"
             ? resolvedImage.source
