@@ -332,10 +332,27 @@ export function CommentsModal({
                 maxLength={MAX_POST_COMMENT_LENGTH}
                 multiline
                 onChangeText={setDraft}
+                onKeyPress={(event) => {
+                  const isShiftPressed =
+                    "shiftKey" in event.nativeEvent &&
+                    Boolean(event.nativeEvent.shiftKey);
+
+                  if (
+                    Platform.OS === "web" &&
+                    event.nativeEvent.key === "Enter" &&
+                    !isShiftPressed
+                  ) {
+                    event.preventDefault();
+                    submitComment();
+                  }
+                }}
+                onSubmitEditing={submitComment}
                 placeholder={replyTarget ? "Escreva sua resposta..." : "Adicione um comentário..."}
                 ref={inputRef}
                 placeholderTextColor={colors.muted}
+                returnKeyType="send"
                 style={styles.commentInput}
+                submitBehavior="submit"
                 value={draft}
               />
               <Pressable

@@ -198,6 +198,7 @@ Tipo: Backend/Frontend
 - [x] Recolher respostas por padrao e permitir ver ou ocultar cada topico.
 - [x] Corrigir a exclusao de comentarios no web com confirmacao interna.
 - [x] Recarregar e retornar ao primeiro reel ao tocar na logo do Inicio.
+- [x] Enviar mensagens e comentarios pela tecla Enter.
 - [ ] Migrar comentarios para o Cloud Firestore com paginacao e atualizacao em tempo real.
 - [ ] Criar tabelas Conversation, ConversationMember e Message.
 - [ ] Implementar WebSocket ou serviço realtime.

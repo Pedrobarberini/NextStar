@@ -13,6 +13,7 @@ import {
 } from "lucide-react-native";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -403,6 +404,21 @@ export function MessagesScreen({
             editable={canCompose}
             multiline
             onChangeText={setDraft}
+            onKeyPress={(event) => {
+              const isShiftPressed =
+                "shiftKey" in event.nativeEvent &&
+                Boolean(event.nativeEvent.shiftKey);
+
+              if (
+                Platform.OS === "web" &&
+                event.nativeEvent.key === "Enter" &&
+                !isShiftPressed
+              ) {
+                event.preventDefault();
+                sendDraft();
+              }
+            }}
+            onSubmitEditing={sendDraft}
             placeholder={
               canCompose
                 ? hasConversationAccess
@@ -415,6 +431,8 @@ export function MessagesScreen({
               styles.messageComposerInput,
               !canCompose ? styles.messageComposerInputDisabled : null
             ]}
+            returnKeyType="send"
+            submitBehavior="submit"
             value={draft}
           />
           <Pressable
