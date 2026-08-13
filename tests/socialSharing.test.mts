@@ -3,9 +3,11 @@ import test from "node:test";
 import type { AppUser, DirectMessage, Player } from "../src/types.ts";
 import {
   countSharedPostsByPlayer,
+  createSharedPostDelivery,
   createSharedPostReference,
   getSharedPostCaption,
-  selectShareContacts
+  selectShareContacts,
+  selectShareRecipients
 } from "../src/utils/socialSharing.ts";
 
 const user: AppUser = {
@@ -63,9 +65,49 @@ test("inclui uma mensagem opcional na referencia compartilhada", () => {
     }
   );
 });
+
+test("separa a publicacao da mensagem opcional no compartilhamento", () => {
+  assert.deepEqual(createSharedPostDelivery(player, "  Veja este lance  "), [
+    {
+      body: "Compartilhou uma publicação",
+      sharedPost: createSharedPostReference(player)
+    },
+    { body: "Veja este lance" }
+  ]);
+  assert.deepEqual(createSharedPostDelivery(player), [
+    {
+      body: "Compartilhou uma publicação",
+      sharedPost: createSharedPostReference(player)
+    }
+  ]);
+});
+
+test("envia somente aos perfis selecionados quando o compartilhamento e confirmado", () => {
+  const contacts = [
+    {
+      id: "user-b",
+      name: "Jogador B",
+      profileId: "profile-user-b",
+      subtitle: "Meia"
+    },
+    {
+      id: "user-c",
+      name: "Jogador C",
+      profileId: "profile-user-c",
+      subtitle: "Goleiro"
+    }
+  ];
+
+  assert.deepEqual(
+    selectShareRecipients(contacts, ["user-c"]),
+    [contacts[1]]
+  );
+  assert.deepEqual(selectShareRecipients(contacts, []), []);
+});
+
 test("recupera a mensagem anexada pelo campo persistido ou pelo corpo", () => {
   const baseMessage: DirectMessage = {
-    body: "Compartilhou uma publicacao",
+    body: "Compartilhou uma publicação",
     createdAt: "2026-07-24T00:00:00.000Z",
     id: "message-share",
     recipientUserId: "user-b",
@@ -93,7 +135,7 @@ test("recupera a mensagem anexada pelo campo persistido ou pelo corpo", () => {
 
 test("conta apenas mensagens que compartilham uma publicacao", () => {
   const sharedMessage: DirectMessage = {
-    body: "Compartilhou uma publicacao",
+    body: "Compartilhou uma publicação",
     createdAt: "2026-07-24T00:00:00.000Z",
     id: "message-share-a",
     recipientUserId: "user-b",

@@ -138,6 +138,11 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Preparar App Check web com reCAPTCHA Enterprise por variável de ambiente.
 - [x] Adicionar testes de normalização de perfil, descarte de credenciais e invariantes das regras.
 - [x] Documentar variáveis, modelo de dados e práticas de segurança.
+- [x] Reconhecer contas legadas com perfil concluído sem liberar leitura social para identidades sem cadastro.
+- [x] Incluir perfis legados sem `updatedAt` na assinatura pública de até 200 contas.
+- [x] Recuperar nome e username sanitizados de perfis públicos legados sem dispensar a configuração obrigatória do próprio usuário.
+- [x] Concluir `accounts/{uid}` por Function autenticada após a verificação do e-mail.
+- [x] Recuperar identidades antigas sem metadados mediante nova aceitação explícita dos termos.
 - [x] Executar pnpm run typecheck, 74 testes e build web de produção.
 - [ ] Criar projetos Firebase separados para desenvolvimento, staging e produção.
 - [x] Habilitar Email/Senha, Google e política forte de senha no console.
@@ -160,7 +165,35 @@ Coleções desta fase:
 
 Tipo: Backend/Frontend/Infra
 
-Status: Cliente, Firestore e regras preparados em 2026-07-29. A ativação do bucket Firebase Storage e o plano Blaze ainda bloqueiam a publicação desta versão no Hosting.
+Status: Integracao Cloudflare R2 publicada em producao em 2026-08-11. Credenciais validadas com upload, copia e exclusao reais; teste funcional pelo app com uma conta verificada ainda pendente.
+
+#### Migracao para Cloudflare R2
+
+- [x] Configurar Account ID, buckets `xolot-uploads` e `xolot-media` e dominio `media.xolot.com.br` somente no backend.
+- [x] Criar Firebase Functions Node.js 22 com credenciais R2 armazenadas por Secret Manager.
+- [x] Gerar URL PUT assinada e temporaria para upload direto ao bucket privado.
+- [x] Validar autenticacao, email confirmado, conta registrada, MIME, tamanho e propriedade no servidor.
+- [x] Promover a midia validada para uma chave imutavel no bucket publico.
+- [x] Persistir no Firestore apenas metadados, provedor e chave do objeto.
+- [x] Excluir publicacao R2 apenas pelo proprietario por meio de Function autenticada.
+- [x] Manter leitura e exclusao compativeis com posts legados do Firebase Storage.
+- [x] Adicionar suporte a foto, GIF e video com progresso de upload.
+- [x] Adicionar CORS restrito aos dominios Xolot e ambientes locais de desenvolvimento.
+- [x] Validar Functions, typecheck, 99 testes automatizados e build web.
+- [x] Cadastrar `R2_ACCESS_KEY_ID` e `R2_SECRET_ACCESS_KEY` no Firebase Secret Manager.
+- [x] Validar o par de credenciais com upload no bucket privado, copia para o bucket publico e limpeza dos objetos de diagnostico.
+- [x] Aplicar as politicas CORS aos dois buckets e conferir com Wrangler.
+- [x] Publicar as Functions no Firebase e confirmar protecao contra chamadas anonimas.
+- [x] Exibir erros especificos de upload e retornar ao Inicio somente depois da publicacao concluida.
+- [x] Persistir avatar e enquadramento no R2 por Functions autenticadas e sincronizar `profileMedia/{uid}` em tempo real.
+- [x] Separar troca de arquivo e ajuste de enquadramento para persistir foco e escala sem reenviar o avatar.
+- [x] Tornar o snapshot do Firestore autoritativo depois da restauração do cache local e na troca de conta.
+- [x] Isolar reels incompatíveis ou com mídia indisponível sem ocultar os demais e registrar diagnóstico de sincronização.
+- [ ] Executar teste real de upload, recarga e exclusao com uma conta verificada.
+- [x] Ativar `EXPO_PUBLIC_R2_MEDIA_ENABLED=true` e publicar o Hosting.
+- [ ] Criar limpeza agendada de uploads temporarios e objetos orfaos.
+- [ ] Gerar thumbnails, posters e versoes otimizadas no processamento assincrono.
+- [ ] Registrar clientes nativos no App Check e ativar enforcement apos monitoramento.
 
 - [x] Persistir mídia provisoriamente no IndexedDB do navegador.
 - [x] Adicionar chave de recurso para manter mídia local enquanto o Storage estiver inativo.
@@ -188,9 +221,24 @@ Status: Cliente, Firestore e regras preparados em 2026-07-29. A ativação do bu
 
 Tipo: Backend/Frontend
 
+
+Status: Sincronizacao multi-dispositivo e recibos publicada em 2026-08-12; paginacao, criptografia ponta a ponta e notificacoes continuam pendentes.
+
+- [x] Persistir mensagens privadas no Firestore com leitura restrita ao remetente e destinatario.
+- [x] Sincronizar follows, preferencias de seguranca e configuracoes de conversa por conta.
+- [x] Persistir curtidas e visualizacoes individuais em colecoes privadas.
+- [x] Atualizar contadores de curtidas, visualizacoes e compartilhamentos somente por Functions.
+- [x] Migrar comentarios para o Firestore com atualizacao em tempo real.
+- [x] Migrar de forma idempotente o cache social existente de cada dispositivo.
+- [x] Manter o AsyncStorage apenas como cache local e modo de abertura rapida.
+- [x] Corrigir o contrato entre IDs visuais `approved-<id>` e documentos `posts/<id>` em mensagens, curtidas, visualizacoes e comentarios.
 - [x] Implementar experiência local de conversas e solicitações.
 - [x] Implementar follow como regra de liberação de conversa.
 - [x] Permitir compartilhar publicações com mensagem anexada.
+- [x] Selecionar os destinatários antes do envio e preservar a mensagem opcional junto da publicação compartilhada.
+- [x] Exibir a publicação compartilhada como uma mídia única, com título sobreposto e sem fundo colorido.
+- [x] Persistir a mensagem opcional do compartilhamento separada da publicação no chat.
+- [x] Abrir o perfil correto ao tocar no nome ou na foto do cabeçalho de uma conversa privada.
 - [x] Fixar até três conversas, silenciar e apagar histórico localmente.
 - [x] Pesquisar conversas por nome público ou @username.
 - [x] Limitar a aba Pesquisar aos perfis que a conta segue.
@@ -204,7 +252,7 @@ Tipo: Backend/Frontend
 - [ ] Migrar comentarios para o Cloud Firestore com paginacao e atualizacao em tempo real.
 - [ ] Criar tabelas Conversation, ConversationMember e Message.
 - [ ] Implementar WebSocket ou serviço realtime.
-- [ ] Persistir recibos de envio, entrega e leitura.
+- [x] Persistir recibos de envio, entrega e leitura.
 - [ ] Implementar anexos por referência segura à publicação.
 - [ ] Implementar paginação e sincronização offline.
 - [ ] Criar notificações push.
@@ -230,11 +278,18 @@ Tipo: Backend/Produto/Jurídico
 
 Tipo: Backend/Data/Frontend/Produto
 
-- [ ] Permitir selecionar de uma a seis hashtags de interesse ao concluir o perfil.
-- [ ] Permitir editar as hashtags de interesse nas configurações da conta.
+- [x] Permitir selecionar até seis hashtags de interesse ao concluir o perfil.
+- [x] Permitir editar as hashtags de interesse nas configurações da conta.
 - [ ] Exigir de uma a cinco hashtags normalizadas em cada publicação.
 - [ ] Criar catálogo pesquisável de hashtags e impedir duplicatas ou variações equivalentes.
 - [ ] Armazenar preferências e afinidades em documentos privados do usuário.
+- [x] Armazenar preferências de hashtags em documento privado sincronizado por conta.
+- [x] Criar abas Seguindo e Sugestões na pesquisa, sem misturar descoberta com perfis já seguidos.
+- [x] Abrir a busca em Sugestões e pesquisar todas as contas públicas quando houver texto.
+- [x] Sugerir somente contas cadastradas pelo cruzamento entre interesses declarados e afinidade comportamental.
+- [x] Remover publicações e perfis sem conta registrada do cálculo de sugestões.
+- [x] Usar perfis aleatórios da mesma cidade ou UF como fallback, sem coletar GPS preciso.
+- [x] Revisar ortografia, acentuação, concordância e consistência dos textos visíveis do aplicativo e das mensagens do backend.
 - [ ] Registrar impressão, tempo assistido, conclusão, curtida, comentário, compartilhamento, follow, pulo rápido e desinteresse.
 - [ ] Agregar eventos no backend e impedir que o cliente altere diretamente a própria pontuação.
 - [ ] Implementar ranking inicial configurável: 55% interesse declarado, 25% afinidade aprendida, 10% perfis seguidos e 10% novidade/diversidade.
@@ -329,7 +384,11 @@ Tipo: Frontend/UX
 - [x] Padronizar animações de entrada e HUDs.
 - [x] Ajustar avatar com foco e escala por gesto.
 - [x] Abrir o avatar do Perfil em uma visualizacao circular sem acessar o editor.
+- [x] Exibir as ações individuais da galeria em um menu contextual ancorado aos três pontos, sem escurecer a tela.
 - [x] Criar navegação inferior fixa e responsiva.
+- [x] Criar tema escuro persistente com alternância em Configurações.
+- [x] Remover o fundo do resumo de envios, posts e curtidas nos perfis.
+- [x] Reforçar a legibilidade dos ícones de ação dos reels sobre mídias claras.
 - [ ] Testar leitor de tela em Android, iOS e web.
 - [ ] Garantir foco de teclado em todos os modais.
 - [ ] Auditar contraste e áreas mínimas de toque.
@@ -378,3 +437,12 @@ Status: Preparação local concluída em 2026-07-28; ativação externa pendente
 ## Decisão de produto arquivada
 
 O escopo anterior de captação e participação em atletas foi removido em 2026-07-25. Ele não deve voltar ao código sem nova decisão de produto, análise jurídica e arquitetura própria. A direção ativa da Xolot é rede social profissional com publicidade, assinaturas e promoção de conteúdo.
+
+## P2 - Conteúdo real
+
+- [x] Remover o perfil e a publicação demonstrativos; o Início agora depende apenas de conteúdo real publicado.
+- [x] Padronizar perfis próprio e público com totais de posts, visualizações e curtidas, mantendo seguidores e seguindo separados.
+- [x] Estabilizar toques repetidos nos reels, impedindo pausa residual após toque duplo e mantendo a reprodução em 1x.
+- [x] Corrigir a reprodução do reel aberto por compartilhamento, descartando toques atrasados e evitando alternâncias consecutivas no celular.
+- [x] Criar visualização limpa ao manter foto, vídeo ou GIF pressionado no Início, com ocultação e retorno animados das sobreposições e do rodapé.
+- [x] Exibir data e horário nas mensagens e persistir os estados enviada, entregue e visualizada entre os dispositivos.

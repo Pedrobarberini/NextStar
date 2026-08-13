@@ -1,4 +1,5 @@
 import { FirebaseError } from "firebase/app";
+import { httpsCallable } from "firebase/functions";
 import {
   collection,
   doc,
@@ -17,6 +18,7 @@ import {
 } from "firebase/storage";
 import {
   getFirebaseFirestore,
+  getFirebaseFunctions,
   getFirebaseStorage,
   isFirebaseStorageConfigured
 } from "../config/firebase";
@@ -139,6 +141,34 @@ export async function saveFirebaseAvatar(uid: string, avatar: ProfileAvatar) {
   return normalizedAvatar;
 }
 
+export async function saveFirebaseAvatarCrop(
+  uid: string,
+  avatar: ProfileAvatar
+) {
+  const user = getCurrentFirebaseUser();
+  if (!user || !user.emailVerified || user.uid !== uid) {
+    throw new Error(
+      "Sua sessão não pode alterar o enquadramento desta foto."
+    );
+  }
+
+  const normalizedAvatar = normalizeProfileAvatar(avatar);
+  if (!normalizedAvatar) {
+    throw new Error("O enquadramento informado é inválido.");
+  }
+
+  const updateCrop = httpsCallable<
+    { cropScale: number; focusX: number; focusY: number },
+    { saved: boolean }
+  >(getFirebaseFunctions(), "updateAvatarCrop");
+  await updateCrop({
+    cropScale: normalizedAvatar.cropScale,
+    focusX: normalizedAvatar.focusX,
+    focusY: normalizedAvatar.focusY
+  });
+
+  return normalizedAvatar;
+}
 export function subscribeFirebaseProfileMedia(
   onChange: (avatars: ProfileAvatarsByProfile) => void,
   onError?: (error: Error) => void

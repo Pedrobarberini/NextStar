@@ -40,15 +40,6 @@ export function selectApprovedSubmissionPlayers(
     });
 }
 
-export function selectAvailablePlayers(
-  approvedSubmissionPlayers: Player[],
-  demoPlayer: Player
-) {
-  return approvedSubmissionPlayers.length > 0
-    ? approvedSubmissionPlayers
-    : [demoPlayer];
-}
-
 export function selectOrderedFeedPlayers(
   availablePlayers: Player[],
   followingProfileSet: Set<string>,

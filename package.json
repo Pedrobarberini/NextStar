@@ -16,7 +16,8 @@
     "web": "expo start --web",
     "build:web": "node scripts/clean-dist.mjs && expo export --clear --platform web --output-dir dist && node scripts/prepare-web.mjs && workbox generateSW workbox-config.js",
     "typecheck": "tsc --noEmit",
-    "deploy:firebase": "pnpm run build:web && pnpm dlx firebase-tools@latest deploy --only hosting:xolot,firestore",
+    "deploy:firebase": "pnpm run build:web && pnpm dlx firebase-tools@latest deploy --only functions,hosting:xolot,firestore",
+    "deploy:firebase:functions": "pnpm --filter xolot-functions run build && pnpm dlx firebase-tools@latest deploy --only functions",
     "deploy:firebase:hosting": "pnpm run build:web && pnpm dlx firebase-tools@latest deploy --only hosting:xolot"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { createThemedStyles } from "../theme";
 import { baseStyles } from "./app/baseStyles";
 import { authStyles } from "./app/authStyles";
 import { navigationStyles } from "./app/navigationStyles";
@@ -9,10 +10,11 @@ import { submissionAdminStyles } from "./app/submissionAdminStyles";
 import { profileStyles } from "./app/profileStyles";
 import { accountAvatarSettingsStyles } from "./app/accountAvatarSettingsStyles";
 import { discoveryMessagesStyles } from "./app/discoveryMessagesStyles";
+import { profileDiscoveryStyles } from "./app/profileDiscoveryStyles";
 import { commentsStyles } from "./app/commentsStyles";
 import { securityStyles } from "./app/securityStyles";
 
-export const styles = StyleSheet.create({
+export const styles = createThemedStyles(StyleSheet.create({
   ...baseStyles,
   ...authStyles,
   ...navigationStyles,
@@ -23,6 +25,7 @@ export const styles = StyleSheet.create({
   ...profileStyles,
   ...accountAvatarSettingsStyles,
   ...discoveryMessagesStyles,
+  ...profileDiscoveryStyles,
   ...commentsStyles,
   ...securityStyles
-});
+}));

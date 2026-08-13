@@ -21,10 +21,39 @@ export function createSharedPostReference(
     title: player.videoTitle
   };
 }
+
+export function createSharedPostDelivery(
+  player: Player,
+  message = ""
+): Array<Pick<DirectMessage, "body" | "sharedPost">> {
+  const trimmedMessage = message.trim();
+
+  return [
+    {
+      body: "Compartilhou uma publicação",
+      sharedPost: createSharedPostReference(player)
+    },
+    ...(trimmedMessage
+      ? [{ body: trimmedMessage }]
+      : [])
+  ];
+}
+
+export function selectShareRecipients(
+  contacts: MessageContact[],
+  selectedContactIds: string[]
+) {
+  const selectedIds = new Set(selectedContactIds);
+  return contacts.filter((contact) => selectedIds.has(contact.id));
+}
+
 export function getSharedPostCaption(message: DirectMessage) {
   const caption = message.sharedPost?.caption?.trim();
 
-  if (caption) {
+  const isSystemShareText = (value: string) =>
+    value.toLocaleLowerCase().startsWith("compartilhou uma publica");
+
+  if (caption && !isSystemShareText(caption)) {
     return caption;
   }
 
@@ -34,11 +63,7 @@ export function getSharedPostCaption(message: DirectMessage) {
 
   const body = message.body.trim();
 
-  return body
-    .toLocaleLowerCase()
-    .startsWith("compartilhou uma publica")
-    ? ""
-    : body;
+  return isSystemShareText(body) ? "" : body;
 }
 
 export function countSharedPostsByPlayer(messages: DirectMessage[]) {

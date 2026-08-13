@@ -126,7 +126,7 @@ export function PromotePostScreen({
       </View>
 
       <View style={s.notice}>
-        <Text style={s.noticeText}>Esta etapa prepara a experiência de publicidade. Nenhuma cobrança é feita enquanto pagamentos e entrega de anúncios não estiverem conectados ao backend.</Text>
+        <Text style={s.noticeText}>Esta etapa prepara a experiência de publicidade. Nenhuma cobrança será feita enquanto os pagamentos e a entrega de anúncios não estiverem conectados ao backend.</Text>
       </View>
 
       <Pressable accessibilityRole="button" onPress={createCampaign} style={s.actionButton}>

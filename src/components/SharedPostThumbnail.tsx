@@ -1,54 +1,56 @@
 import React, { useEffect } from "react";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { ImageIcon, Play } from "lucide-react-native";
-import { Image, View } from "react-native";
+import { Image, Text, View } from "react-native";
 import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
 import type { Player, SubmissionMediaType } from "../types";
 
 export function SharedPostThumbnail({
-  isMine,
+  authorName,
   mediaType,
-  player
+  player,
+  title
 }: {
-  isMine: boolean;
+  authorName: string;
   mediaType: SubmissionMediaType;
   player?: Player;
+  title: string;
 }) {
   return (
-    <View
-      style={[
-        styles.sharedPostMessageThumbnail,
-        isMine ? styles.sharedPostMessageThumbnailMine : null
-      ]}
-    >
+    <View style={styles.sharedPostMessageThumbnail}>
       {player ? (
         <ResolvedSharedPostThumbnail
-          isMine={isMine}
           mediaType={mediaType}
           uri={player.videoUri}
         />
       ) : (
-        <SharedPostThumbnailFallback isMine={isMine} mediaType={mediaType} />
+        <SharedPostThumbnailFallback mediaType={mediaType} />
       )}
+      <View pointerEvents="none" style={styles.sharedPostMessageThumbnailOverlay}>
+        <Text numberOfLines={2} style={styles.sharedPostMessageOverlayTitle}>
+          {title}
+        </Text>
+        <Text numberOfLines={1} style={styles.sharedPostMessageOverlayAuthor}>
+          {authorName}
+        </Text>
+      </View>
     </View>
   );
 }
 
 function ResolvedSharedPostThumbnail({
-  isMine,
   mediaType,
   uri
 }: {
-  isMine: boolean;
   mediaType: SubmissionMediaType;
   uri: string | number;
 }) {
   const resolvedMedia = useResolvedVideoSource(uri);
 
   if (!resolvedMedia.source) {
-    return <SharedPostThumbnailFallback isMine={isMine} mediaType={mediaType} />;
+    return <SharedPostThumbnailFallback mediaType={mediaType} />;
   }
 
   if (mediaType === "image") {
@@ -89,13 +91,11 @@ function SharedPostVideoThumbnail({ uri }: { uri: string | number }) {
 }
 
 function SharedPostThumbnailFallback({
-  isMine = false,
   mediaType
 }: {
-  isMine?: boolean;
   mediaType: SubmissionMediaType;
 }) {
-  const color = isMine ? colors.primary : colors.onPrimary;
+  const color = colors.onPrimary;
 
   return (
     <View style={styles.sharedPostMessageThumbnailFallback}>

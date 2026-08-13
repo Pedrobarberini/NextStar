@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BellOff,
-  ChevronRight,
+  Check,
+  CheckCheck,
   LockKeyhole,
   MessageCircle,
   Pin,
@@ -35,6 +36,10 @@ import {
 import { canExchangeDirectMessages } from "../utils/socialAccess";
 import { MAX_PINNED_CONVERSATIONS } from "../utils/conversations";
 import { getSharedPostCaption } from "../utils/socialSharing";
+import {
+  formatDirectMessageTime,
+  getDirectMessageReceiptState
+} from "../utils/directMessages";
 import {
   matchesProfileSearch,
   normalizeProfileSearchValue
@@ -72,7 +77,9 @@ export function MessagesScreen({
   mutedContactIds,
   onDeleteConversation,
   onFindProfiles,
+  onOpenProfile,
   onOpenSharedPost,
+  onMarkMessagesRead,
   onSelectContact,
   onSendMessage,
   onToggleFollow,
@@ -90,7 +97,9 @@ export function MessagesScreen({
   mutedContactIds: string[];
   onDeleteConversation: (contactId: string) => void;
   onFindProfiles: () => void;
+  onOpenProfile: (contactId: string) => void;
   onOpenSharedPost: (playerId: string) => void;
+  onMarkMessagesRead: (messageIds: string[]) => void;
   onSelectContact: (contactId: string | null) => void;
   onSendMessage: (contactId: string, body: string) => void;
   onToggleFollow: (profileId: string) => void;
@@ -128,6 +137,29 @@ export function MessagesScreen({
         : [],
     [activeContact, currentUserId, messages]
   );
+  const canReadActiveConversation = Boolean(
+    activeContact &&
+      canExchangeDirectMessages(
+        currentUserId,
+        activeContact.id,
+        followingSet.has(activeContact.profileId)
+      )
+  );
+  const unreadIncomingMessageIds = useMemo(
+    () =>
+      canReadActiveConversation
+        ? activeMessages
+            .filter(
+              (message) =>
+                message.recipientUserId === currentUserId && !message.readAt
+            )
+            .map((message) => message.id)
+        : [],
+    [activeMessages, canReadActiveConversation, currentUserId]
+  );
+  const unreadIncomingMessageKey = unreadIncomingMessageIds.join("|");
+  const markMessagesReadRef = useRef(onMarkMessagesRead);
+  markMessagesReadRef.current = onMarkMessagesRead;
   const normalizedContactQuery = normalizeProfileSearchValue(contactQuery);
   const visibleContacts = contacts.filter((contact) =>
     matchesProfileSearch(normalizedContactQuery, [
@@ -149,14 +181,17 @@ export function MessagesScreen({
     setDraft("");
   }, [activeContactId]);
 
+  useEffect(() => {
+    if (!activeContactId || !unreadIncomingMessageKey) {
+      return;
+    }
+    markMessagesReadRef.current(unreadIncomingMessageIds);
+  }, [activeContactId, unreadIncomingMessageKey]);
+
   if (activeContact) {
     const isFollowing = followingSet.has(activeContact.profileId);
     const isSelf = activeContact.id === currentUserId;
-    const hasConversationAccess = canExchangeDirectMessages(
-      currentUserId,
-      activeContact.id,
-      isFollowing
-    );
+    const hasConversationAccess = canReadActiveConversation;
     const outgoingRequestMessages = activeMessages.filter(
       (message) => message.senderUserId === currentUserId
     );
@@ -188,30 +223,40 @@ export function MessagesScreen({
             accessibilityLabel="Voltar para conversas"
             onPress={() => onSelectContact(null)}
           />
-          <View style={styles.messagesContactAvatar}>
-            {profileAvatars[activeContact.profileId] ? (
-              <ProfileAvatarImage
-                avatar={profileAvatars[activeContact.profileId]}
-              />
-            ) : (
-              <Text style={styles.messagesContactAvatarText}>
-                {getInitials(activeContact.name)}
+          <Pressable
+            accessibilityLabel={`Abrir perfil de ${activeContact.name}`}
+            accessibilityRole="button"
+            onPress={() => onOpenProfile(activeContact.id)}
+            style={({ pressed }) => [
+              styles.messagesContactProfileButton,
+              pressed ? styles.buttonPressed : null,
+            ]}
+          >
+            <View style={styles.messagesContactAvatar}>
+              {profileAvatars[activeContact.profileId] ? (
+                <ProfileAvatarImage
+                  avatar={profileAvatars[activeContact.profileId]}
+                />
+              ) : (
+                <Text style={styles.messagesContactAvatarText}>
+                  {getInitials(activeContact.name)}
+                </Text>
+              )}
+            </View>
+            <View style={styles.messagesContactIdentity}>
+              <Text numberOfLines={1} style={styles.messagesContactName}>
+                {activeContact.name}
               </Text>
-            )}
-          </View>
-          <View style={styles.messagesContactIdentity}>
-            <Text numberOfLines={1} style={styles.messagesContactName}>
-              {activeContact.name}
-            </Text>
-            <Text numberOfLines={1} style={styles.messagesContactSubtitle}>
-              {activeContact.username ? `@${activeContact.username} | ` : ""}
-              {isSelf
-                ? "Sua conta"
-                : isFollowing
-                  ? "Seguindo"
-                  : "Perfil não seguido"}
-            </Text>
-          </View>
+              <Text numberOfLines={1} style={styles.messagesContactSubtitle}>
+                {activeContact.username ? `@${activeContact.username} | ` : ""}
+                {isSelf
+                  ? "Sua conta"
+                  : isFollowing
+                    ? "Seguindo"
+                    : "Perfil não seguido"}
+              </Text>
+            </View>
+          </Pressable>
           {!isSelf ? (
             <Pressable
               accessibilityLabel={
@@ -245,11 +290,11 @@ export function MessagesScreen({
                 <LockKeyhole color={colors.primary} size={24} />
               </View>
               <Text style={styles.messagesThreadEmptyTitle}>
-                Solicitacao de mensagem
+                Solicitação de mensagem
               </Text>
               <Text style={styles.messagesThreadEmptyBody}>
-                Siga {activeContact.name} para visualizar as mensagens recebidas
-                e responder com segurança.
+                Siga {activeContact.name} para ver as mensagens recebidas e
+                responder com segurança.
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -268,14 +313,14 @@ export function MessagesScreen({
               <Text style={styles.messagesThreadEmptyTitle}>
                 {hasConversationAccess
                   ? "Envie a primeira mensagem"
-                  : "Envie uma solicitacao"}
+                  : "Envie uma solicitação"}
               </Text>
               <Text style={styles.messagesThreadEmptyBody}>
                 {hasConversationAccess
                   ? isSelf
-                    ? "Use esta conversa como um espaço privado para você."
+                    ? "Use esta conversa como seu espaço privado."
                     : "Inicie uma conversa diretamente com este perfil."
-                  : "Você pode enviar uma mensagem inicial. Novas mensagens ficam liberadas quando o perfil for seguido."}
+                  : "Você pode enviar uma mensagem inicial. Para continuar a conversa, siga este perfil."}
               </Text>
             </View>
           ) : (
@@ -287,6 +332,13 @@ export function MessagesScreen({
                   )
                 : undefined;
               const sharedCaption = getSharedPostCaption(message);
+              const receiptState = getDirectMessageReceiptState(message);
+              const receiptLabel =
+                receiptState === "read"
+                  ? "Vista"
+                  : receiptState === "delivered"
+                    ? "Entregue"
+                    : "Enviada";
 
               return (
                 <View
@@ -297,72 +349,54 @@ export function MessagesScreen({
                   ]}
                 >
                   {message.sharedPost ? (
-                    <Pressable
-                      accessibilityLabel={
-                        sharedPlayer
-                          ? `Abrir publicacao ${message.sharedPost.title}`
-                          : "Publicacao indisponivel"
-                      }
-                      accessibilityRole="button"
-                      disabled={!sharedPlayer}
-                      onPress={() =>
-                        sharedPlayer && onOpenSharedPost(sharedPlayer.id)
-                      }
-                      style={[
-                        styles.sharedPostMessage,
-                        isMine ? styles.sharedPostMessageMine : null,
-                        !sharedPlayer
-                          ? styles.sharedPostMessageUnavailable
-                          : null
-                      ]}
-                    >
-                      <View style={styles.sharedPostMessageHeader}>
-                        <View style={styles.sharedPostMessageIdentity}>
-                          <Text
-                            numberOfLines={2}
-                            style={[
-                              styles.sharedPostMessageTitle,
-                              isMine ? styles.sharedPostMessageTitleMine : null
-                            ]}
-                          >
-                            {message.sharedPost.title}
-                          </Text>
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              styles.sharedPostMessageMeta,
-                              isMine ? styles.sharedPostMessageMetaMine : null
-                            ]}
-                          >
-                            {sharedPlayer
+                    <>
+                      <Pressable
+                        accessibilityLabel={
+                          sharedPlayer
+                            ? `Abrir publicação ${message.sharedPost.title}`
+                            : "Publicação indisponível"
+                        }
+                        accessibilityRole="button"
+                        disabled={!sharedPlayer}
+                        onPress={() =>
+                          sharedPlayer && onOpenSharedPost(sharedPlayer.id)
+                        }
+                        style={[
+                          styles.sharedPostMessage,
+                          !sharedPlayer
+                            ? styles.sharedPostMessageUnavailable
+                            : null
+                        ]}
+                      >
+                        <SharedPostThumbnail
+                          authorName={
+                            sharedPlayer
                               ? message.sharedPost.authorName
-                              : "Publicacao indisponivel"}
-                          </Text>
-                        </View>
-                        {sharedPlayer ? (
-                          <ChevronRight
-                            color={isMine ? colors.onPrimary : colors.muted}
-                            size={18}
-                          />
-                        ) : null}
-                      </View>
-                      <SharedPostThumbnail
-                        isMine={isMine}
-                        mediaType={message.sharedPost.mediaType}
-                        player={sharedPlayer}
-                      />
+                              : "Publicação indisponível"
+                          }
+                          mediaType={message.sharedPost.mediaType}
+                          player={sharedPlayer}
+                          title={message.sharedPost.title}
+                        />
+                      </Pressable>
                       {sharedCaption ? (
-                        <Text
-                          numberOfLines={4}
+                        <View
                           style={[
-                            styles.sharedPostMessageCaption,
-                            isMine ? styles.sharedPostMessageCaptionMine : null
+                            styles.messageBubble,
+                            isMine ? styles.messageBubbleMine : null
                           ]}
                         >
-                          {sharedCaption}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.messageBubbleText,
+                              isMine ? styles.messageBubbleTextMine : null
+                            ]}
+                          >
+                            {sharedCaption}
+                          </Text>
+                        </View>
                       ) : null}
-                    </Pressable>
+                    </>
                   ) : (
                     <View
                       style={[
@@ -380,6 +414,37 @@ export function MessagesScreen({
                       </Text>
                     </View>
                   )}
+                  <View
+                    style={[
+                      styles.messageMetadata,
+                      isMine ? styles.messageMetadataMine : null
+                    ]}
+                  >
+                    <Text style={styles.messageTimeText}>
+                      {formatDirectMessageTime(message.createdAt)}
+                    </Text>
+                    {isMine ? (
+                      <View
+                        accessibilityLabel={receiptLabel}
+                        accessibilityRole="text"
+                        style={styles.messageReceipt}
+                      >
+                        {receiptState === "sent" ? (
+                          <Check color={colors.muted} size={15} strokeWidth={2.2} />
+                        ) : (
+                          <CheckCheck
+                            color={
+                              receiptState === "read"
+                                ? colors.primary
+                                : colors.muted
+                            }
+                            size={16}
+                            strokeWidth={2.2}
+                          />
+                        )}
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
               );
             })
@@ -388,11 +453,11 @@ export function MessagesScreen({
           {!hasConversationAccess && outgoingRequestMessages.length > 0 ? (
             <View style={styles.messagesRequestSentNotice}>
               <Text style={styles.messagesRequestSentTitle}>
-                Solicitacao enviada
+                Solicitação enviada
               </Text>
               <Text style={styles.messagesRequestSentBody}>
-                A conversa completa será liberada quando houver uma conexão por
-                follow.
+                A conversa completa será liberada quando você
+                seguir este perfil.
               </Text>
             </View>
           ) : null}
@@ -423,8 +488,8 @@ export function MessagesScreen({
               canCompose
                 ? hasConversationAccess
                   ? "Escreva uma mensagem"
-                  : "Enviar uma solicitacao"
-                : "Aguardando conexão por follow"
+                  : "Enviar uma solicitação"
+                : "Siga o perfil para conversar"
             }
             placeholderTextColor={colors.muted}
             style={[
@@ -437,7 +502,7 @@ export function MessagesScreen({
           />
           <Pressable
             accessibilityLabel={
-              hasConversationAccess ? "Enviar mensagem" : "Enviar solicitacao"
+              hasConversationAccess ? "Enviar mensagem" : "Enviar solicitação"
             }
             accessibilityRole="button"
             disabled={!canCompose || !draft.trim()}
@@ -508,7 +573,7 @@ export function MessagesScreen({
           </Text>
           <Text numberOfLines={1} style={styles.messagesContactPreview}>
             {isRequest && hasHiddenIncomingMessage
-              ? "Nova solicitacao de mensagem"
+              ? "Nova solicitação de mensagem"
               : lastMessage?.body ?? contact.subtitle}
           </Text>
         </View>
@@ -517,7 +582,7 @@ export function MessagesScreen({
           {isMuted ? <BellOff color={colors.muted} size={15} /> : null}
           {isRequest ? (
             <View style={styles.messagesRequestPill}>
-              <Text style={styles.messagesRequestPillText}>Solicitacao</Text>
+              <Text style={styles.messagesRequestPillText}>Solicitação</Text>
             </View>
           ) : null}
         </View>
@@ -531,7 +596,7 @@ export function MessagesScreen({
       <View style={styles.discoveryHeader}>
         <Text style={styles.discoveryTitle}>Mensagens</Text>
         <Text style={styles.discoverySubtitle}>
-          Conversas organizadas de acordo com os perfis que você segue.
+          Conversas organizadas conforme os perfis que você segue.
         </Text>
       </View>
 
@@ -611,7 +676,7 @@ export function MessagesScreen({
 
           <View style={[styles.messagesSectionHeader, styles.messagesRequestHeader]}>
             <View>
-              <Text style={styles.messagesSectionTitle}>Solicitacoes</Text>
+              <Text style={styles.messagesSectionTitle}>Solicitações</Text>
               <Text style={styles.messagesSectionSubtitle}>
                 Perfis que você não segue
               </Text>
@@ -626,7 +691,7 @@ export function MessagesScreen({
             </View>
           ) : (
             <Text style={styles.messagesSectionEmpty}>
-              Nenhuma solicitacao pendente.
+              Nenhuma solicitação pendente.
             </Text>
           )}
         </>

@@ -50,8 +50,12 @@ import {
   getPlayerContentKey,
   getPlayerContentLabel
 } from "../utils/feedEngagement";
-
-const FEED_DOUBLE_PRESS_DELAY_MS = 260;
+import {
+  createMediaTapGestureState,
+  MEDIA_DOUBLE_TAP_DELAY_MS,
+  resolveMediaTapGesture,
+  suppressMediaTapGesture
+} from "../utils/mediaTapGesture";
 
 export function FeedScreen({
   activeCampaignPlayerIds,
@@ -70,6 +74,7 @@ export function FeedScreen({
   onAddComment,
   onBackToProfile,
   onDeleteComment,
+  onImmersiveChange,
   onOpenPlayer,
   onOpenTaggedUser,
   onRecordView,
@@ -106,6 +111,7 @@ export function FeedScreen({
   ) => boolean;
   onBackToProfile?: () => void;
   onDeleteComment: (commentId: string) => void;
+  onImmersiveChange?: (active: boolean) => void;
   onOpenPlayer: (player: Player) => void;
   onOpenTaggedUser: (user: AppUser) => void;
   onRecordView: (playerId: string) => void;
@@ -130,6 +136,7 @@ export function FeedScreen({
   const [feedHeight, setFeedHeight] = useState(0);
   const [activeFeedIndex, setActiveFeedIndex] = useState(0);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const [isCleanView, setIsCleanView] = useState(false);
   const [commentPlayer, setCommentPlayer] = useState<Player | null>(null);
   const [preferencePlayer, setPreferencePlayer] = useState<Player | null>(null);
   const [sharePlayer, setSharePlayer] = useState<Player | null>(null);
@@ -140,6 +147,10 @@ export function FeedScreen({
   const gestureStartOffsetRef = useRef(0);
   const gestureSettledRef = useRef(false);
   const sectionOffsetsRef = useRef<Record<number, number>>({});
+  const cleanViewActiveRef = useRef(false);
+  const feedChromeOpacity = useRef(new Animated.Value(1)).current;
+  const immersiveChangeRef = useRef(onImmersiveChange);
+  immersiveChangeRef.current = onImmersiveChange;
   const pageHeight = feedHeight || height;
   const lastFeedIndex = Math.max(feedPlayers.length - 1, 0);
   const activePlayerId = feedPlayers[activeFeedIndex]?.id;
@@ -170,6 +181,21 @@ export function FeedScreen({
     [mentionedUsers, profileAvatars]
   );
 
+  useEffect(
+    () => () => {
+      cleanViewActiveRef.current = false;
+      feedChromeOpacity.stopAnimation();
+      immersiveChangeRef.current?.(false);
+    },
+    [feedChromeOpacity]
+  );
+
+  useEffect(() => {
+    if (cleanViewActiveRef.current) {
+      setCleanViewActive(false);
+    }
+  }, [activePlayerId]);
+
   useEffect(() => {
     if (!activePlayerId) {
       return undefined;
@@ -181,6 +207,23 @@ export function FeedScreen({
 
     return () => clearTimeout(viewTimer);
   }, [activePlayerId, onRecordView]);
+
+  function setCleanViewActive(active: boolean) {
+    if (cleanViewActiveRef.current === active) {
+      return;
+    }
+
+    cleanViewActiveRef.current = active;
+    setIsCleanView(active);
+    feedChromeOpacity.stopAnimation();
+    Animated.timing(feedChromeOpacity, {
+      duration: active ? 150 : 220,
+      easing: active ? Easing.out(Easing.quad) : Easing.out(Easing.cubic),
+      toValue: active ? 0 : 1,
+      useNativeDriver: true
+    }).start();
+    immersiveChangeRef.current?.(active);
+  }
 
   function activateFeedIndex(index: number) {
     const safeIndex = Math.min(Math.max(index, 0), lastFeedIndex);
@@ -326,6 +369,7 @@ export function FeedScreen({
         onScrollEndDrag={(event) => {
           settleFeedGesture(event.nativeEvent.contentOffset.y);
         }}
+        scrollEnabled={!isCleanView}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         style={styles.feedPager}
@@ -339,7 +383,7 @@ export function FeedScreen({
               Nenhuma publicação disponível
             </Text>
             <Text style={styles.feedEmptyStateBody}>
-              Suas preferências ocultaram os posts atuais do Início.
+              Novas publicações aparecerão aqui assim que forem enviadas.
             </Text>
           </View>
         ) : feedPlayers.map((player, index) => (
@@ -353,14 +397,17 @@ export function FeedScreen({
           >
             <FeedReel
               avatar={profileAvatars[player.profileId]}
+              chromeOpacity={feedChromeOpacity}
               currentUserId={currentUserId}
               isFollowing={followingProfileIds.includes(player.profileId)}
               commentCount={commentsByPlayer[player.id]?.length ?? 0}
               isActive={index === activeFeedIndex && !commentPlayer}
               isLiked={likedPlayerIds.has(player.id)}
               isSponsored={activeCampaignPlayerIds.has(player.id)}
+              isCleanView={isCleanView}
               likeCount={likeCountsByPlayer[player.id] ?? 0}
               shareCount={shareCountsByPlayer[player.id] ?? 0}
+              onCleanViewChange={setCleanViewActive}
               onComments={() => setCommentPlayer(player)}
               onMore={() => setPreferencePlayer(player)}
               onOpenMentions={() => setMentionedPlayer(player)}
@@ -375,7 +422,10 @@ export function FeedScreen({
           </View>
         ))}
       </ScrollView>
-      <View style={styles.feedTopNavigation}>
+      <Animated.View
+        pointerEvents={isCleanView ? "none" : "auto"}
+        style={[styles.feedTopNavigation, { opacity: feedChromeOpacity }]}
+      >
         {onBackToProfile ? (
           <BackButton
             accessibilityLabel={backLabel}
@@ -400,7 +450,7 @@ export function FeedScreen({
             style={styles.feedReelBrandMark}
           />
         </Pressable>
-      </View>
+      </Animated.View>
       <FeedPostOptionsModal
         blocked={Boolean(
           preferencePlayer &&
@@ -516,14 +566,17 @@ export function FeedScreen({
 
 function FeedReel({
   avatar,
+  chromeOpacity,
   commentCount,
   currentUserId,
   isFollowing,
   isActive,
+  isCleanView,
   isLiked,
   isSponsored,
   likeCount,
   shareCount,
+  onCleanViewChange,
   onComments,
   onMore,
   onOpen,
@@ -536,14 +589,17 @@ function FeedReel({
   reelHeight
 }: {
   avatar?: ProfileAvatar;
+  chromeOpacity: Animated.Value;
   commentCount: number;
   currentUserId: string;
   isFollowing: boolean;
   isActive: boolean;
+  isCleanView: boolean;
   isLiked: boolean;
   isSponsored: boolean;
   likeCount: number;
   shareCount: number;
+  onCleanViewChange: (active: boolean) => void;
   onComments: () => void;
   onMore: () => void;
   onOpen: () => void;
@@ -722,10 +778,13 @@ function FeedReel({
         >
           <View style={styles.feedVideoBackground} />
           <FeedVideoBox
+            chromeOpacity={chromeOpacity}
             isActive={isActive}
+            isCleanView={isCleanView}
             isWide={isWide}
             palette={palette}
             player={player}
+            onCleanViewChange={onCleanViewChange}
             onDoublePress={handleDoublePressLike}
           />
 
@@ -734,7 +793,7 @@ function FeedReel({
             style={[
               styles.feedDoubleTapHeart,
               {
-                opacity: doubleTapHeartOpacity,
+                opacity: Animated.multiply(doubleTapHeartOpacity, chromeOpacity),
                 transform: [{ scale: doubleTapHeartScale }]
               }
             ]}
@@ -742,7 +801,14 @@ function FeedReel({
             <Heart color={colors.onPrimary} fill={colors.like} size={92} strokeWidth={1.8} />
           </Animated.View>
 
-          <View style={[styles.feedSocialActionRail, isWide ? styles.feedSocialActionRailWide : null]}>
+          <Animated.View
+            pointerEvents={isCleanView ? "none" : "auto"}
+            style={[
+              styles.feedSocialActionRail,
+              isWide ? styles.feedSocialActionRailWide : null,
+              { opacity: chromeOpacity }
+            ]}
+          >
             <Pressable
               accessibilityLabel={isLiked ? `Remover curtida de ${player.videoTitle}` : `Curtir ${player.videoTitle}`}
               accessibilityRole="button"
@@ -752,7 +818,12 @@ function FeedReel({
               style={styles.feedSocialAction}
             >
               <Animated.View style={{ transform: [{ scale: likeScale }] }}>
-                <Heart color={isLiked ? colors.like : colors.onPrimary} fill={isLiked ? colors.like : "transparent"} size={25} strokeWidth={2.2} />
+                <Heart
+                  color={isLiked ? colors.like : "#FFFFFF"}
+                  fill={isLiked ? colors.like : "transparent"}
+                  size={25}
+                  strokeWidth={2.2}
+                />
               </Animated.View>
               <Text style={styles.feedSocialActionCount}>{likeCount}</Text>
             </Pressable>
@@ -763,21 +834,23 @@ function FeedReel({
               onPress={onComments}
               style={styles.feedSocialAction}
             >
-              <MessageCircle color={colors.onPrimary} size={24} strokeWidth={2.2} />
+              <MessageCircle color="#FFFFFF" size={24} strokeWidth={2.2} />
               <Text style={styles.feedSocialActionCount}>{commentCount}</Text>
             </Pressable>
             <Pressable accessibilityLabel={`Compartilhar ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onShare} style={styles.feedSocialAction}>
-              <Share2 color={colors.onPrimary} size={24} strokeWidth={2.2} />
+              <Share2 color="#FFFFFF" size={24} strokeWidth={2.2} />
               <Text style={styles.feedSocialActionCount}>{shareCount}</Text>
             </Pressable>
             <Pressable accessibilityLabel={`Mais opções de ${player.videoTitle}`} accessibilityRole="button" hitSlop={5} onPress={onMore} style={styles.feedSocialAction}>
-              <MoreVertical color={colors.onPrimary} size={25} strokeWidth={2.3} />
+              <MoreVertical color="#FFFFFF" size={25} strokeWidth={2.3} />
             </Pressable>
-          </View>
+          </Animated.View>
 
           <Animated.View
+            pointerEvents={isCleanView ? "none" : "auto"}
             style={[
               styles.feedTextOverlay,
+              { opacity: chromeOpacity },
               isWide
                 ? [styles.feedTextOverlayWide, { right: Math.max(300, canvasWidth - 360) }]
                 : [
@@ -850,7 +923,7 @@ function FeedReel({
               ) : null}
               {isWide ? (
                 <View style={[styles.feedStatusPill, { borderColor: palette.border }]}>
-                  <Text style={[styles.feedStatusText, { color: palette.accent }]}>{isSponsored ? "Patrocinado" : player.isDemo ? "Demonstração" : "Publicado"}</Text>
+                  <Text style={[styles.feedStatusText, { color: palette.accent }]}>{isSponsored ? "Patrocinado" : "Publicado"}</Text>
                 </View>
               ) : null}
             </View>
@@ -954,14 +1027,20 @@ function FeedMentionsButton({
 }
 
 function FeedVideoBox({
+  chromeOpacity,
   isActive,
+  isCleanView,
   isWide,
+  onCleanViewChange,
   onDoublePress,
   palette,
   player
 }: {
+  chromeOpacity: Animated.Value;
   isActive: boolean;
+  isCleanView: boolean;
   isWide: boolean;
+  onCleanViewChange: (active: boolean) => void;
   onDoublePress: () => void;
   palette: CardPalette;
   player: Player;
@@ -975,16 +1054,23 @@ function FeedVideoBox({
       ]}
     >
       {player.mediaType === "image" ? (
-        <FeedImagePlayback onDoublePress={onDoublePress} uri={player.videoUri} />
+        <FeedImagePlayback
+          onCleanViewChange={onCleanViewChange}
+          onDoublePress={onDoublePress}
+          uri={player.videoUri}
+        />
       ) : (
         <FeedVideoPlayback
           accent={palette.accent}
+          chromeOpacity={chromeOpacity}
           caption={player.videoTitle}
           durationLabel={player.videoLength}
           hasAudio={player.hasAudio !== false}
           isActive={isActive}
+          isCleanView={isCleanView}
           isWide={isWide}
           onAccent={palette.onAccent}
+          onCleanViewChange={onCleanViewChange}
           onDoublePress={onDoublePress}
           trackColor={palette.progressTrack}
           uri={player.videoUri}
@@ -998,18 +1084,25 @@ function FeedMediaTapTarget({
   accessibilityLabel,
   children,
   onDoublePress,
+  onHoldChange,
   onSinglePress
 }: {
   accessibilityLabel?: string;
   children?: React.ReactNode;
   onDoublePress: () => void;
+  onHoldChange?: (active: boolean) => void;
   onSinglePress?: () => void;
 }) {
   const onDoublePressRef = useRef(onDoublePress);
+  const onHoldChangeRef = useRef(onHoldChange);
   const onSinglePressRef = useRef(onSinglePress);
   const pendingSinglePressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gestureStateRef = useRef(createMediaTapGestureState());
+  const isHoldingRef = useRef(false);
+  const ignoreNextPressRef = useRef(false);
 
   onDoublePressRef.current = onDoublePress;
+  onHoldChangeRef.current = onHoldChange;
   onSinglePressRef.current = onSinglePress;
 
   useEffect(
@@ -1017,22 +1110,85 @@ function FeedMediaTapTarget({
       if (pendingSinglePressRef.current) {
         clearTimeout(pendingSinglePressRef.current);
       }
+      if (isHoldingRef.current) {
+        onHoldChangeRef.current?.(false);
+      }
     },
     []
   );
 
-  function handlePress() {
+  function cancelPendingSinglePress() {
     if (pendingSinglePressRef.current) {
       clearTimeout(pendingSinglePressRef.current);
       pendingSinglePressRef.current = null;
+    }
+  }
+
+  function handleLongPress() {
+    if (!onHoldChangeRef.current) {
+      return;
+    }
+
+    cancelPendingSinglePress();
+    gestureStateRef.current = suppressMediaTapGesture(
+      gestureStateRef.current,
+      Date.now()
+    );
+    isHoldingRef.current = true;
+    onHoldChangeRef.current(true);
+  }
+
+  function handlePressOut() {
+    if (!isHoldingRef.current) {
+      return;
+    }
+
+    isHoldingRef.current = false;
+    gestureStateRef.current = suppressMediaTapGesture(
+      gestureStateRef.current,
+      Date.now()
+    );
+    onHoldChangeRef.current?.(false);
+  }
+
+  function handlePress() {
+    const pressedAt = Date.now();
+    const scheduledSinglePress = onSinglePressRef.current;
+    const gesture = resolveMediaTapGesture(
+      gestureStateRef.current,
+      pressedAt
+    );
+    gestureStateRef.current = gesture.state;
+
+    if (gesture.action === "ignore") {
+      return;
+    }
+
+    if (gesture.action === "double") {
+      cancelPendingSinglePress();
       onDoublePressRef.current();
       return;
     }
 
+    if (!scheduledSinglePress) {
+      return;
+    }
+
+    if (pendingSinglePressRef.current) {
+      clearTimeout(pendingSinglePressRef.current);
+    }
+
     pendingSinglePressRef.current = setTimeout(() => {
       pendingSinglePressRef.current = null;
-      onSinglePressRef.current?.();
-    }, FEED_DOUBLE_PRESS_DELAY_MS);
+      if (gestureStateRef.current.pendingTapAt !== pressedAt) {
+        return;
+      }
+      gestureStateRef.current = {
+        ...gestureStateRef.current,
+        pendingTapAt: null
+      };
+      scheduledSinglePress();
+    }, MEDIA_DOUBLE_TAP_DELAY_MS);
   }
 
   return (
@@ -1040,7 +1196,10 @@ function FeedMediaTapTarget({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={onSinglePress ? "button" : undefined}
       accessible={Boolean(onSinglePress)}
+      delayLongPress={280}
+      onLongPress={handleLongPress}
       onPress={handlePress}
+      onPressOut={handlePressOut}
       style={styles.feedVideoTapTarget}
     >
       {children}
@@ -1048,7 +1207,15 @@ function FeedMediaTapTarget({
   );
 }
 
-function FeedImagePlayback({ onDoublePress, uri }: { onDoublePress: () => void; uri: string | number }) {
+function FeedImagePlayback({
+  onCleanViewChange,
+  onDoublePress,
+  uri
+}: {
+  onCleanViewChange: (active: boolean) => void;
+  onDoublePress: () => void;
+  uri: string | number;
+}) {
   const resolvedImage = useResolvedVideoSource(uri);
 
   if (!resolvedImage.source) {
@@ -1080,19 +1247,25 @@ function FeedImagePlayback({ onDoublePress, uri }: { onDoublePress: () => void; 
         }
         style={styles.feedVideoMedia}
       />
-      <FeedMediaTapTarget onDoublePress={onDoublePress} />
+      <FeedMediaTapTarget
+        onDoublePress={onDoublePress}
+        onHoldChange={onCleanViewChange}
+      />
     </View>
   );
 }
 
 type FeedVideoPlaybackProps = {
   accent: string;
+  chromeOpacity: Animated.Value;
   caption: string;
   durationLabel: string;
   hasAudio: boolean;
   isActive: boolean;
+  isCleanView: boolean;
   isWide: boolean;
   onAccent: string;
+  onCleanViewChange: (active: boolean) => void;
   onDoublePress: () => void;
   trackColor: string;
   uri: string | number;
@@ -1107,7 +1280,7 @@ function FeedVideoPlayback(props: FeedVideoPlaybackProps) {
         <Text style={styles.videoUnavailableTitle}>
           {resolvedVideo.status === "loading"
             ? "Carregando vídeo..."
-            : "Video indisponível"}
+            : "Vídeo indisponível"}
         </Text>
         {resolvedVideo.status === "unavailable" ? (
           <Text style={styles.videoUnavailableBody}>
@@ -1123,12 +1296,15 @@ function FeedVideoPlayback(props: FeedVideoPlaybackProps) {
 
 function ResolvedFeedVideoPlayback({
   accent,
+  chromeOpacity,
   caption,
   durationLabel,
   hasAudio,
   isActive,
+  isCleanView,
   isWide,
   onAccent,
+  onCleanViewChange,
   onDoublePress,
   trackColor,
   uri
@@ -1140,16 +1316,26 @@ function ResolvedFeedVideoPlayback({
   const videoPlayer = useVideoPlayer(uri, (player) => {
     player.loop = true;
     player.muted = true;
+    player.playbackRate = 1;
     player.timeUpdateEventInterval = 0.1;
   });
   const { isPlaying } = useEvent(videoPlayer, "playingChange", {
     isPlaying: videoPlayer.playing
   });
+  const isPlayingRef = useRef(isPlaying);
+  const isActiveRef = useRef(isActive);
+  const manuallyPausedRef = useRef(false);
+  const lastPlaybackToggleAtRef = useRef(0);
+  isPlayingRef.current = isPlaying;
+  isActiveRef.current = isActive;
   const { muted } = useEvent(videoPlayer, "mutedChange", {
     muted: videoPlayer.muted
   });
   const { status: playerStatus } = useEvent(videoPlayer, "statusChange", {
     status: videoPlayer.status
+  });
+  const { playbackRate } = useEvent(videoPlayer, "playbackRateChange", {
+    playbackRate: videoPlayer.playbackRate
   });
   const { currentTime } = useEvent(videoPlayer, "timeUpdate", {
     bufferedPosition: videoPlayer.bufferedPosition,
@@ -1239,7 +1425,17 @@ function ResolvedFeedVideoPlayback({
   }, [currentTime]);
 
   useEffect(() => {
+    if (playbackRate !== 1) {
+      videoPlayer.playbackRate = 1;
+    }
+  }, [playbackRate, videoPlayer]);
+
+  useEffect(() => {
+    manuallyPausedRef.current = false;
+    isActiveRef.current = isActive;
+
     if (isActive) {
+      videoPlayer.playbackRate = 1;
       videoPlayer.play();
     } else {
       videoPlayer.pause();
@@ -1248,12 +1444,37 @@ function ResolvedFeedVideoPlayback({
     return () => videoPlayer.pause();
   }, [isActive, videoPlayer]);
 
+  useEffect(() => {
+    if (
+      playerStatus === "readyToPlay" &&
+      isActiveRef.current &&
+      !manuallyPausedRef.current &&
+      !isPlayingRef.current
+    ) {
+      videoPlayer.playbackRate = 1;
+      videoPlayer.play();
+    }
+  }, [playerStatus, videoPlayer]);
+
   function togglePlayback() {
-    if (isPlaying) {
+    if (!isActiveRef.current) {
+      return;
+    }
+
+    const toggledAt = Date.now();
+    if (toggledAt - lastPlaybackToggleAtRef.current < 360) {
+      return;
+    }
+    lastPlaybackToggleAtRef.current = toggledAt;
+
+    if (isPlayingRef.current || videoPlayer.playing) {
+      manuallyPausedRef.current = true;
       videoPlayer.pause();
       return;
     }
 
+    manuallyPausedRef.current = false;
+    videoPlayer.playbackRate = 1;
     videoPlayer.play();
   }
 
@@ -1278,21 +1499,25 @@ function ResolvedFeedVideoPlayback({
       <FeedMediaTapTarget
         accessibilityLabel={isPlaying ? "Pausar vídeo" : "Reproduzir vídeo"}
         onDoublePress={onDoublePress}
+        onHoldChange={onCleanViewChange}
         onSinglePress={isActive ? togglePlayback : undefined}
       >
         {!isPlaying ? (
-          <View
+          <Animated.View
             style={[
               styles.feedVideoPlayCircle,
               styles.feedVideoPlaybackPlay,
-              { backgroundColor: accent }
+              { backgroundColor: accent, opacity: chromeOpacity }
             ]}
           >
             <Play color={onAccent} fill={onAccent} size={24} />
-          </View>
+          </Animated.View>
         ) : null}
       </FeedMediaTapTarget>
-      <View style={styles.feedVideoFloatingControls}>
+      <Animated.View
+        pointerEvents={isCleanView ? "none" : "auto"}
+        style={[styles.feedVideoFloatingControls, { opacity: chromeOpacity }]}
+      >
         <Pressable
           accessibilityLabel="Abrir vídeo em tela cheia"
           accessibilityRole="button"
@@ -1316,9 +1541,12 @@ function ResolvedFeedVideoPlayback({
             volume={volume}
           />
         ) : null}
-      </View>
+      </Animated.View>
       {isWide ? (
-        <View pointerEvents="none" style={styles.feedVideoCaptionStrip}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.feedVideoCaptionStrip, { opacity: chromeOpacity }]}
+        >
           <Text
             numberOfLines={1}
             style={[styles.feedVideoCaption, { color: colors.onPrimary }]}
@@ -1328,9 +1556,10 @@ function ResolvedFeedVideoPlayback({
           <Text style={[styles.feedVideoDuration, { color: colors.onPrimary }]}>
             {formatPlaybackTime(safeCurrentTime)} / {totalTimeLabel}
           </Text>
-        </View>
+        </Animated.View>
       ) : null}
-      <View
+      <Animated.View
+        pointerEvents={isCleanView ? "none" : "auto"}
         onLayout={(event) => {
           const nextWidth = event.nativeEvent.layout.width;
           seekTrackWidthRef.current = nextWidth;
@@ -1338,13 +1567,14 @@ function ResolvedFeedVideoPlayback({
         }}
         style={[
           styles.feedVideoSeekControl,
-          !isWide ? styles.feedVideoSeekControlCompact : null
+          !isWide ? styles.feedVideoSeekControlCompact : null,
+          { opacity: chromeOpacity }
         ]}
         {...seekPanResponder.panHandlers}
       >
         <Pressable
           accessibilityActions={[
-            { label: "Avancar 5 segundos", name: "increment" },
+            { label: "Avançar 5 segundos", name: "increment" },
             { label: "Voltar 5 segundos", name: "decrement" }
           ]}
           accessibilityLabel="Posição do vídeo"
@@ -1395,7 +1625,7 @@ function ResolvedFeedVideoPlayback({
             style={[styles.feedVideoScrubberThumb, { left: thumbOffset }]}
           />
         </Pressable>
-      </View>
+      </Animated.View>
     </View>
   );
 }

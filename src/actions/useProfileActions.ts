@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
-import { isFirebaseMediaEnabled } from "../config/firebase";
+import {
+  isFirebaseMediaEnabled,
+  isR2MediaEnabled
+} from "../config/firebase";
 import {
   getSafeFirebaseAvatarMessage,
   saveFirebaseAvatar,
+  saveFirebaseAvatarCrop,
   subscribeFirebaseProfileMedia
 } from "../services/firebaseAvatarService";
+import {
+  getSafeR2AvatarMessage,
+  saveR2Avatar
+} from "../services/r2AvatarService";
 import {
   loadProfileAvatars,
   saveProfileAvatars
@@ -69,6 +77,7 @@ export function useProfileActions(user: AppUser | null) {
       return;
     }
 
+    const previousAvatar = profileAvatars[profileId];
     setProfileAvatars((current) => {
       if (avatar?.uri.trim()) {
         return { ...current, [profileId]: avatar };
@@ -97,7 +106,15 @@ export function useProfileActions(user: AppUser | null) {
         const avatarToSave = uploadedAvatar
           ? { ...avatar, uri: uploadedAvatar.uri }
           : avatar;
-        const remoteAvatar = await saveFirebaseAvatar(user.id, avatarToSave);
+        const canUpdateCropOnly =
+          Boolean(uploadedAvatar) ||
+          (previousAvatar?.uri === avatarToSave.uri &&
+            /^https?:\/\//i.test(avatarToSave.uri));
+        const remoteAvatar = canUpdateCropOnly
+          ? await saveFirebaseAvatarCrop(user.id, avatarToSave)
+          : await (
+              isR2MediaEnabled() ? saveR2Avatar : saveFirebaseAvatar
+            )(user.id, avatarToSave);
 
         uploadedAvatarBySourceRef.current.set(sourceURI, remoteAvatar);
         setProfileAvatars((current) => ({
@@ -108,7 +125,9 @@ export function useProfileActions(user: AppUser | null) {
       .catch((error) => {
         Alert.alert(
           "Foto não salva",
-          getSafeFirebaseAvatarMessage(error)
+          isR2MediaEnabled()
+            ? getSafeR2AvatarMessage(error)
+            : getSafeFirebaseAvatarMessage(error)
         );
       });
   }

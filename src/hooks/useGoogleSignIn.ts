@@ -61,7 +61,7 @@ export function useGoogleSignIn(): UseGoogleSignInResult {
 
     if (response.type !== "success") {
       settleError(
-        new Error("Não foi possível concluir o login com Google. Tente novamente.")
+        new Error("Não foi possível concluir o login com o Google. Tente novamente.")
       );
       return;
     }
@@ -85,13 +85,13 @@ export function useGoogleSignIn(): UseGoogleSignInResult {
 
     if (!clientIds.webClientId) {
       throw new GoogleAuthConfigurationError(
-        "Defina EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID no .env para login Google no mobile."
+        "Defina EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID no arquivo .env para usar o login com o Google em dispositivos móveis."
       );
     }
 
     if (!request) {
       throw new GoogleAuthConfigurationError(
-        "Login Google ainda não está pronto. Confira os Client IDs no .env e reinicie o Expo."
+        "O login com o Google ainda não está pronto. Confira os IDs de cliente no arquivo .env e reinicie o Expo."
       );
     }
 

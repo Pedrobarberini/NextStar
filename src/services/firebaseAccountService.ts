@@ -9,16 +9,24 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc
+} from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import {
   getFirebaseAuth,
   getFirebaseFirestore,
+  getFirebaseFunctions,
   getPublicAppUrl,
   isFirebaseConfigured
 } from "../config/firebase";
 import type { AuthProvider } from "../types";
 
 const ACCOUNTS_COLLECTION = "accounts";
+const PENDING_ACCOUNTS_COLLECTION = "pendingAccounts";
 
 export class FirebaseUnavailableError extends Error {
   constructor() {
@@ -29,7 +37,7 @@ export class FirebaseUnavailableError extends Error {
 
 export class EmailVerificationRequiredError extends Error {
   constructor() {
-    super("Confirme o email enviado pela Xolot antes de entrar.");
+    super("Confirme o e-mail enviado pela Xolot antes de entrar.");
     this.name = "EmailVerificationRequiredError";
   }
 }
@@ -38,6 +46,13 @@ export class AccountRegistrationRequiredError extends Error {
   constructor() {
     super("Esta identidade ainda não possui uma conta Xolot cadastrada.");
     this.name = "AccountRegistrationRequiredError";
+  }
+}
+
+export class AccountCompletionRequiredError extends Error {
+  constructor() {
+    super("Esta identidade existe, mas o cadastro Xolot precisa ser concluído.");
+    this.name = "AccountCompletionRequiredError";
   }
 }
 
@@ -61,6 +76,10 @@ function getAccountReference(uid: string) {
   return doc(getFirebaseFirestore(), ACCOUNTS_COLLECTION, uid);
 }
 
+function getPendingAccountReference(uid: string) {
+  return doc(getFirebaseFirestore(), PENDING_ACCOUNTS_COLLECTION, uid);
+}
+
 export async function hasFirebaseAccount(uid: string) {
   assertFirebaseAvailable();
   return (await getDoc(getAccountReference(uid))).exists();
@@ -76,6 +95,10 @@ export async function createFirebaseAccountMetadata(
     throw new Error("É necessário aceitar os termos para criar a conta.");
   }
 
+  if (!user.emailVerified) {
+    throw new EmailVerificationRequiredError();
+  }
+
   const accountReference = getAccountReference(user.uid);
   const existingAccount = await getDoc(accountReference);
 
@@ -89,6 +112,48 @@ export async function createFirebaseAccountMetadata(
     termsAcceptedAt: serverTimestamp(),
     uid: user.uid
   });
+}
+
+async function createPendingFirebaseAccount(
+  user: User,
+  acceptedTerms: boolean
+) {
+  if (!acceptedTerms || !user.uid) {
+    throw new Error("Aceite os termos para criar a conta.");
+  }
+
+  await setDoc(getPendingAccountReference(user.uid), {
+    authProvider: "password",
+    createdAt: serverTimestamp(),
+    termsAcceptedAt: serverTimestamp(),
+    uid: user.uid
+  });
+}
+
+async function activateVerifiedFirebaseAccount(
+  user: User,
+  acceptedTerms = false
+) {
+  if (!user.uid || !user.emailVerified) {
+    throw new EmailVerificationRequiredError();
+  }
+
+  const finalizeAccount = httpsCallable<
+    { acceptedTerms: boolean },
+    { created: boolean }
+  >(getFirebaseFunctions(), "finalizeAccountRegistration");
+
+  try {
+    await finalizeAccount({ acceptedTerms });
+  } catch (error) {
+    if (
+      error instanceof FirebaseError &&
+      error.code === "functions/failed-precondition"
+    ) {
+      throw new AccountCompletionRequiredError();
+    }
+    throw error;
+  }
 }
 
 export async function registerWithEmailAndPassword(
@@ -113,7 +178,7 @@ export async function registerWithEmailAndPassword(
     await sendEmailVerification(credential.user, {
       url: `${getPublicAppUrl()}/?emailVerified=1`
     });
-    await createFirebaseAccountMetadata(credential.user, acceptedTerms);
+    await createPendingFirebaseAccount(credential.user, acceptedTerms);
   } catch (error) {
     await deleteUser(credential.user).catch(() => undefined);
     throw error;
@@ -124,7 +189,8 @@ export async function registerWithEmailAndPassword(
 
 export async function signInWithEmailAndPasswordSecurely(
   email: string,
-  password: string
+  password: string,
+  acceptedTerms = false
 ) {
   assertFirebaseAvailable();
   const auth = getFirebaseAuth();
@@ -134,20 +200,28 @@ export async function signInWithEmailAndPasswordSecurely(
     password
   );
 
-  if (!credential.user.emailVerified) {
-    await sendEmailVerification(credential.user, {
+  await credential.user.reload();
+  const authenticatedUser = auth.currentUser ?? credential.user;
+  await authenticatedUser.getIdToken(true);
+
+  if (!authenticatedUser.emailVerified) {
+    await sendEmailVerification(authenticatedUser, {
       url: `${getPublicAppUrl()}/?emailVerified=1`
     }).catch(() => undefined);
     await signOut(auth).catch(() => undefined);
     throw new EmailVerificationRequiredError();
   }
 
-  if (!(await hasFirebaseAccount(credential.user.uid))) {
+  try {
+    if (!(await hasFirebaseAccount(authenticatedUser.uid))) {
+      await activateVerifiedFirebaseAccount(authenticatedUser, acceptedTerms);
+    }
+  } catch (error) {
     await signOut(auth).catch(() => undefined);
-    throw new AccountRegistrationRequiredError();
+    throw error;
   }
 
-  return credential.user;
+  return authenticatedUser;
 }
 
 export async function sendFirebasePasswordReset(email: string) {
@@ -178,7 +252,8 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
   if (
     error instanceof FirebaseUnavailableError ||
     error instanceof EmailVerificationRequiredError ||
-    error instanceof AccountRegistrationRequiredError
+    error instanceof AccountRegistrationRequiredError ||
+    error instanceof AccountCompletionRequiredError
   ) {
     return error.message;
   }
@@ -200,11 +275,11 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
   }
 
   if (error.code === "auth/email-already-in-use") {
-    return "Este email já possui uma conta Xolot. Use Entrar e escolha o mesmo método usado no primeiro acesso, como Google.";
+    return "Este e-mail já possui uma conta Xolot. Use Entrar e escolha o mesmo método usado no primeiro acesso, como Google.";
   }
 
   if (error.code === "auth/invalid-email") {
-    return "O email informado não é válido. Verifique o endereço e tente novamente.";
+    return "O e-mail informado não é válido. Verifique o endereço e tente novamente.";
   }
 
   if (error.code === "auth/missing-password") {
@@ -232,7 +307,7 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
   }
 
   if (error.code === "auth/account-exists-with-different-credential") {
-    return "Já existe uma conta para este email usando outro método de entrada. Entre pelo método usado no cadastro.";
+    return "Já existe uma conta para este e-mail usando outro método de entrada. Entre pelo método usado no cadastro.";
   }
 
   if (
@@ -247,7 +322,7 @@ export function getSafeFirebaseAuthMessage(error: unknown) {
     error.code === "auth/wrong-password" ||
     error.code === "auth/user-not-found"
   ) {
-    return "Email ou senha inválidos.";
+    return "E-mail ou senha inválidos.";
   }
 
   return "Não foi possível concluir a autenticação. Confira os dados e tente novamente.";

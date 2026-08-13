@@ -82,7 +82,7 @@ export function ProfessionalDashboardScreen({
       <View style={s.hero}>
         <Text style={s.heroEyebrow}>Crescimento e publicidade</Text>
         <Text style={s.heroTitle}>
-          {settings.enabled ? "Seu perfil está profissional" : "Ative seu perfil profissional"}
+          {settings.enabled ? "Seu perfil está no modo profissional" : "Ative o modo profissional"}
         </Text>
         <Text style={s.heroDescription}>
           Acompanhe resultados, organize sua presença e promova publicações para alcançar novas pessoas.
@@ -118,7 +118,7 @@ export function ProfessionalDashboardScreen({
 
       <View style={s.section}>
         <Text style={s.sectionTitle}>Categoria do perfil</Text>
-        <Text style={s.sectionDescription}>Ajuda pessoas e marcas a entenderem o que você oferece.</Text>
+        <Text style={s.sectionDescription}>A categoria ajuda pessoas e marcas a entender o que você oferece.</Text>
         <View style={s.categoryGrid}>
           {PROFESSIONAL_CATEGORY_OPTIONS.map((option) => {
             const active = option.id === settings.category;

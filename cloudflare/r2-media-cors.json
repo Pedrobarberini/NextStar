@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://xolot.com.br",
+          "https://www.xolot.com.br",
+          "https://xolot.web.app",
+          "https://xolot.firebaseapp.com",
+          "http://localhost:8081",
+          "http://localhost:19006"
+        ],
+        "methods": ["GET", "HEAD"],
+        "headers": ["Range"]
+      },
+      "exposeHeaders": ["Content-Length", "Content-Range", "ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

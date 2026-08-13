@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, View } from "react-native";
 import {
@@ -17,9 +17,10 @@ import { MessagesScreen } from "../screens/MessagesScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { PromotePostScreen } from "../screens/PromotePostScreen";
 import { PublicProfileScreen } from "../screens/PublicProfileScreen";
-import { SearchScreen } from "../screens/SearchScreen";
+import { SearchScreen } from "../screens/ProfileDiscoveryScreen";
 import { SubmitVideoScreen } from "../screens/SubmissionScreen";
 import { styles } from "../styles/appStyles";
+import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
 import type {
   AppUser,
@@ -61,11 +62,13 @@ type AppRoutesProps = {
   ) => boolean;
   deleteConversation: (contactId: string) => void;
   directMessages: DirectMessage[];
+  markDirectMessagesRead: (messageIds: string[]) => void;
   deletePostComment: (commentId: string) => void;
   feedFocusPlayerId: string | null;
   focusFeedPlayer: (playerId: string) => void;
   followersByProfile: Record<string, number>;
   followerUserIdsByProfile: Record<string, string[]>;
+  followingCountsByUser: Record<string, number>;
   followingProfileIds: string[];
   followingProfileSet: Set<string>;
   hiddenPlayerIdSet: Set<string>;
@@ -96,6 +99,7 @@ type AppRoutesProps = {
     bio: string;
     city: string;
     club: string;
+    interestTags: string[];
     name: string;
     position: string;
     username: string;
@@ -152,6 +156,8 @@ type AppRoutesProps = {
 };
 
 export function AppRoutes(props: AppRoutesProps) {
+  const { themeMode } = useTheme();
+  const [isFeedImmersive, setIsFeedImmersive] = useState(false);
   const {
     activeCampaignPlayerIds,
     activeMessageContactId,
@@ -173,6 +179,7 @@ export function AppRoutes(props: AppRoutesProps) {
     focusFeedPlayer,
     followersByProfile,
     followerUserIdsByProfile,
+    followingCountsByUser,
     followingProfileIds,
     followingProfileSet,
     hiddenPlayerIdSet,
@@ -187,6 +194,7 @@ export function AppRoutes(props: AppRoutesProps) {
     isBrandLaunchVisible,
     likedPlayerIdSet,
     likeCountsByPlayer,
+    markDirectMessagesRead,
     shareCountsByPlayer,
     mutedContactIds,
     mutedContentKeySet,
@@ -235,6 +243,12 @@ export function AppRoutes(props: AppRoutesProps) {
     viewCountsByPlayer
   } = props;
 
+  useEffect(() => {
+    if (tab !== "feed" && isFeedImmersive) {
+      setIsFeedImmersive(false);
+    }
+  }, [isFeedImmersive, tab]);
+
   const openAccountProfile = (account: AppUser) => {
     if (isOwnAccountProfile(account, user.id)) {
       openTab("profile");
@@ -254,7 +268,10 @@ export function AppRoutes(props: AppRoutesProps) {
   return (
     <View style={styles.appRoot}>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+        <StatusBar
+          backgroundColor={colors.background}
+          barStyle={themeMode === "dark" ? "light-content" : "dark-content"}
+        />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboardView}>
           {campaignPlayer ? (
             <>
@@ -274,8 +291,10 @@ export function AppRoutes(props: AppRoutesProps) {
                   account={selectedProfileAccount}
                   avatar={selectedProfileId ? profileAvatars[selectedProfileId] : undefined}
                   followersCount={selectedProfileId ? followersByProfile[selectedProfileId] ?? 0 : 0}
+                  followingCount={followingCountsByUser[selectedProfileAccount?.id ?? selectedProfilePlayer?.ownerUserId ?? ""] ?? 0}
                   hiddenPlayerIds={hiddenPlayerIdSet}
                   isFollowing={Boolean(selectedProfileId && followingProfileSet.has(selectedProfileId))}
+                  likeCountsByPlayer={likeCountsByPlayer}
                   onBack={clearSelectedProfile}
                   onMessage={onOpenMessagesForSelectedProfile}
                   onToggleFollow={() => {
@@ -327,6 +346,7 @@ export function AppRoutes(props: AppRoutesProps) {
                   onAddComment={addPostComment}
                   onBackToProfile={reelReturnTarget ? returnToReelOrigin : undefined}
                   onDeleteComment={deletePostComment}
+                  onImmersiveChange={setIsFeedImmersive}
                   onOpenPlayer={openAthleteProfile}
                   onOpenTaggedUser={openAccountProfile}
                   onRecordView={recordPlayerView}
@@ -356,12 +376,15 @@ export function AppRoutes(props: AppRoutesProps) {
                 <ScreenFrame key="search">
                   <SearchScreen
                     followingProfileIds={followingProfileIds}
-                    onOpenPlayer={openAthleteProfile}
+                    interestedContentKeys={interestedContentKeySet}
                     onOpenUser={openAccountProfile}
+                    ownProfileId={ownProfileId}
                     players={availablePlayers}
                     professionalSettingsByUser={professionalSettingsByUser}
                     profileAvatars={profileAvatars}
                     users={registeredUsers}
+                    viewerCity={user.city}
+                    viewerInterestTags={user.interestTags}
                   />
                 </ScreenFrame>
               ) : null}
@@ -374,9 +397,16 @@ export function AppRoutes(props: AppRoutesProps) {
                     currentUserId={user.id}
                     followingProfileIds={followingProfileIds}
                     messages={directMessages}
+                    onMarkMessagesRead={markDirectMessagesRead}
                     mutedContactIds={mutedContactIds}
                     onDeleteConversation={deleteConversation}
                     onFindProfiles={() => openTab("search")}
+                    onOpenProfile={(contactId) => {
+                      const account = registeredUsers.find(
+                        (candidate) => candidate.id === contactId
+                      );
+                      if (account) openAccountProfile(account);
+                    }}
                     onOpenSharedPost={(playerId) => {
                       const sharedPlayer = availablePlayers.find((player) => player.id === playerId);
                       if (sharedPlayer && activeMessageContactId) {
@@ -397,7 +427,13 @@ export function AppRoutes(props: AppRoutesProps) {
 
               {tab === "submit" ? (
                 <ScreenFrame backgroundColor={colors.media} key="submit">
-                  <SubmitVideoScreen accounts={registeredUsers} onBack={() => openTab("feed")} onSubmit={handleSubmitVideo} user={user} />
+                  <SubmitVideoScreen
+                    accounts={registeredUsers}
+                    onBack={() => openTab("feed")}
+                    onPublished={() => openTab("feed")}
+                    onSubmit={handleSubmitVideo}
+                    user={user}
+                  />
                 </ScreenFrame>
               ) : null}
 
@@ -457,7 +493,14 @@ export function AppRoutes(props: AppRoutesProps) {
                 </ScreenFrame>
               ) : null}
 
-              {tab !== "submit" ? <BottomTabs activeTab={tab} onChange={openTab} role={user.role} /> : null}
+              {tab !== "submit" ? (
+                <BottomTabs
+                  activeTab={tab}
+                  hidden={tab === "feed" && isFeedImmersive}
+                  onChange={openTab}
+                  role={user.role}
+                />
+              ) : null}
             </>
           )}
         </KeyboardAvoidingView>

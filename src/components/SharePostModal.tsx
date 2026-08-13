@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Check, Send, Share2, X } from "lucide-react-native";
+import { Check, Share2, X } from "lucide-react-native";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
@@ -7,6 +7,7 @@ import type {
   MessageContact,
   ProfileAvatarsByProfile
 } from "../types";
+import { selectShareRecipients } from "../utils/socialSharing";
 import { ProfileAvatarImage } from "./ProfileAvatarImage";
 
 function getInitials(name: string) {
@@ -35,23 +36,32 @@ export function SharePostModal({
   videoTitle: string;
   visible: boolean;
 }) {
-  const [sentContactIds, setSentContactIds] = useState<string[]>([]);
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     if (visible) {
-      setSentContactIds([]);
+      setSelectedContactIds([]);
       setShareMessage("");
     }
   }, [videoId, visible]);
 
-  function shareWithContact(contact: MessageContact) {
-    if (sentContactIds.includes(contact.id)) {
+  function toggleContact(contactId: string) {
+    setSelectedContactIds((current) =>
+      current.includes(contactId)
+        ? current.filter((id) => id !== contactId)
+        : [...current, contactId]
+    );
+  }
+
+  function sendToSelectedContacts() {
+    const recipients = selectShareRecipients(contacts, selectedContactIds);
+    if (recipients.length === 0) {
       return;
     }
 
-    onShare(contact, shareMessage);
-    setSentContactIds((current) => [...current, contact.id]);
+    recipients.forEach((contact) => onShare(contact, shareMessage));
+    onClose();
   }
 
   return (
@@ -91,7 +101,7 @@ export function SharePostModal({
           <View style={styles.sharePostMessageField}>
             <Text style={styles.sharePostMessageLabel}>Mensagem opcional</Text>
             <TextInput
-              accessibilityLabel="Mensagem para acompanhar a publicacao"
+              accessibilityLabel="Mensagem para acompanhar a publicação"
               maxLength={280}
               multiline
               onChangeText={setShareMessage}
@@ -110,19 +120,17 @@ export function SharePostModal({
               style={styles.sharePostContactScroll}
             >
               {contacts.map((contact) => {
-                const wasSent = sentContactIds.includes(contact.id);
+                const isSelected = selectedContactIds.includes(contact.id);
 
                 return (
                   <Pressable
                     accessibilityLabel={
-                      wasSent
-                        ? `Enviado para ${contact.name}`
-                        : `Enviar para ${contact.name}`
+                      `${isSelected ? "Remover" : "Selecionar"} ${contact.name}`
                     }
                     accessibilityRole="button"
-                    disabled={wasSent}
+                    accessibilityState={{ selected: isSelected }}
                     key={contact.id}
-                    onPress={() => shareWithContact(contact)}
+                    onPress={() => toggleContact(contact.id)}
                     style={styles.sharePostContactRow}
                   >
                     <View style={styles.sharePostAvatar}>
@@ -147,14 +155,12 @@ export function SharePostModal({
                     <View
                       style={[
                         styles.sharePostSendButton,
-                        wasSent ? styles.sharePostSendButtonDone : null
+                        isSelected ? styles.sharePostSendButtonDone : null
                       ]}
                     >
-                      {wasSent ? (
-                        <Check color={colors.primary} size={17} strokeWidth={2.6} />
-                      ) : (
-                        <Send color={colors.onPrimary} size={16} />
-                      )}
+                      {isSelected ? (
+                        <Check color={colors.onPrimary} size={17} strokeWidth={2.8} />
+                      ) : null}
                     </View>
                   </Pressable>
                 );
@@ -174,11 +180,24 @@ export function SharePostModal({
 
           <Pressable
             accessibilityRole="button"
-            onPress={onClose}
-            style={styles.sharePostDoneButton}
+            accessibilityState={{
+              disabled: contacts.length > 0 && selectedContactIds.length === 0
+            }}
+            disabled={contacts.length > 0 && selectedContactIds.length === 0}
+            onPress={contacts.length === 0 ? onClose : sendToSelectedContacts}
+            style={[
+              styles.sharePostDoneButton,
+              contacts.length > 0 && selectedContactIds.length === 0
+                ? styles.sharePostDoneButtonDisabled
+                : null,
+            ]}
           >
             <Text style={styles.sharePostDoneButtonText}>
-              {sentContactIds.length > 0 ? "Concluir" : "Fechar"}
+              {contacts.length === 0
+                ? "Fechar"
+                : selectedContactIds.length > 0
+                  ? `Enviar para ${selectedContactIds.length}`
+                  : "Selecione um perfil"}
             </Text>
           </Pressable>
         </View>

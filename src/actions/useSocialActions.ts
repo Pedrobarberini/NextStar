@@ -1,8 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert } from "react-native";
 import {
+  hasCompletedSocialCloudMigration,
   loadSocialState,
-  saveSocialState
+  markSocialCloudMigrationCompleted,
+  saveSocialState,
+  type SocialState
 } from "../services/socialStorage";
+import {
+  deleteFirebasePostComment,
+  type FirebaseSocialPreferences,
+  getSafeFirebaseSocialMessage,
+  migrateLocalFirebaseSocialState,
+  recordFirebasePostView,
+  saveFirebaseDirectMessage,
+  saveFirebasePostComment,
+  setFirebaseFollow,
+  setFirebasePostLike,
+  setFirebaseSocialPreferences,
+  subscribeFirebaseSocialState,
+  updateFirebaseDirectMessageReceipts
+} from "../services/firebaseSocialService";
 import {
   AppUser,
   ConversationPreferencesByUser,
@@ -26,7 +44,7 @@ import {
 import { setContentSafetySelection } from "../utils/contentSafety";
 import {
   countSharedPostsByPlayer,
-  createSharedPostReference
+  createSharedPostDelivery
 } from "../utils/socialSharing";
 import {
   groupPostCommentsByPlayer,
@@ -51,10 +69,12 @@ function upsertMessageContact(
 
 export function useSocialActions({
   players,
-  user
+  user,
+  users
 }: {
   players: Player[];
   user: AppUser | null;
+  users: AppUser[];
 }) {
   const [followingByUser, setFollowingByUser] = useState<FollowingByUser>({});
   const [conversationPreferencesByUser, setConversationPreferencesByUser] =
@@ -79,6 +99,12 @@ export function useSocialActions({
   const [postComments, setPostComments] = useState<PostComment[]>([]);
   const [isSocialStateLoaded, setIsSocialStateLoaded] = useState(false);
 
+  const [remoteEngagementByPlayer, setRemoteEngagementByPlayer] = useState<
+    Record<string, { likes: number; shares: number; views: number }> | null
+  >(null);
+  const socialErrorShownRef = useRef(false);
+  const loadedSocialStateRef = useRef<SocialState | null>(null);
+  const socialMigrationUserIdsRef = useRef(new Set<string>());
   useEffect(() => {
     let isMounted = true;
 
@@ -89,6 +115,7 @@ export function useSocialActions({
 
       setDirectMessages(socialState.directMessages);
       setBlockedProfileIdsByUser(socialState.blockedProfileIdsByUser);
+      loadedSocialStateRef.current = socialState;
       setConversationPreferencesByUser(
         socialState.conversationPreferencesByUser
       );
@@ -110,6 +137,101 @@ export function useSocialActions({
       isMounted = false;
     };
   }, []);
+  useEffect(() => {
+    if (
+      !user ||
+      !isSocialStateLoaded ||
+      !loadedSocialStateRef.current ||
+      socialMigrationUserIdsRef.current.has(user.id)
+    ) {
+      return;
+    }
+
+    const currentUserId = user.id;
+    socialMigrationUserIdsRef.current.add(currentUserId);
+    void (async () => {
+      try {
+        if (await hasCompletedSocialCloudMigration(currentUserId)) {
+          return;
+        }
+        await migrateLocalFirebaseSocialState(
+          currentUserId,
+          loadedSocialStateRef.current!,
+          players.map((player) => player.id),
+          users.map((account) => account.id)
+        );
+        await markSocialCloudMigrationCompleted(currentUserId);
+      } catch {
+        // A migração será tentada novamente na próxima abertura do app.
+      } finally {
+        socialMigrationUserIdsRef.current.delete(currentUserId);
+      }
+    })();
+  }, [isSocialStateLoaded, players, user?.id, users]);
+  useEffect(() => {
+    if (!user || !isSocialStateLoaded) {
+      setRemoteEngagementByPlayer(null);
+      return;
+    }
+
+    socialErrorShownRef.current = false;
+    const currentUserId = user.id;
+    return subscribeFirebaseSocialState(
+      currentUserId,
+      (remoteState) => {
+        setFollowingByUser(remoteState.followingByUser);
+        setLikedPlayerIdsByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.likedPlayerIds
+        }));
+        setViewedPlayerIdsByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.viewedPlayerIds
+        }));
+        setDirectMessages(remoteState.directMessages);
+        setPostComments(remoteState.postComments);
+        setRemoteEngagementByPlayer(remoteState.engagementByPlayer);
+        setConversationPreferencesByUser((current) => ({
+          ...current,
+          [currentUserId]: {
+            deletedAtByContactId:
+              remoteState.preferences.deletedAtByContactId,
+            mutedContactIds: remoteState.preferences.mutedContactIds,
+            pinnedContactIds: remoteState.preferences.pinnedContactIds
+          }
+        }));
+        setBlockedProfileIdsByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.preferences.blockedProfileIds
+        }));
+        setHiddenPlayerIdsByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.preferences.hiddenPlayerIds
+        }));
+        setInterestedContentKeysByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.preferences.interestedContentKeys
+        }));
+        setMutedContentKeysByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.preferences.mutedContentKeys
+        }));
+        setReportedPlayerIdsByUser((current) => ({
+          ...current,
+          [currentUserId]: remoteState.preferences.reportedPlayerIds
+        }));
+      },
+      (error) => {
+        if (!socialErrorShownRef.current) {
+          socialErrorShownRef.current = true;
+          Alert.alert(
+            "Sincronização indisponível",
+            getSafeFirebaseSocialMessage(error)
+          );
+        }
+      }
+    );
+  }, [isSocialStateLoaded, user?.id]);
 
   useEffect(() => {
     if (!isSocialStateLoaded) {
@@ -167,6 +289,16 @@ export function useSocialActions({
   }, [followingByUser]);
   const followerUserIdsByProfile = useMemo(
     () => buildFollowerUserIdsByProfile(followingByUser),
+    [followingByUser]
+  );
+  const followingCountsByUser = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(followingByUser).map(([userId, profileIds]) => [
+          userId,
+          new Set(profileIds).size
+        ])
+      ),
     [followingByUser]
   );
   const currentConversationPreferences = user
@@ -229,16 +361,37 @@ export function useSocialActions({
     [reportedPlayerIds]
   );
   const likeCountsByPlayer = useMemo(
-    () => countSelectionsByPlayer(likedPlayerIdsByUser),
-    [likedPlayerIdsByUser]
+    () =>
+      remoteEngagementByPlayer
+        ? Object.fromEntries(
+            Object.entries(remoteEngagementByPlayer).map(
+              ([playerId, engagement]) => [playerId, engagement.likes]
+            )
+          )
+        : countSelectionsByPlayer(likedPlayerIdsByUser),
+    [likedPlayerIdsByUser, remoteEngagementByPlayer]
   );
   const shareCountsByPlayer = useMemo(
-    () => countSharedPostsByPlayer(directMessages),
-    [directMessages]
+    () =>
+      remoteEngagementByPlayer
+        ? Object.fromEntries(
+            Object.entries(remoteEngagementByPlayer).map(
+              ([playerId, engagement]) => [playerId, engagement.shares]
+            )
+          )
+        : countSharedPostsByPlayer(directMessages),
+    [directMessages, remoteEngagementByPlayer]
   );
   const viewCountsByPlayer = useMemo(
-    () => countSelectionsByPlayer(viewedPlayerIdsByUser),
-    [viewedPlayerIdsByUser]
+    () =>
+      remoteEngagementByPlayer
+        ? Object.fromEntries(
+            Object.entries(remoteEngagementByPlayer).map(
+              ([playerId, engagement]) => [playerId, engagement.views]
+            )
+          )
+        : countSelectionsByPlayer(viewedPlayerIdsByUser),
+    [remoteEngagementByPlayer, viewedPlayerIdsByUser]
   );
   const commentsByPlayer = useMemo(
     () => groupPostCommentsByPlayer(postComments),
@@ -261,7 +414,89 @@ export function useSocialActions({
   const ownProfileId = user
     ? ownPlayer?.profileId ?? `profile-${user.id}`
     : undefined;
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
 
+    const contactIds = Array.from(
+      new Set(
+        directMessages.flatMap((message) => {
+          if (message.senderUserId === user.id) {
+            return [message.recipientUserId];
+          }
+          if (message.recipientUserId === user.id) {
+            return [message.senderUserId];
+          }
+          return [];
+        })
+      )
+    );
+    const contacts = contactIds.flatMap((contactId) => {
+      const account = users.find((candidate) => candidate.id === contactId);
+      if (!account) {
+        return [];
+      }
+      const player = players.find(
+        (candidate) => candidate.ownerUserId === contactId
+      );
+      return [
+        {
+          id: contactId,
+          name: account.name,
+          profileId: player?.profileId ?? `profile-${contactId}`,
+          subtitle: `${account.position} | ${account.city}`,
+          username: account.username
+        }
+      ];
+    });
+
+    if (contacts.length > 0) {
+      setMessageContactsByUser((current) => ({
+        ...current,
+        [user.id]: contacts.reduce(
+          (currentContacts, contact) =>
+            upsertMessageContact(currentContacts, contact),
+          current[user.id] ?? []
+        )
+      }));
+    }
+  }, [directMessages, players, user?.id, users]);
+
+  function reportSocialWriteError(error: unknown) {
+    Alert.alert(
+      "Ação não sincronizada",
+      getSafeFirebaseSocialMessage(error)
+    );
+  }
+
+  function syncSocialPreferences(
+    overrides: Partial<FirebaseSocialPreferences> = {}
+  ) {
+    if (!user) {
+      return;
+    }
+
+    void setFirebaseSocialPreferences(user.id, {
+      blockedProfileIds:
+        overrides.blockedProfileIds ?? blockedProfileIds,
+      deletedAtByContactId:
+        overrides.deletedAtByContactId ??
+        currentConversationPreferences.deletedAtByContactId,
+      hiddenPlayerIds: overrides.hiddenPlayerIds ?? hiddenPlayerIds,
+      interestedContentKeys:
+        overrides.interestedContentKeys ?? interestedContentKeys,
+      mutedContactIds:
+        overrides.mutedContactIds ??
+        currentConversationPreferences.mutedContactIds,
+      mutedContentKeys: overrides.mutedContentKeys ?? mutedContentKeys,
+      pinnedContactIds:
+        overrides.pinnedContactIds ??
+        currentConversationPreferences.pinnedContactIds,
+      reportedPlayerIds:
+        overrides.reportedPlayerIds ?? reportedPlayerIds
+    }).catch(reportSocialWriteError);
+  }
   function addMessageContact(contact: MessageContact) {
     if (!user) {
       return;
@@ -273,7 +508,7 @@ export function useSocialActions({
     }));
   }
 
-  function sendMessageToContact(
+  async function sendMessageToContact(
     contact: MessageContact,
     body: string,
     sharedPost?: DirectMessage["sharedPost"]
@@ -281,7 +516,7 @@ export function useSocialActions({
     const trimmedBody = body.trim();
 
     if (!user || !trimmedBody) {
-      return;
+      return false;
     }
 
     const reciprocalContact: MessageContact = {
@@ -293,18 +528,22 @@ export function useSocialActions({
         : "Usuário Xolot",
       username: user.username
     };
+    const directMessage: DirectMessage = {
+      body: trimmedBody,
+      createdAt: new Date().toISOString(),
+      id: `message-${user.id}-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+      recipientUserId: contact.id,
+      senderUserId: user.id,
+      ...(sharedPost ? { sharedPost } : {})
+    };
 
-    setDirectMessages((current) => [
-      ...current,
-      {
-        body: trimmedBody,
-        createdAt: new Date().toISOString(),
-        id: `message-${Date.now()}-${current.length}`,
-        recipientUserId: contact.id,
-        senderUserId: user.id,
-        ...(sharedPost ? { sharedPost } : {})
-      }
-    ]);
+    setDirectMessages((current) =>
+      current.some((message) => message.id === directMessage.id)
+        ? current
+        : [...current, directMessage]
+    );
     setMessageContactsByUser((current) => ({
       ...current,
       [user.id]: upsertMessageContact(current[user.id] ?? [], contact),
@@ -313,6 +552,21 @@ export function useSocialActions({
         reciprocalContact
       )
     }));
+    try {
+      const remoteMessage = await saveFirebaseDirectMessage(directMessage);
+      setDirectMessages((current) =>
+        current.map((message) =>
+          message.id === directMessage.id ? remoteMessage : message
+        )
+      );
+      return true;
+    } catch (error) {
+      setDirectMessages((current) =>
+        current.filter((message) => message.id !== directMessage.id)
+      );
+      reportSocialWriteError(error);
+      return false;
+    }
   }
 
   function sendDirectMessage(contactId: string, body: string) {
@@ -322,22 +576,49 @@ export function useSocialActions({
       return;
     }
 
-    sendMessageToContact(contact, body);
+    void sendMessageToContact(contact, body);
   }
 
-  function sendSharedPost(
+  function markDirectMessagesRead(messageIds: string[]) {
+    if (!user) {
+      return;
+    }
+
+    const unreadMessageIds = Array.from(new Set(messageIds)).filter(
+      (messageId) =>
+        directMessages.some(
+          (message) =>
+            message.id === messageId &&
+            message.recipientUserId === user.id &&
+            !message.readAt
+        )
+    );
+    if (unreadMessageIds.length === 0) {
+      return;
+    }
+
+    void updateFirebaseDirectMessageReceipts(unreadMessageIds, "read").catch(
+      reportSocialWriteError
+    );
+  }
+
+  async function sendSharedPost(
     contact: MessageContact,
     player: Player,
     message = ""
   ) {
-    const trimmedMessage = message.trim();
+    const delivery = createSharedPostDelivery(player, message);
 
-    sendMessageToContact(
-      contact,
-      trimmedMessage ||
-      "Compartilhou uma publicação",
-      createSharedPostReference(player, trimmedMessage)
-    );
+    for (const item of delivery) {
+      const wasSent = await sendMessageToContact(
+        contact,
+        item.body,
+        item.sharedPost
+      );
+      if (!wasSent) {
+        break;
+      }
+    }
   }
 
   function deleteConversation(contactId: string) {
@@ -371,6 +652,18 @@ export function useSocialActions({
         }
       };
     });
+    syncSocialPreferences({
+      deletedAtByContactId: {
+        ...currentConversationPreferences.deletedAtByContactId,
+        [contactId]: new Date().toISOString()
+      },
+      mutedContactIds: currentConversationPreferences.mutedContactIds.filter(
+        (id) => id !== contactId
+      ),
+      pinnedContactIds: currentConversationPreferences.pinnedContactIds.filter(
+        (id) => id !== contactId
+      )
+    });
   }
 
   function toggleMuteConversation(contactId: string) {
@@ -392,6 +685,12 @@ export function useSocialActions({
           )
         }
       };
+    });
+    syncSocialPreferences({
+      mutedContactIds: toggleConversationId(
+        currentConversationPreferences.mutedContactIds,
+        contactId
+      )
     });
   }
 
@@ -415,6 +714,12 @@ export function useSocialActions({
         }
       };
     });
+    syncSocialPreferences({
+      pinnedContactIds: togglePinnedConversation(
+        currentConversationPreferences.pinnedContactIds,
+        contactId
+      )
+    });
   }
 
   function toggleFollowProfile(profileId: string) {
@@ -433,6 +738,11 @@ export function useSocialActions({
           : [...currentFollowing, profileId]
       };
     });
+      void setFirebaseFollow(
+        user.id,
+        profileId,
+        !followingProfileSet.has(profileId)
+      ).catch(reportSocialWriteError);
   }
 
   function setPlayerHidden(playerId: string, hidden: boolean) {
@@ -453,6 +763,13 @@ export function useSocialActions({
         [user.id]: nextPlayerIds
       };
     });
+    syncSocialPreferences({
+      hiddenPlayerIds: setContentSafetySelection(
+        hiddenPlayerIds,
+        playerId,
+        hidden
+      )
+    });
   }
 
   function setPlayerReported(playerId: string, reported: boolean) {
@@ -472,6 +789,13 @@ export function useSocialActions({
         ...current,
         [user.id]: nextPlayerIds
       };
+    });
+    syncSocialPreferences({
+      reportedPlayerIds: setContentSafetySelection(
+        reportedPlayerIds,
+        playerId,
+        reported
+      )
     });
   }
 
@@ -518,6 +842,9 @@ export function useSocialActions({
     };
 
     setPostComments((current) => [...current, comment]);
+    if (players.some((player) => player.id === playerId)) {
+      void saveFirebasePostComment(comment).catch(reportSocialWriteError);
+    }
     return true;
   }
 
@@ -529,6 +856,9 @@ export function useSocialActions({
     setPostComments((current) =>
       removeOwnedPostComment(current, commentId, user.id)
     );
+      void deleteFirebasePostComment(user.id, commentId).catch(
+        reportSocialWriteError
+      );
   }
 
   function toggleLikePlayer(playerId: string) {
@@ -540,6 +870,12 @@ export function useSocialActions({
       ...current,
       [user.id]: toggleSelection(current[user.id] ?? [], playerId)
     }));
+    if (players.some((player) => player.id === playerId)) {
+      void setFirebasePostLike(
+        playerId,
+        !likedPlayerIdSet.has(playerId)
+      ).catch(reportSocialWriteError);
+    }
   }
 
   function recordPlayerView(playerId: string) {
@@ -559,6 +895,9 @@ export function useSocialActions({
         [user.id]: [...currentPlayerIds, playerId]
       };
     });
+    if (players.some((player) => player.id === playerId)) {
+      void recordFirebasePostView(playerId).catch(reportSocialWriteError);
+    }
   }
 
   function toggleBlockedProfile(profileId: string) {
@@ -570,10 +909,24 @@ export function useSocialActions({
       ...current,
       [user.id]: toggleSelection(current[user.id] ?? [], profileId)
     }));
+    syncSocialPreferences({
+      blockedProfileIds: toggleSelection(blockedProfileIds, profileId)
+    });
   }
 
   function toggleInterestedContent(contentKey: string) {
     if (!user) {
+      return;
+    }
+    const selectedTagCount = interestedContentKeys.filter((key) =>
+      key.startsWith("tag:")
+    ).length;
+    if (
+      contentKey.startsWith("tag:") &&
+      !interestedContentKeys.includes(contentKey) &&
+      selectedTagCount >= 6
+    ) {
+      Alert.alert("Limite de interesses", "Escolha no máximo seis hashtags.");
       return;
     }
 
@@ -581,6 +934,12 @@ export function useSocialActions({
       ...current,
       [user.id]: toggleSelection(current[user.id] ?? [], contentKey)
     }));
+    syncSocialPreferences({
+      interestedContentKeys: toggleSelection(
+        interestedContentKeys,
+        contentKey
+      )
+    });
   }
 
   function toggleMutedContent(contentKey: string) {
@@ -592,6 +951,9 @@ export function useSocialActions({
       ...current,
       [user.id]: toggleSelection(current[user.id] ?? [], contentKey)
     }));
+    syncSocialPreferences({
+      mutedContentKeys: toggleSelection(mutedContentKeys, contentKey)
+    });
   }
 
   return {
@@ -605,6 +967,7 @@ export function useSocialActions({
     directMessages: currentDirectMessages,
     followersByProfile,
     followerUserIdsByProfile,
+    followingCountsByUser,
     followingProfileIds,
     followingProfileSet,
     hiddenPlayerIds,
@@ -619,6 +982,7 @@ export function useSocialActions({
     recordPlayerView,
     reportedPlayerIds,
     reportedPlayerIdSet,
+    markDirectMessagesRead,
     sendDirectMessage,
     sendSharedPost,
     shareCountsByPlayer,

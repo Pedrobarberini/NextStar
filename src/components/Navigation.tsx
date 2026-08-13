@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Home,
@@ -10,6 +10,7 @@ import {
   UserRound
 } from "lucide-react-native";
 import {
+  Animated,
   Image,
   Pressable,
   type StyleProp,
@@ -166,13 +167,26 @@ export function LabeledInput({
 
 export function BottomTabs({
   activeTab,
+  hidden = false,
   onChange,
   role
 }: {
   activeTab: Tab;
+  hidden?: boolean;
   onChange: (tab: Tab) => void;
   role: UserRole;
 }) {
+  const visibility = useRef(new Animated.Value(hidden ? 0 : 1)).current;
+
+  useEffect(() => {
+    visibility.stopAnimation();
+    Animated.timing(visibility, {
+      duration: hidden ? 150 : 220,
+      toValue: hidden ? 0 : 1,
+      useNativeDriver: true
+    }).start();
+  }, [hidden, visibility]);
+
   const tabs: Array<{
     id: Tab;
     label: string;
@@ -194,7 +208,23 @@ export function BottomTabs({
           ];
 
   return (
-    <View style={styles.tabBar}>
+    <Animated.View
+      pointerEvents={hidden ? "none" : "auto"}
+      style={[
+        styles.tabBar,
+        {
+          opacity: visibility,
+          transform: [
+            {
+              translateY: visibility.interpolate({
+                inputRange: [0, 1],
+                outputRange: [18, 0]
+              })
+            }
+          ]
+        }
+      ]}
+    >
       {tabs.map((item) => {
         const isActive = item.id === activeTab;
         const TabIcon =
@@ -233,6 +263,6 @@ export function BottomTabs({
           </Pressable>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }

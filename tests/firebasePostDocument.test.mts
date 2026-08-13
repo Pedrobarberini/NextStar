@@ -89,3 +89,28 @@ test("converte o documento para o modelo atual do feed", () => {
   assert.equal(submission.videoLink, "https://storage.test/media");
   assert.equal(submission.storagePath, validDocument.mediaPath);
 });
+test("normaliza uma publicacao armazenada no R2", () => {
+  const mediaKey = `users/user-1/posts/${postId}/media-id.mp4`;
+  const post = normalizeFirebasePostDocument(postId, {
+    ...validDocument,
+    mediaKey,
+    mediaPath: mediaKey,
+    storageProvider: "r2"
+  });
+
+  assert.ok(post);
+  assert.equal(post.storageProvider, "r2");
+  assert.equal(post.mediaKey, mediaKey);
+});
+
+test("rejeita chave R2 fora do perfil e da publicacao", () => {
+  assert.equal(
+    normalizeFirebasePostDocument(postId, {
+      ...validDocument,
+      mediaKey: "users/outro/posts/post-123/media-id.mp4",
+      mediaPath: "users/outro/posts/post-123/media-id.mp4",
+      storageProvider: "r2"
+    }),
+    null
+  );
+});

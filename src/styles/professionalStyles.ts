@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { colors } from "../theme";
+import { colors, createThemedStyles } from "../theme";
 
-export const professionalStyles = StyleSheet.create({
+export const professionalStyles = createThemedStyles(StyleSheet.create({
   actionButton: {
     alignItems: "center",
     backgroundColor: colors.primary,
@@ -375,4 +375,4 @@ export const professionalStyles = StyleSheet.create({
     flex: 1,
     minWidth: 0
   }
-});
+}));

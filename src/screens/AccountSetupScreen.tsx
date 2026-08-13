@@ -19,6 +19,7 @@ import {
   isUsernameAvailable,
   normalizeUsername
 } from "../utils/userIdentity";
+import { PROFILE_INTEREST_OPTIONS } from "../utils/profileSuggestions";
 
 type AccountSetupProps = {
   accounts: AppUser[];
@@ -45,6 +46,7 @@ export function AccountSetupScreen({
   const [position, setPosition] = useState(user.position);
   const [city, setCity] = useState(user.city);
   const [club, setClub] = useState(user.club);
+  const [interestTags, setInterestTags] = useState(user.interestTags);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const age = Number(ageText);
@@ -59,6 +61,7 @@ export function AccountSetupScreen({
     bio: bio.trim(),
     city: city.trim(),
     club: club.trim(),
+    interestTags,
     name: name.trim(),
     position: position.trim(),
     username: cleanUsername
@@ -95,6 +98,18 @@ export function AccountSetupScreen({
     }
   }
 
+  function toggleInterestTag(tag: string) {
+    setInterestTags((current) => {
+      if (current.includes(tag)) {
+        return current.filter((item) => item !== tag);
+      }
+      if (current.length >= 6) {
+        return current;
+      }
+      return [...current, tag];
+    });
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -107,7 +122,7 @@ export function AccountSetupScreen({
         {!isInitialSetup ? (
           <View style={styles.profileSubviewHeader}>
             <BackButton
-              accessibilityLabel="Voltar para configuracoes"
+              accessibilityLabel="Voltar para configurações"
               onPress={() => onBack?.()}
             />
             <Text style={styles.profileSubviewTitle}>Editar perfil</Text>
@@ -118,7 +133,7 @@ export function AccountSetupScreen({
             <Text style={styles.accountSetupEyebrow}>Primeiro acesso</Text>
             <Text style={styles.accountSetupTitle}>Configure seu perfil</Text>
             <Text style={styles.accountSetupSubtitle}>
-              Escolha sua identidade pública e complete seus dados de atleta.
+              Escolha sua identidade pública e complete seus dados.
             </Text>
           </View>
         )}
@@ -131,7 +146,7 @@ export function AccountSetupScreen({
         >
           <View style={styles.accountSetupSectionHeader}>
             <Text style={styles.settingsSectionTitle}>Perfil público</Text>
-            <Text style={styles.accountSetupRequired}>Obrigatorio</Text>
+            <Text style={styles.accountSetupRequired}>Obrigatório</Text>
           </View>
 
           <LabeledInput
@@ -187,7 +202,7 @@ export function AccountSetupScreen({
             <View style={styles.accountSetupPositionField}>
               <LabeledInput
                 autoCapitalize="words"
-                label="Posicao"
+                label="Posição"
                 maxLength={40}
                 onChangeText={setPosition}
                 placeholder="Ponta"
@@ -214,17 +229,58 @@ export function AccountSetupScreen({
             value={club}
           />
 
+          <View style={styles.accountSetupInterestSection}>
+            <View style={styles.accountSetupInterestHeader}>
+              <View style={styles.accountSetupInterestCopy}>
+                <Text style={styles.accountSetupInterestTitle}>
+                  Interesses do perfil
+                </Text>
+                <Text style={styles.accountSetupHint}>
+                  Escolha até seis temas para personalizar suas sugestões.
+                </Text>
+              </View>
+              <Text style={styles.accountSetupCounter}>
+                {interestTags.length}/6
+              </Text>
+            </View>
+            <View style={styles.accountSetupInterestList}>
+              {PROFILE_INTEREST_OPTIONS.map((tag) => {
+                const selected = interestTags.includes(tag);
+                const disabled = !selected && interestTags.length >= 6;
+                return (
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected, disabled }}
+                    disabled={disabled}
+                    key={tag}
+                    onPress={() => toggleInterestTag(tag)}
+                    style={[
+                      styles.accountSetupInterestTag,
+                      selected ? styles.accountSetupInterestTagSelected : null,
+                      disabled ? styles.accountSetupInterestTagDisabled : null
+                    ]}
+                  >
+                    <Text style={[
+                      styles.accountSetupInterestTagText,
+                      selected ? styles.accountSetupInterestTagTextSelected : null
+                    ]}>#{tag}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
           <LabeledInput
             label="Biografia"
             maxLength={240}
             multiline
             numberOfLines={5}
             onChangeText={setBio}
-            placeholder="Conte sua historia, objetivos e estilo de jogo."
+            placeholder="Conte sua história, seus objetivos e seu estilo de jogo."
             value={bio}
           />
           <View style={styles.accountSetupBioMeta}>
-            <Text style={styles.accountSetupHint}>Minimo de 10 caracteres</Text>
+            <Text style={styles.accountSetupHint}>Mínimo de 10 caracteres</Text>
             <Text style={styles.accountSetupCounter}>{bio.length}/240</Text>
           </View>
         </View>
@@ -245,7 +301,7 @@ export function AccountSetupScreen({
             <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
           )}
           <Text style={styles.primaryButtonText}>
-            {isInitialSetup ? "Concluir perfil" : "Salvar alteracoes"}
+            {isInitialSetup ? "Concluir perfil" : "Salvar alterações"}
           </Text>
         </Pressable>
 

@@ -6,6 +6,7 @@ export const MAX_VIDEO_DURATION_MS = 120_000;
 
 const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/heic",
+  "image/gif",
   "image/heif",
   "image/jpeg",
   "image/png",
@@ -51,7 +52,7 @@ export function getPublicationMediaValidationMessage(
 
   if (!isAllowedMediaMimeType(media.mediaType, actualMimeType)) {
     return media.mediaType === "image"
-      ? "Use uma foto JPEG, PNG, WebP, HEIC ou HEIF."
+      ? "Use uma imagem JPEG, PNG, GIF, WebP, HEIC ou HEIF."
       : "Use um vídeo MP4, MOV, WebM, M4V ou 3GP.";
   }
 

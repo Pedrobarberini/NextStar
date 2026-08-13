@@ -65,11 +65,14 @@ export function useFirebaseAccounts() {
         return;
       }
 
-      Promise.all([
-        waitForFirebaseAccount(firebaseUser.uid),
-        loadFirebaseAppUser(firebaseUser)
-      ])
-        .then(([hasAccount, appUser]) => {
+      loadFirebaseAppUser(firebaseUser)
+        .then(async (appUser) => ({
+          appUser,
+          hasAccount:
+            appUser.profileCompleted ||
+            (await waitForFirebaseAccount(firebaseUser.uid))
+        }))
+        .then(({ hasAccount, appUser }) => {
           if (!isMounted || currentGeneration !== authGeneration) {
             return;
           }

@@ -126,6 +126,57 @@ export const accountAvatarSettingsStyles = {
     justifyContent: "space-between",
     marginTop: 6
   },
+  accountSetupInterestSection: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    marginTop: 14,
+    paddingTop: 14
+  },
+  accountSetupInterestHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    marginBottom: 10
+  },
+  accountSetupInterestCopy: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0
+  },
+  accountSetupInterestTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  accountSetupInterestList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7
+  },
+  accountSetupInterestTag: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 7
+  },
+  accountSetupInterestTagSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  accountSetupInterestTagDisabled: {
+    opacity: 0.38
+  },
+  accountSetupInterestTagText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  accountSetupInterestTagTextSelected: {
+    color: colors.onPrimary
+  },
   accountSetupHint: {
     color: colors.muted,
     fontSize: 10,

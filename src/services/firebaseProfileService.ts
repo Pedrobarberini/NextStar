@@ -5,7 +5,6 @@ import {
   getDoc,
   limit,
   onSnapshot,
-  orderBy,
   query,
   runTransaction,
   serverTimestamp
@@ -66,6 +65,7 @@ export function createProvisionalFirebaseUser(user: User): AppUser {
     bio: "",
     city: "",
     club: "",
+    interestTags: [],
     email: user.email?.trim().toLowerCase() ?? "",
     googleUid: getAuthProvider(user) === "google" ? user.uid : undefined,
     id: user.uid,
@@ -91,6 +91,7 @@ export function toPublicAppUser(
     bio: profile.bio,
     city: profile.city,
     club: profile.club,
+    interestTags: profile.interestTags,
     email: currentAuthUser?.email?.trim().toLowerCase() ?? "",
     googleUid:
       currentAuthUser && getAuthProvider(currentAuthUser) === "google"
@@ -126,7 +127,6 @@ export function subscribeFirebaseProfiles(
 ) {
   const profilesQuery = query(
     collection(getFirebaseFirestore(), PROFILES_COLLECTION),
-    orderBy("updatedAt", "desc"),
     limit(MAX_PUBLIC_PROFILES)
   );
 
@@ -137,7 +137,10 @@ export function subscribeFirebaseProfiles(
         .map((profileDocument) =>
           normalizePublicProfileDocument(
             profileDocument.id,
-            profileDocument.data()
+            profileDocument.data(),
+            {
+              allowLegacyFallback: profileDocument.id !== currentUser.uid
+            }
           )
         )
         .filter((profile): profile is PublicProfileDocument => Boolean(profile))
@@ -168,6 +171,13 @@ export async function saveFirebaseProfile(
     bio: profile.bio.trim(),
     city: profile.city.trim(),
     club: profile.club.trim(),
+    interestTags: Array.from(
+      new Set(
+        profile.interestTags
+          .map((tag) => tag.trim().replace(/^#+/, "").slice(0, 40))
+          .filter(Boolean)
+      )
+    ).slice(0, 6),
     name: profile.name.trim(),
     photoURL: photoURL.trim(),
     position: profile.position.trim(),

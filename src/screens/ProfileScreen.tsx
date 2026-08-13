@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   Camera,
   LogOut,
+  Moon,
   Menu,
   Play,
   ShieldCheck,
@@ -36,6 +37,7 @@ import {
 import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import { ScreenTransition } from "../components/AppShell";
 import { styles } from "../styles/appStyles";
+import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
 import type {
   AccountProfile,
@@ -174,7 +176,6 @@ export function ProfileScreen({
     .map((part) => part[0])
     .join("")
     .toUpperCase();
-  const profilePrimaryMetric = String(accountSubmissions.length);
   const followerListItems = useMemo<ProfileListItemData[]>(
     () =>
       followers.map((follower) => toProfileListItem(follower, profileAvatars)),
@@ -411,15 +412,15 @@ export function ProfileScreen({
             <View style={styles.profileQuickStats}>
               <View style={styles.profileQuickItem}>
                 <Text style={styles.profileQuickValue}>
-                  {profilePrimaryMetric}
-                </Text>
-                <Text style={styles.profileQuickLabel}>envios</Text>
-              </View>
-              <View style={styles.profileQuickItem}>
-                <Text style={styles.profileQuickValue}>
                   {publishedVideos.length}
                 </Text>
                 <Text style={styles.profileQuickLabel}>posts</Text>
+              </View>
+              <View style={styles.profileQuickItem}>
+                <Text style={styles.profileQuickValue}>
+                  {totalProfileViews}
+                </Text>
+                <Text style={styles.profileQuickLabel}>visualizações</Text>
               </View>
               <View style={styles.profileQuickItem}>
                 <Text style={styles.profileQuickValue}>
@@ -546,7 +547,7 @@ export function ProfileScreen({
         visible={videosPendingDeletion.length > 0}
       />
       <ProfileListModal
-        emptyBody="Quando alguem seguir seu perfil, ela aparecerá nesta lista."
+        emptyBody="Quando alguém seguir seu perfil, essa pessoa aparecerá nesta lista."
         emptyTitle="Você ainda não tem seguidores"
         items={followerListItems}
         onClose={() => setIsFollowersVisible(false)}
@@ -555,7 +556,7 @@ export function ProfileScreen({
         visible={isFollowersVisible}
       />
       <ProfileListModal
-        emptyBody="Quando você seguir outros perfis, eles apareceráo nesta lista."
+        emptyBody="Quando você seguir outros perfis, eles aparecerão nesta lista."
         emptyTitle="Você ainda não segue perfis"
         items={followingListItems}
         onClose={() => setIsFollowingVisible(false)}
@@ -694,6 +695,7 @@ function SettingsView({
   onOpenEditProfile: () => void;
   user: AppUser;
 }) {
+  const { setThemeMode, themeMode } = useTheme();
   const approved = accountSubmissions.filter(
     (item) => item.status === "Aprovado"
   ).length;
@@ -716,7 +718,7 @@ function SettingsView({
         if (!permission.granted) {
           Alert.alert(
             "Permissão necessária",
-            "Autorize o acesso as fotos para escolher uma imagem de perfil."
+            "Autorize o acesso às fotos para escolher uma imagem de perfil."
           );
           return;
         }
@@ -811,7 +813,7 @@ function SettingsView({
           <View style={styles.settingsAvatarBody}>
             <Text style={styles.settingsRowTitle}>Imagem pública</Text>
             <Text style={styles.settingsRowDescription}>
-              Exibida no Início, pesquisa, mensagens e no seu perfil.
+              Exibida no Início, na pesquisa, nas mensagens e no seu perfil.
             </Text>
           </View>
         </View>
@@ -831,13 +833,33 @@ function SettingsView({
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Preferencias</Text>
+        <Text style={styles.settingsSectionTitle}>Preferências</Text>
+        <View style={styles.settingsRow}>
+          <View style={styles.settingsRowIcon}>
+            <Moon color={colors.primary} size={19} />
+          </View>
+          <View style={styles.settingsRowBody}>
+            <Text style={styles.settingsRowTitle}>Tema escuro</Text>
+            <Text style={styles.settingsRowDescription}>
+              Usar superfícies escuras em todas as telas.
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel="Ativar tema escuro"
+            onValueChange={(enabled) =>
+              setThemeMode(enabled ? "dark" : "light")
+            }
+            thumbColor={colors.surface}
+            trackColor={{ false: colors.borderStrong, true: colors.primary }}
+            value={themeMode === "dark"}
+          />
+        </View>
         <View style={styles.settingsRow}>
           <View style={styles.settingsRowIcon}>
             <Bell color={colors.primary} size={19} />
           </View>
           <View style={styles.settingsRowBody}>
-            <Text style={styles.settingsRowTitle}>Notificacoes</Text>
+            <Text style={styles.settingsRowTitle}>Notificações</Text>
             <Text style={styles.settingsRowDescription}>
               Avisos sobre publicações, mensagens e campanhas.
             </Text>
@@ -856,7 +878,7 @@ function SettingsView({
           <View style={styles.settingsRowBody}>
             <Text style={styles.settingsRowTitle}>Reprodução automática</Text>
             <Text style={styles.settingsRowDescription}>
-              Iniciar videos automaticamente na tela Início.
+              Iniciar vídeos automaticamente na tela Início.
             </Text>
           </View>
           <Switch
@@ -871,7 +893,7 @@ function SettingsView({
       <View style={styles.settingsSection}>
         <Text style={styles.settingsSectionTitle}>Conta e segurança</Text>
         <View style={styles.profileRowNoBorder}>
-          <Text style={styles.profileLabel}>Email</Text>
+          <Text style={styles.profileLabel}>E-mail</Text>
           <Text numberOfLines={1} style={styles.profileValue}>
             {user.email}
           </Text>
@@ -883,7 +905,7 @@ function SettingsView({
               ? "Apple"
               : user.authProvider === "google"
                 ? "Google"
-                : "Email e senha"}
+                : "E-mail e senha"}
           </Text>
         </View>
         <View style={styles.profileRow}>

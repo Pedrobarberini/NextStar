@@ -30,10 +30,10 @@ export function AdminScreen({
     <ScrollView contentContainerStyle={styles.screenContent}>
       <View style={styles.adminHero}>
         <Text style={styles.heroKicker}>Painel admin</Text>
-        <Text style={styles.heroTitle}>Moderacao de videos.</Text>
+        <Text style={styles.heroTitle}>Moderação de vídeos</Text>
         <Text style={styles.heroBody}>
-          Revise os envios dos atletas e publique somente os videos que atendem
-          aos criterios da plataforma.
+          Revise os envios dos atletas e publique somente os vídeos que atendem
+          aos critérios da plataforma.
         </Text>
       </View>
 
@@ -46,7 +46,7 @@ export function AdminScreen({
       <View style={styles.infoPanel}>
         <Text style={styles.sectionTitle}>Fila de revisão</Text>
         {reviewQueue.length === 0 ? (
-          <Text style={styles.bodyText}>Nenhuma solicitacao pendente.</Text>
+          <Text style={styles.bodyText}>Nenhuma solicitação pendente.</Text>
         ) : (
           reviewQueue.map((submission) => (
             <View key={submission.id} style={styles.adminItem}>
@@ -72,8 +72,8 @@ export function AdminScreen({
               ) : null}
               <Text style={styles.submissionBody}>{submission.highlight}</Text>
               <Text style={styles.adminFinePrint}>
-                Video: {submission.videoTitle} | Consentimento:{" "}
-                {submission.hasGuardianConsent ? "Sim" : "Não aplicavel"}
+                Vídeo: {submission.videoTitle} | Consentimento:{" "}
+                {submission.hasGuardianConsent ? "Sim" : "Não aplicável"}
               </Text>
               {submission.reviewNote ? (
                 <Text style={styles.reviewNote}>{submission.reviewNote}</Text>
@@ -85,7 +85,7 @@ export function AdminScreen({
                     onReview(
                       submission.id,
                       "Aprovado",
-                      "Aprovado pela moderação e publicado no feed."
+                      "Aprovado pela moderação e publicado no Início."
                     )
                   }
                   style={[styles.smallButton, styles.approveButton]}
@@ -98,7 +98,7 @@ export function AdminScreen({
                     onReview(
                       submission.id,
                       "Ajustes solicitados",
-                      "Pedir video com mais contexto de jogo e dados do responsavel."
+                      "Solicitar vídeo com mais contexto de jogo e informações do responsável."
                     )
                   }
                   style={[styles.smallButton, styles.adjustButton]}
@@ -111,7 +111,7 @@ export function AdminScreen({
                     onReview(
                       submission.id,
                       "Reprovado",
-                      "Reprovado por falta de informacoes suficientes."
+                      "Reprovado por falta de informações suficientes."
                     )
                   }
                   style={[styles.smallButton, styles.rejectButton]}

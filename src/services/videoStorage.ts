@@ -26,7 +26,7 @@ type StoredVideo = {
 function openVideoDatabase(databaseName = VIDEO_DATABASE_NAME) {
   return new Promise<IDBDatabase>((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
-      reject(new Error("IndexedDB is unavailable."));
+      reject(new Error("O IndexedDB não está disponível."));
       return;
     }
 
@@ -35,7 +35,7 @@ function openVideoDatabase(databaseName = VIDEO_DATABASE_NAME) {
       VIDEO_DATABASE_VERSION
     );
 
-    request.onerror = () => reject(request.error ?? new Error("Database error."));
+    request.onerror = () => reject(request.error ?? new Error("Erro no banco de dados."));
     request.onupgradeneeded = () => {
       const database = request.result;
 
@@ -55,7 +55,7 @@ async function getVideoBlob(input: PersistVideoInput) {
   const response = await fetch(input.uri);
 
   if (!response.ok) {
-    throw new Error("The selected video could not be read.");
+    throw new Error("Não foi possível ler o vídeo selecionado.");
   }
 
   return response.blob();
@@ -72,7 +72,7 @@ export async function persistPickedVideo(
   const blob = await getVideoBlob(input);
 
   if (blob.size <= 0) {
-    throw new Error("The selected video is empty.");
+    throw new Error("O vídeo selecionado está vazio.");
   }
 
   const database = await openVideoDatabase();
@@ -88,9 +88,9 @@ export async function persistPickedVideo(
       };
 
       transaction.onabort = () =>
-        reject(transaction.error ?? new Error("Video storage was aborted."));
+        reject(transaction.error ?? new Error("O armazenamento do vídeo foi cancelado."));
       transaction.onerror = () =>
-        reject(transaction.error ?? new Error("Video storage failed."));
+        reject(transaction.error ?? new Error("Falha ao armazenar o vídeo."));
       transaction.oncomplete = () => resolve();
       transaction.objectStore(VIDEO_STORE_NAME).put(record, storageKey);
     });
@@ -119,7 +119,7 @@ export async function loadStoredVideo(reference: string) {
         const request = transaction.objectStore(VIDEO_STORE_NAME).get(storageKey);
 
         request.onerror = () =>
-          reject(request.error ?? new Error("Stored video could not be read."));
+          reject(request.error ?? new Error("Não foi possível ler o vídeo armazenado."));
         request.onsuccess = () => {
           const record = request.result as StoredVideo | undefined;
           resolve(record?.blob instanceof Blob ? record.blob : null);
@@ -152,9 +152,9 @@ export async function deleteStoredVideo(reference: string) {
         const transaction = database.transaction(VIDEO_STORE_NAME, "readwrite");
 
         transaction.onabort = () =>
-          reject(transaction.error ?? new Error("Video deletion was aborted."));
+          reject(transaction.error ?? new Error("A exclusão do vídeo foi cancelada."));
         transaction.onerror = () =>
-          reject(transaction.error ?? new Error("Video deletion failed."));
+          reject(transaction.error ?? new Error("Falha ao excluir o vídeo."));
         transaction.oncomplete = () => resolve();
         transaction.objectStore(VIDEO_STORE_NAME).delete(storageKey);
       });

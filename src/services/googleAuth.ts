@@ -28,7 +28,7 @@ export class GoogleAuthConfigurationError extends Error {
 
 export class GoogleAuthCancelledError extends Error {
   constructor() {
-    super("Login com Google cancelado.");
+    super("Login com o Google cancelado.");
     this.name = "GoogleAuthCancelledError";
   }
 }
@@ -38,7 +38,7 @@ function toGoogleIdentity(user: User): GoogleIdentity {
 
   if (!email) {
     throw new Error(
-      "A conta Google não retornou um email. Use outra conta ou o login por email."
+      "A conta Google não retornou um e-mail. Use outra conta ou entre com e-mail e senha."
     );
   }
 
@@ -53,7 +53,7 @@ function toGoogleIdentity(user: User): GoogleIdentity {
 export function assertGoogleAuthConfigured() {
   if (!isFirebaseConfigured()) {
     throw new GoogleAuthConfigurationError(
-      "Configure as variaveis EXPO_PUBLIC_FIREBASE_* no arquivo .env para ativar o login com Google."
+      "Configure as variáveis EXPO_PUBLIC_FIREBASE_* no arquivo .env para ativar o login com o Google."
     );
   }
 
@@ -61,7 +61,7 @@ export function assertGoogleAuthConfigured() {
   // No mobile o expo-auth-session ainda precisa do Web Client ID OAuth.
   if (Platform.OS !== "web" && !getGoogleClientIds().webClientId) {
     throw new GoogleAuthConfigurationError(
-      "Defina EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID no .env para login Google no mobile."
+      "Defina EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID no arquivo .env para usar o login com o Google em dispositivos móveis."
     );
   }
 }

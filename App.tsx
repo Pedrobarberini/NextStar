@@ -14,7 +14,6 @@ import { AppRoutes } from "./src/app/AppRoutes";
 import {
   selectActiveCampaignPlayerIds,
   selectApprovedSubmissionPlayers,
-  selectAvailablePlayers,
   selectCurrentUserCampaigns,
   selectOrderedFeedPlayers,
   selectPendingReviews,
@@ -27,7 +26,6 @@ import {
 } from "./src/app/appSelectors";
 import { useAppNavigation } from "./src/app/useAppNavigation";
 import { useExpoBoot } from "./src/app/useExpoBoot";
-import { demoPlayer } from "./src/data/demoPlayer";
 import type { MessageContact } from "./src/types";
 import {
   createDefaultProfessionalSettings
@@ -78,7 +76,11 @@ export default function App() {
     setUser,
     user
   } = useFirebaseAccounts();
-  const { isPostsLoaded } = useFirebasePosts(user, setSubmissions);
+  const { isPostsLoaded } = useFirebasePosts(
+    user,
+    setSubmissions,
+    isAppStateLoaded
+  );
 
   useEffect(() => {
     if (!isAppStateLoaded || !isSessionLoaded || hasRestoredInitialRoute.current) return;
@@ -90,10 +92,7 @@ export default function App() {
     () => selectApprovedSubmissionPlayers(submissions, registeredUsers),
     [registeredUsers, submissions]
   );
-  const availablePlayers = useMemo(
-    () => selectAvailablePlayers(approvedSubmissionPlayers, demoPlayer),
-    [approvedSubmissionPlayers]
-  );
+  const availablePlayers = approvedSubmissionPlayers;
   const { profileAvatars, setProfileAvatar } = useProfileActions(user);
   const {
     addMessageContact,
@@ -106,12 +105,14 @@ export default function App() {
     directMessages,
     followersByProfile,
     followerUserIdsByProfile,
+    followingCountsByUser,
     followingProfileIds,
     followingProfileSet,
     hiddenPlayerIdSet,
     interestedContentKeySet,
     likedPlayerIdSet,
     likeCountsByPlayer,
+    markDirectMessagesRead,
     mutedContentKeySet,
     ownProfileId,
     mutedContactIds,
@@ -131,7 +132,11 @@ export default function App() {
     toggleMutedContent,
     togglePinConversation,
     viewCountsByPlayer
-  } = useSocialActions({ players: availablePlayers, user });
+  } = useSocialActions({
+    players: availablePlayers,
+    user,
+    users: registeredUsers
+  });
   const visibleFeedPlayers = useMemo(
     () => selectVisibleFeedPlayers(
       availablePlayers,
@@ -296,6 +301,7 @@ export default function App() {
       focusFeedPlayer={focusFeedPlayer}
       followersByProfile={followersByProfile}
       followerUserIdsByProfile={followerUserIdsByProfile}
+      followingCountsByUser={followingCountsByUser}
       followingProfileIds={followingProfileIds}
       followingProfileSet={followingProfileSet}
       hiddenPlayerIdSet={hiddenPlayerIdSet}
@@ -310,6 +316,7 @@ export default function App() {
       isBrandLaunchVisible={isBrandLaunchVisible}
       likedPlayerIdSet={likedPlayerIdSet}
       likeCountsByPlayer={likeCountsByPlayer}
+      markDirectMessagesRead={markDirectMessagesRead}
       mutedContactIds={mutedContactIds}
       mutedContentKeySet={mutedContentKeySet}
       onBrandLaunchFinish={() => setIsBrandLaunchVisible(false)}

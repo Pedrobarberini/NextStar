@@ -6,6 +6,7 @@ const profile = {
   age: 22,
   bio: "Criador de conteúdo esportivo e campanhas locais.",
   city: "São Paulo, SP",
+  interestTags: ["Futebol", "Ponta"],
   club: "Projeto Xolot",
   name: "Pessoa Criadora",
   photoURL: "https://example.com/avatar.jpg",
@@ -26,7 +27,44 @@ test("normaliza apenas os campos públicos permitidos", () => {
   assert.deepEqual(normalized, profile);
   assert.equal("email" in (normalized ?? {}), false);
   assert.equal("role" in (normalized ?? {}), false);
+
   assert.equal("passwordHash" in (normalized ?? {}), false);
+});
+
+test("mantém perfis antigos válidos e limita os interesses públicos", () => {
+  const { interestTags: _interestTags, ...legacyProfile } = profile;
+  const legacyNormalized = normalizePublicProfileDocument(profile.uid, legacyProfile);
+  const limited = normalizePublicProfileDocument(profile.uid, {
+    ...profile,
+    interestTags: ["1", "2", "3", "4", "5", "6", "7"]
+  });
+  assert.deepEqual(legacyNormalized?.interestTags, []);
+  assert.deepEqual(limited?.interestTags, ["1", "2", "3", "4", "5", "6"]);
+
+});
+test("recupera identidade publica de um perfil legado incompleto", () => {
+  const recovered = normalizePublicProfileDocument(
+    "uid-legado-12345678",
+    {
+      name: "Perfil Antigo",
+      photoURL: "https://example.com/legado.jpg",
+      username: "@perfil.antigo"
+    },
+    { allowLegacyFallback: true }
+  );
+
+  assert.equal(recovered?.name, "Perfil Antigo");
+  assert.equal(recovered?.username, "perfil.antigo");
+  assert.equal(recovered?.position, "Área não informada");
+  assert.equal(recovered?.city, "Local não informado");
+  assert.equal(recovered?.age, null);
+  assert.equal(
+    normalizePublicProfileDocument("uid-legado-12345678", {
+      name: "Perfil Antigo",
+      username: "perfil.antigo"
+    }),
+    null
+  );
 });
 
 test("rejeita perfil com uid, username ou idade inválidos", () => {

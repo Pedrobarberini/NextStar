@@ -45,7 +45,7 @@ export function SubmissionMentionPicker({
         autoCorrect={false}
         label="Marcar usuários"
         onChangeText={setQuery}
-        placeholder="Busque por nome ou @usuario"
+        placeholder="Busque por nome ou @usuário"
         value={query}
       />
       <Text style={styles.submissionMentionHint}>

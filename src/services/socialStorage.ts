@@ -179,3 +179,20 @@ export async function loadSocialState(): Promise<SocialState> {
 export async function saveSocialState(state: SocialState) {
   await AsyncStorage.setItem(SOCIAL_STORAGE_KEY, JSON.stringify(state));
 }
+
+
+const SOCIAL_CLOUD_MIGRATION_KEY_PREFIX =
+  "@xolot/social-firestore-migrated-v1:";
+
+export async function hasCompletedSocialCloudMigration(uid: string) {
+  return (
+    await AsyncStorage.getItem(`${SOCIAL_CLOUD_MIGRATION_KEY_PREFIX}${uid}`)
+  ) === "true";
+}
+
+export async function markSocialCloudMigrationCompleted(uid: string) {
+  await AsyncStorage.setItem(
+    `${SOCIAL_CLOUD_MIGRATION_KEY_PREFIX}${uid}`,
+    "true"
+  );
+}

@@ -21,7 +21,8 @@ import {
 import {
   getFirebaseFirestore,
   getFirebaseStorage,
-  isFirebaseStorageConfigured
+  isFirebaseStorageConfigured,
+  isR2MediaEnabled
 } from "../config/firebase";
 import type {
   PublicationMediaInput,
@@ -36,6 +37,14 @@ import {
   normalizeMediaMimeType
 } from "../utils/publicationMedia";
 import { getCurrentFirebaseUser } from "./firebaseAccountService";
+import {
+  R2MediaUnavailableError,
+  deleteR2Post,
+  getR2MediaUrl,
+  getSafeR2PostMessage,
+  isR2StoredPost,
+  publishR2Post
+} from "./r2PostService";
 
 const POSTS_COLLECTION = "posts";
 const MAX_FEED_POSTS = 50;
@@ -117,6 +126,10 @@ export async function publishFirebasePost(
   media: PublicationMediaInput,
   onProgress?: (progress: number) => void
 ) {
+  if (isR2MediaEnabled()) {
+    return publishR2Post(submission, media, onProgress);
+  }
+
   const user = assertPublishingUser(submission.userId);
   const blob = await readMediaBlob(media);
   const mimeType = normalizeMediaMimeType(
@@ -203,7 +216,8 @@ export async function publishFirebasePost(
 
 export function subscribeFirebasePosts(
   onPosts: (posts: VideoSubmission[]) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
+  onWarning?: (warning: Error) => void
 ) {
   const postsQuery = query(
     collection(getFirebaseFirestore(), POSTS_COLLECTION),
@@ -216,6 +230,8 @@ export function subscribeFirebasePosts(
     postsQuery,
     (snapshot) => {
       const currentGeneration = ++deliveryGeneration;
+      let invalidDocuments = 0;
+      let unavailableMedia = 0;
 
       Promise.all(
         snapshot.docs.map(async (postSnapshot) => {
@@ -224,19 +240,24 @@ export function subscribeFirebasePosts(
             postSnapshot.data()
           );
           if (!post) {
+            invalidDocuments += 1;
             return null;
           }
 
           try {
-            const mediaURL = await getDownloadURL(
-              ref(getFirebaseStorage(), post.mediaPath)
-            );
+            const mediaURL =
+              post.storageProvider === "r2"
+                ? getR2MediaUrl(post.mediaKey)
+                : await getDownloadURL(
+                    ref(getFirebaseStorage(), post.mediaPath)
+                  );
             return firebasePostToSubmission(
               postSnapshot.id,
               post,
               mediaURL
             );
           } catch {
+            unavailableMedia += 1;
             return null;
           }
         })
@@ -246,6 +267,22 @@ export function subscribeFirebasePosts(
             onPosts(
               posts.filter((post): post is VideoSubmission => Boolean(post))
             );
+            const skippedPosts = invalidDocuments + unavailableMedia;
+            if (skippedPosts > 0) {
+              const details = [
+                invalidDocuments > 0
+                  ? `${invalidDocuments} com dados incompatíveis`
+                  : "",
+                unavailableMedia > 0
+                  ? `${unavailableMedia} com mídia indisponível`
+                  : ""
+              ]
+                .filter(Boolean)
+                .join(" e ");
+              onWarning?.(
+                new Error(`${skippedPosts} publicação(ões) não puderam ser sincronizadas: ${details}.`)
+              );
+            }
           }
         })
         .catch((error: Error) => onError?.(error));
@@ -254,7 +291,28 @@ export function subscribeFirebasePosts(
   );
 }
 
+export function getSafeFirebasePostSyncMessage(error: unknown) {
+  if (error instanceof FirebaseError) {
+    if (error.code === "permission-denied") {
+      return "Sua conta não recebeu permissão para sincronizar as publicações. Entre novamente e tente de novo.";
+    }
+    if (error.code === "unavailable") {
+      return "O serviço de publicações está temporariamente indisponível.";
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "Não foi possível sincronizar as publicações agora.";
+}
+
 export async function deleteFirebasePost(submission: VideoSubmission) {
+  if (isR2StoredPost(submission)) {
+    return deleteR2Post(submission);
+  }
+
   const user = assertPublishingUser(submission.userId);
   const postReference = doc(
     getFirebaseFirestore(),
@@ -287,8 +345,11 @@ export async function deleteFirebasePost(submission: VideoSubmission) {
 }
 
 export function isFirebaseStoredPost(submission: VideoSubmission) {
-  return Boolean(
-    submission.storagePath?.startsWith(`posts/${submission.userId}/`)
+  return (
+    isR2StoredPost(submission) ||
+    Boolean(
+      submission.storagePath?.startsWith(`posts/${submission.userId}/`)
+    )
   );
 }
 
@@ -301,12 +362,19 @@ export function getSafeFirebasePostMessage(error: unknown) {
     return error.message;
   }
 
+  if (
+    error instanceof R2MediaUnavailableError ||
+    (error instanceof FirebaseError && error.code.startsWith("functions/"))
+  ) {
+    return getSafeR2PostMessage(error);
+  }
+
   if (!(error instanceof FirebaseError)) {
     return "Não foi possível publicar a mídia. Tente novamente.";
   }
 
   if (error.code === "storage/unauthorized" || error.code === "permission-denied") {
-    return "Sua sessão não tem permissão para publicar. Entre novamente e confirme seu email.";
+    return "Sua sessão não tem permissão para publicar. Entre novamente e confirme seu e-mail.";
   }
 
   if (error.code === "storage/quota-exceeded") {

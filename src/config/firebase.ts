@@ -5,6 +5,7 @@ import {
 } from "firebase/app-check";
 import type { Auth } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore";
+import { Functions, getFunctions } from "firebase/functions";
 import { FirebaseStorage, getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 import { initializeFirebaseAuth } from "./firebaseAuth";
@@ -44,6 +45,7 @@ function readConfig(): FirebasePublicConfig | null {
 const firebaseConfig = readConfig();
 let isAppCheckInitialized = false;
 let firebaseAuth: Auth | null = null;
+let firebaseFunctions: Functions | null = null;
 let firebaseStorage: FirebaseStorage | null = null;
 
 function initializeClientProtection(app: FirebaseApp) {
@@ -98,10 +100,31 @@ export function isFirebaseStorageConfigured() {
   return Boolean(firebaseConfig?.storageBucket);
 }
 
+export function isR2MediaEnabled() {
+  return (
+    process.env.EXPO_PUBLIC_R2_MEDIA_ENABLED?.trim().toLowerCase() === "true"
+  );
+}
+
 export function isFirebaseMediaEnabled() {
   return (
-    process.env.EXPO_PUBLIC_FIREBASE_MEDIA_ENABLED?.trim().toLowerCase() ===
-      "true" && isFirebaseStorageConfigured()
+    isR2MediaEnabled() ||
+    (process.env.EXPO_PUBLIC_FIREBASE_MEDIA_ENABLED?.trim().toLowerCase() ===
+      "true" && isFirebaseStorageConfigured())
+  );
+}
+
+export function getFirebaseFunctions(): Functions {
+  if (!firebaseFunctions) {
+    firebaseFunctions = getFunctions(getFirebaseApp(), "southamerica-east1");
+  }
+  return firebaseFunctions;
+}
+
+export function getR2PublicMediaUrl() {
+  return (
+    process.env.EXPO_PUBLIC_R2_MEDIA_URL?.trim().replace(/\/$/, "") ||
+    "https://media.xolot.com.br"
   );
 }
 

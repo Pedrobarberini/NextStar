@@ -14,11 +14,13 @@ export type FirebasePostDocument = {
   fileName: string;
   fileSize: number;
   height: number;
+  mediaKey: string;
   mediaPath: string;
   mediaType: SubmissionMediaType;
   mentions: string[];
   mimeType: string;
   status: "published";
+  storageProvider: "firebase" | "r2";
   tags: string[];
   title: string;
   updatedAt: string;
@@ -85,6 +87,10 @@ export function normalizeFirebasePostDocument(
   const mediaType = value.mediaType === "image" ? "image" : "video";
   const createdAt = normalizeTimestamp(value.createdAt);
   const updatedAt = normalizeTimestamp(value.updatedAt);
+  const mediaPath = normalizeText(value.mediaPath, 320);
+  const storageProvider = value.storageProvider === "r2" ? "r2" : "firebase";
+  const mediaKey =
+    storageProvider === "r2" ? normalizeText(value.mediaKey, 320) : mediaPath;
   const normalized: FirebasePostDocument = {
     authorId,
     createdAt,
@@ -93,11 +99,13 @@ export function normalizeFirebasePostDocument(
     fileName: normalizeText(value.fileName, 160),
     fileSize: normalizeInteger(value.fileSize),
     height: normalizeInteger(value.height),
-    mediaPath: normalizeText(value.mediaPath, 320),
+    mediaKey,
+    mediaPath,
     mediaType,
     mentions: normalizeStringList(value.mentions, 10, 30),
     mimeType: normalizeText(value.mimeType, 100).toLowerCase(),
     status: "published",
+    storageProvider,
     tags: normalizeStringList(value.tags, 10, 40),
     title: normalizeText(value.title, 120),
     updatedAt,
@@ -114,7 +122,15 @@ export function normalizeFirebasePostDocument(
     normalized.description.length < 4 ||
     !createdAt ||
     !updatedAt ||
-    normalized.mediaPath !== `posts/${authorId}/${postId}/media` ||
+    (
+      (normalized.storageProvider === "firebase" &&
+        normalized.mediaPath !== `posts/${authorId}/${postId}/media`) ||
+      (normalized.storageProvider === "r2" &&
+        (normalized.mediaKey !== normalized.mediaPath ||
+          !normalized.mediaKey.startsWith(
+            `users/${authorId}/posts/${postId}/`
+          )))
+    ) ||
     !isAllowedMediaMimeType(mediaType, normalized.mimeType) ||
     normalized.fileName.length < 1 ||
     normalized.fileSize <= 0 ||

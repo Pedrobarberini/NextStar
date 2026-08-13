@@ -173,16 +173,15 @@ export const profileStyles = {
     textTransform: "uppercase"
   },
   profileQuickStats: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
     flexDirection: "row",
     gap: 8,
+    justifyContent: "space-between",
     marginTop: 16,
-    padding: 10
+    paddingHorizontal: 2,
+    paddingVertical: 4
   },
   profileQuickItem: {
+    alignItems: "center",
     flex: 1,
     minWidth: 0
   },
@@ -406,6 +405,51 @@ export const profileStyles = {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(5, 18, 12, 0.54)"
   },
+  videoActionsPopoverRoot: {
+    flex: 1
+  },
+  videoActionsPopoverBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent"
+  },
+  videoActionsPopover: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    elevation: 8,
+    overflow: "hidden",
+    position: "absolute",
+    shadowColor: "#000000",
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    width: 196
+  },
+  videoActionsPopoverRow: {
+    alignItems: "center",
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 50,
+    paddingHorizontal: 14
+  },
+  videoActionsPopoverRowLast: {
+    borderBottomWidth: 0
+  },
+  videoActionsPopoverText: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  videoActionsPopoverDangerText: {
+    color: colors.danger,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "900"
+  },
   videoActionsSheet: {
     alignSelf: "center",
     backgroundColor: colors.surface,
@@ -562,14 +606,17 @@ export const profileStyles = {
   },
   sharePostSendButton: {
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
     borderRadius: 999,
+    borderWidth: 1.5,
     height: 36,
     justifyContent: "center",
     width: 36
   },
   sharePostSendButtonDone: {
-    backgroundColor: colors.primarySoft
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
   },
   sharePostEmpty: {
     alignItems: "center",
@@ -597,6 +644,9 @@ export const profileStyles = {
     justifyContent: "center",
     marginTop: 14,
     minHeight: 44
+  },
+  sharePostDoneButtonDisabled: {
+    opacity: 0.5
   },
   sharePostDoneButtonText: {
     color: colors.onPrimary,

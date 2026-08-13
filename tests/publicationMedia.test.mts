@@ -53,3 +53,14 @@ test("rejeita vídeo acima de dois minutos", () => {
     "O vídeo deve ter no máximo 2 minutos."
   );
 });
+test("aceita GIF como imagem publicada", () => {
+  assert.equal(isAllowedMediaMimeType("image", "image/gif"), true);
+  assert.equal(
+    getPublicationMediaValidationMessage({
+      ...photo,
+      fileName: "animacao.gif",
+      mimeType: "image/gif"
+    }),
+    ""
+  );
+});

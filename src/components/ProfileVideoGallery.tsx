@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Check, Eye, Images, MoreVertical, X } from "lucide-react-native";
-import { Image, Pressable, Text, View } from "react-native";
+import { type GestureResponderEvent, Image, Pressable, Text, View } from "react-native";
 import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
@@ -17,6 +17,10 @@ import {
 } from "../utils/profileVideoSelection";
 import { SharePostModal } from "./SharePostModal";
 import { VideoActionsModal } from "./VideoActionsModal";
+import {
+  type VideoActionsAnchor,
+  VideoActionsPopover
+} from "./VideoActionsPopover";
 
 export type ProfileGalleryVideo = {
   id: string;
@@ -60,6 +64,8 @@ export function ProfileVideoGallery({
   const [actionVideo, setActionVideo] =
     useState<ProfileGalleryVideo | null>(null);
   const [isBatchActionsVisible, setIsBatchActionsVisible] = useState(false);
+  const [actionAnchor, setActionAnchor] =
+    useState<VideoActionsAnchor | null>(null);
   const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
   const [shareVideos, setShareVideos] = useState<ProfileGalleryVideo[]>([]);
   const longPressedVideoId = useRef<string | null>(null);
@@ -102,6 +108,19 @@ export function ProfileVideoGallery({
     setSelectedVideoIds((current) =>
       toggleProfileVideoSelection(current, videoId)
     );
+  }
+
+  function closeVideoActions() {
+    setActionAnchor(null);
+    setActionVideo(null);
+  }
+
+  function openVideoActions(
+    event: GestureResponderEvent,
+    video: ProfileGalleryVideo
+  ) {
+    setActionAnchor({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY });
+    setActionVideo(video);
   }
 
   return (
@@ -237,7 +256,7 @@ export function ProfileVideoGallery({
                     accessibilityLabel={`Abrir opções de ${video.title}`}
                     accessibilityRole="button"
                     hitSlop={6}
-                    onPress={() => setActionVideo(video)}
+                    onPress={(event) => openVideoActions(event, video)}
                     style={({ pressed }) => [
                       styles.profileGalleryMenuButton,
                       pressed ? styles.buttonPressed : null
@@ -252,21 +271,22 @@ export function ProfileVideoGallery({
         </View>
       )}
 
-      <VideoActionsModal
+      <VideoActionsPopover
+        anchor={actionAnchor}
         canDelete={Boolean(onDeleteVideo)}
         hidden={Boolean(
           actionVideo && isProfileVideoHidden(hiddenVideoIds, actionVideo)
         )}
-        onClose={() => setActionVideo(null)}
+        onClose={closeVideoActions}
         onDelete={() => {
           if (actionVideo && onDeleteVideo) {
             onDeleteVideo(actionVideo);
           }
-          setActionVideo(null);
+          closeVideoActions();
         }}
         onShare={() => {
           setShareVideos(actionVideo ? [actionVideo] : []);
-          setActionVideo(null);
+          closeVideoActions();
         }}
         onToggleHidden={() => {
           if (actionVideo && onSetVideoHidden) {
@@ -275,10 +295,9 @@ export function ProfileVideoGallery({
               !isProfileVideoHidden(hiddenVideoIds, actionVideo)
             );
           }
-          setActionVideo(null);
+          closeVideoActions();
         }}
-        videoTitle={actionVideo?.title ?? ""}
-        visible={Boolean(actionVideo)}
+        visible={Boolean(actionVideo && actionAnchor)}
       />
       <VideoActionsModal
         batchMode

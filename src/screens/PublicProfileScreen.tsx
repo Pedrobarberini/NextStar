@@ -23,17 +23,16 @@ import type {
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
-import {
-  formatCompactMetric,
-  getProfessionalCategoryLabel
-} from "../utils/professional";
+import { getProfessionalCategoryLabel } from "../utils/professional";
 
 export function PublicProfileScreen({
   account,
   avatar,
   followersCount,
+  followingCount,
   hiddenPlayerIds,
   isFollowing,
+  likeCountsByPlayer,
   onBack,
   onMessage,
   onOpenVideo,
@@ -51,8 +50,10 @@ export function PublicProfileScreen({
   account?: AppUser;
   avatar?: ProfileAvatar;
   followersCount: number;
+  followingCount: number;
   hiddenPlayerIds: Set<string>;
   isFollowing: boolean;
+  likeCountsByPlayer: Record<string, number>;
   onBack: () => void;
   onMessage: () => void;
   onOpenVideo: (player: Player) => void;
@@ -71,15 +72,21 @@ export function PublicProfileScreen({
   const profileUsername = account?.username ?? player?.username;
   const initials = profileName.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const profileMeta = account?.profileCompleted
-    ? `${account.position} | ${account.city}`
+    ? [account.position, account.city].filter(Boolean).join(" | ")
     : player
-      ? `${player.position} | ${player.city}`
+      ? [player.position, player.city].filter(Boolean).join(" | ")
       : "Usuário Xolot | Sem publicações";
+  const visibleProfileMeta =
+    profileMeta || "Informações do perfil ainda não preenchidas";
   const profileBio = account?.bio ?? "";
   const profileClub = account?.club ?? player?.club ?? "";
   const isProfessional = professionalSettings?.enabled === true;
   const totalViews = videos.reduce(
     (total, video) => total + (viewCountsByPlayer[video.id] ?? 0),
+    0
+  );
+  const totalLikes = videos.reduce(
+    (total, video) => total + (likeCountsByPlayer[video.id] ?? 0),
     0
   );
   const galleryVideos: ProfileGalleryVideo[] = videos.map((video) => ({
@@ -115,7 +122,9 @@ export function PublicProfileScreen({
                 {isProfessional ? <BadgeCheck color={colors.primary} size={18} /> : null}
               </View>
               {profileUsername ? <Text numberOfLines={1} style={styles.profileSecondaryName}>{profileName}</Text> : null}
-              <Text numberOfLines={2} style={[styles.profileMeta, styles.publicProfileMeta]}>{profileMeta}</Text>
+              <Text numberOfLines={2} style={[styles.profileMeta, styles.publicProfileMeta]}>
+                {visibleProfileMeta}
+              </Text>
             </View>
             <Pressable accessibilityLabel={`Enviar mensagem para ${profileName}`} accessibilityRole="button" onPress={onMessage} style={styles.profileMenuButton}>
               <MessageCircle color={colors.primary} size={22} />
@@ -128,8 +137,33 @@ export function PublicProfileScreen({
           {profileBio ? <Text style={styles.profileBio}>{profileBio}</Text> : null}
           {profileClub ? <Text style={styles.profileClub}>{profileClub}</Text> : null}
 
+          <View style={styles.profileQuickStats}>
+            <View style={styles.profileQuickItem}>
+              <Text style={styles.profileQuickValue}>{videos.length}</Text>
+              <Text style={styles.profileQuickLabel}>posts</Text>
+            </View>
+            <View style={styles.profileQuickItem}>
+              <Text style={styles.profileQuickValue}>{totalViews}</Text>
+              <Text style={styles.profileQuickLabel}>visualizações</Text>
+            </View>
+            <View style={styles.profileQuickItem}>
+              <Text style={styles.profileQuickValue}>{totalLikes}</Text>
+              <Text style={styles.profileQuickLabel}>curtidas</Text>
+            </View>
+          </View>
+
           <View style={styles.publicProfileSocialRow}>
-            <Text style={styles.publicProfileFollowerCount}>{followersCount} {followersCount === 1 ? "seguidor" : "seguidores"}</Text>
+            <View style={styles.profileSocialMetrics}>
+              <Text style={styles.profileSocialMetricText}>
+                <Text style={styles.profileSocialMetricValue}>{followersCount}</Text>{" "}
+                {followersCount === 1 ? "seguidor" : "seguidores"}
+              </Text>
+              <Text style={styles.profileSocialMetricDivider}>|</Text>
+              <Text style={styles.profileSocialMetricText}>
+                <Text style={styles.profileSocialMetricValue}>{followingCount}</Text>{" "}
+                seguindo
+              </Text>
+            </View>
             {showFollow ? (
               <Pressable
                 accessibilityLabel={isFollowing ? `Deixar de seguir ${profileName}` : `Seguir ${profileName}`}
@@ -143,21 +177,6 @@ export function PublicProfileScreen({
             ) : null}
           </View>
 
-          <View style={styles.profileQuickStats}>
-            <View style={styles.profileQuickItem}>
-              <Text style={styles.profileQuickValue}>{videos.length}</Text>
-              <Text style={styles.profileQuickLabel}>publicações</Text>
-            </View>
-            <View style={styles.profileQuickItem}>
-              <Text style={styles.profileQuickValue}>{formatCompactMetric(totalViews)}</Text>
-              <Text style={styles.profileQuickLabel}>visualizações</Text>
-            </View>
-            <View style={styles.profileQuickItem}>
-              <Text style={styles.profileQuickValue}>{formatCompactMetric(followersCount)}</Text>
-              <Text style={styles.profileQuickLabel}>seguidores</Text>
-            </View>
-          </View>
-
           {isProfessional && professionalSettings.externalLink ? (
             <Pressable accessibilityRole="link" onPress={openExternalLink} style={styles.publicProfileLinkButton}>
               <ExternalLink color={colors.onPrimary} size={18} />
@@ -167,7 +186,7 @@ export function PublicProfileScreen({
         </View>
 
         <ProfileVideoGallery
-          emptyBody="Este usuário ainda não possui fotos ou vídeos publicados para mostrar no perfil."
+          emptyBody="Este usuário ainda não possui fotos ou vídeos publicados no perfil."
           emptyTitle="Nenhuma publicação"
           hiddenVideoIds={hiddenPlayerIds}
           onOpenVideo={(video) => {

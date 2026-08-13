@@ -11,7 +11,45 @@ service cloud.firestore {
 
     function registeredVerifiedUser() {
       return verifiedUser()
-        && exists(/databases/$(database)/documents/accounts/$(request.auth.uid));
+        && (
+          exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+          || exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        );
+    }
+
+    function validAccountDocument(uid, data) {
+      return data.keys().hasOnly([
+          'authProvider', 'createdAt', 'termsAcceptedAt', 'uid'
+        ])
+        && data.keys().hasAll([
+          'authProvider', 'createdAt', 'termsAcceptedAt', 'uid'
+        ])
+        && data.uid == uid
+        && data.authProvider in ['password', 'google']
+        && data.createdAt == request.time;
+    }
+
+    function verifiedGoogleAccount(data) {
+      return data.authProvider == 'google'
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && data.termsAcceptedAt == request.time;
+    }
+
+    function verifiedPendingPasswordAccount(uid, data) {
+      return data.authProvider == 'password'
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && exists(
+          /databases/$(database)/documents/pendingAccounts/$(uid)
+        )
+        && get(
+          /databases/$(database)/documents/pendingAccounts/$(uid)
+        ).data.uid == uid
+        && get(
+          /databases/$(database)/documents/pendingAccounts/$(uid)
+        ).data.authProvider == 'password'
+        && data.termsAcceptedAt == get(
+          /databases/$(database)/documents/pendingAccounts/$(uid)
+        ).data.termsAcceptedAt;
     }
 
     function owns(uid) {
@@ -28,7 +66,7 @@ service cloud.firestore {
     function validProfile(uid, data) {
       return data.keys().hasOnly([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
-          'position', 'profileCompleted', 'uid', 'updatedAt', 'username'
+          'interestTags', 'position', 'profileCompleted', 'uid', 'updatedAt', 'username'
         ])
         && data.keys().hasAll([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
@@ -42,6 +80,10 @@ service cloud.firestore {
         && data.position is string && data.position.size() >= 2 && data.position.size() <= 40
         && data.city is string && data.city.size() >= 2 && data.city.size() <= 80
         && data.club is string && data.club.size() >= 2 && data.club.size() <= 80
+        && (
+          !data.keys().hasAny(['interestTags'])
+          || (data.interestTags is list && data.interestTags.size() <= 6)
+        )
         && data.photoURL is string && data.photoURL.size() <= 2048
         && data.profileCompleted == true
         && data.createdAt is timestamp
@@ -114,38 +156,107 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
-    function validProfileMedia(uid, data) {
+
+    function validFollow(uid, targetUid, data) {
       return data.keys().hasOnly([
-          'avatarPath', 'avatarURL', 'createdAt', 'cropScale', 'focusX',
-          'focusY', 'sourceHeight', 'sourceWidth', 'uid', 'updatedAt'
+          'createdAt', 'followerUid', 'targetProfileId', 'targetUid'
         ])
         && data.keys().hasAll([
-          'avatarPath', 'avatarURL', 'createdAt', 'cropScale', 'focusX',
-          'focusY', 'sourceHeight', 'sourceWidth', 'uid', 'updatedAt'
+          'createdAt', 'followerUid', 'targetProfileId', 'targetUid'
         ])
-        && data.uid == uid
-        && data.avatarPath == 'avatars/' + uid + '/profile'
-        && data.avatarURL is string && data.avatarURL.size() >= 1
-        && data.avatarURL.size() <= 2048
-        && (data.cropScale is int || data.cropScale is float)
-        && data.cropScale >= 0.3 && data.cropScale <= 1
-        && (data.focusX is int || data.focusX is float)
-        && data.focusX >= 0 && data.focusX <= 100
-        && (data.focusY is int || data.focusY is float)
-        && data.focusY >= 0 && data.focusY <= 100
-        && data.sourceHeight is int && data.sourceHeight > 0
-        && data.sourceHeight <= 10000
-        && data.sourceWidth is int && data.sourceWidth > 0
-        && data.sourceWidth <= 10000
-        && data.createdAt is timestamp
-        && data.updatedAt is timestamp;
+        && data.followerUid == uid
+        && data.targetUid == targetUid
+        && data.targetProfileId == 'profile-' + targetUid
+        && uid != targetUid
+        && data.createdAt == request.time;
+    }
+
+    function validSocialPreferences(uid, data) {
+      return data.keys().hasOnly([
+          'blockedProfileIds', 'deletedAtByContactId', 'hiddenPlayerIds',
+          'interestedContentKeys', 'mutedContactIds', 'mutedContentKeys',
+          'ownerUid', 'pinnedContactIds', 'reportedPlayerIds', 'updatedAt'
+        ])
+        && data.keys().hasAll([
+          'blockedProfileIds', 'deletedAtByContactId', 'hiddenPlayerIds',
+          'interestedContentKeys', 'mutedContactIds', 'mutedContentKeys',
+          'ownerUid', 'pinnedContactIds', 'reportedPlayerIds', 'updatedAt'
+        ])
+        && data.ownerUid == uid
+        && data.blockedProfileIds is list && data.blockedProfileIds.size() <= 500
+        && data.deletedAtByContactId is map
+        && data.deletedAtByContactId.size() <= 500
+        && data.hiddenPlayerIds is list && data.hiddenPlayerIds.size() <= 500
+        && data.interestedContentKeys is list
+        && data.interestedContentKeys.size() <= 500
+        && data.mutedContactIds is list && data.mutedContactIds.size() <= 500
+        && data.mutedContentKeys is list && data.mutedContentKeys.size() <= 500
+        && data.pinnedContactIds is list && data.pinnedContactIds.size() <= 3
+        && data.reportedPlayerIds is list
+        && data.reportedPlayerIds.size() <= 500
+        && data.updatedAt == request.time;
+    }
+
+    function validPostComment(data) {
+      return data.keys().hasOnly([
+          'authorName', 'authorProfileId', 'authorUserId', 'authorUsername',
+          'body', 'createdAt', 'parentCommentId', 'playerId',
+          'postId', 'replyToUserId', 'replyToUsername'
+        ])
+        && data.keys().hasAll([
+          'authorName', 'authorProfileId', 'authorUserId', 'authorUsername',
+          'body', 'createdAt', 'playerId', 'postId'
+        ])
+        && data.authorUserId == request.auth.uid
+        && data.authorProfileId == 'profile-' + request.auth.uid
+        && data.authorName is string && data.authorName.size() >= 1
+        && data.authorName.size() <= 80
+        && data.authorUsername is string && data.authorUsername.size() >= 3
+        && data.authorUsername.size() <= 30
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 1000
+        && data.playerId is string && data.playerId.size() >= 1
+        && data.playerId.size() <= 128
+        && data.postId is string && data.postId.size() >= 1
+        && data.postId.size() <= 128
+        && (
+          data.playerId == data.postId
+          || data.playerId == 'approved-' + data.postId
+        )
+        && (!('parentCommentId' in data)
+          || (data.parentCommentId is string
+            && data.parentCommentId.size() >= 1
+            && data.parentCommentId.size() <= 128))
+        && (!('replyToUserId' in data)
+          || (data.replyToUserId is string
+            && data.replyToUserId.size() >= 1
+            && data.replyToUserId.size() <= 128))
+        && (!('replyToUsername' in data)
+          || (data.replyToUsername is string
+            && data.replyToUsername.size() >= 1
+            && data.replyToUsername.size() <= 30))
+        && data.createdAt == request.time;
     }
 
     match /accounts/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
       allow list: if false;
+      allow create: if verifiedUser()
+        && request.auth.uid == uid
+        && validAccountDocument(uid, request.resource.data)
+        && (
+          verifiedGoogleAccount(request.resource.data)
+          || verifiedPendingPasswordAccount(uid, request.resource.data)
+        );
+      allow update, delete: if false;
+    }
+
+    match /pendingAccounts/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
       allow create: if signedIn()
         && request.auth.uid == uid
+        && request.auth.token.email_verified == false
+        && request.auth.token.firebase.sign_in_provider == 'password'
         && request.resource.data.keys().hasOnly([
           'authProvider', 'createdAt', 'termsAcceptedAt', 'uid'
         ])
@@ -153,10 +264,21 @@ service cloud.firestore {
           'authProvider', 'createdAt', 'termsAcceptedAt', 'uid'
         ])
         && request.resource.data.uid == uid
-        && request.resource.data.authProvider in ['password', 'google', 'apple']
+        && request.resource.data.authProvider == 'password'
         && request.resource.data.createdAt == request.time
         && request.resource.data.termsAcceptedAt == request.time;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if verifiedUser()
+        && request.auth.uid == uid
+        && existsAfter(
+          /databases/$(database)/documents/accounts/$(uid)
+        )
+        && getAfter(
+          /databases/$(database)/documents/accounts/$(uid)
+        ).data.authProvider == 'password'
+        && getAfter(
+          /databases/$(database)/documents/accounts/$(uid)
+        ).data.termsAcceptedAt == resource.data.termsAcceptedAt;
     }
 
     match /profiles/{uid} {
@@ -217,15 +339,77 @@ service cloud.firestore {
 
     match /profileMedia/{uid} {
       allow get, list: if registeredVerifiedUser();
-      allow create: if owns(uid)
-        && validProfileMedia(uid, request.resource.data)
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
-      allow update: if owns(uid)
-        && validProfileMedia(uid, request.resource.data)
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedAt == request.time;
+      allow create, update, delete: if false;
+    }
+
+    match /postEngagement/{playerId} {
+      allow get, list: if registeredVerifiedUser();
+      allow create, update, delete: if false;
+    }
+
+    match /userPostLikes/{uid}/posts/{playerId} {
+      allow get, list: if owns(uid);
+      allow create, update, delete: if false;
+    }
+
+    match /userPostViews/{uid}/posts/{playerId} {
+      allow get, list: if owns(uid);
+      allow create, update, delete: if false;
+    }
+
+    match /directMessages/{messageId} {
+      allow get, list: if registeredVerifiedUser()
+        && (
+          resource.data.senderUserId == request.auth.uid
+          || resource.data.recipientUserId == request.auth.uid
+        );
+      allow create, update, delete: if false;
+    }
+
+    match /follows/{followId} {
+      allow get, list: if registeredVerifiedUser();
+      allow create: if registeredVerifiedUser()
+        && followId == request.auth.uid + '_' + request.resource.data.targetUid
+        && validFollow(
+          request.auth.uid,
+          request.resource.data.targetUid,
+          request.resource.data
+        )
+        && exists(
+          /databases/$(database)/documents/profiles/$(request.resource.data.targetUid)
+        );
+      allow update: if false;
+      allow delete: if registeredVerifiedUser()
+        && resource.data.followerUid == request.auth.uid;
+    }
+
+    match /socialPreferences/{uid} {
+      allow get: if owns(uid);
+      allow list: if false;
+      allow create, update: if owns(uid)
+        && validSocialPreferences(uid, request.resource.data);
       allow delete: if false;
+    }
+
+    match /postComments/{commentId} {
+      allow get, list: if registeredVerifiedUser();
+      allow create: if registeredVerifiedUser()
+        && validPostComment(request.resource.data)
+        && get(
+          /databases/$(database)/documents/profiles/$(request.auth.uid)
+        ).data.name == request.resource.data.authorName
+        && get(
+          /databases/$(database)/documents/profiles/$(request.auth.uid)
+        ).data.username == request.resource.data.authorUsername
+        && exists(
+          /databases/$(database)/documents/posts/$(request.resource.data.postId)
+        )
+        && get(
+          /databases/$(database)/documents/posts/$(request.resource.data.postId)
+        ).data.status == 'published';
+      allow update: if false;
+      allow delete: if registeredVerifiedUser()
+        && resource.data.authorUserId == request.auth.uid;
     }
 
     match /{document=**} {

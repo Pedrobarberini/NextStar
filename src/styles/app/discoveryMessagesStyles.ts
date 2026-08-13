@@ -204,6 +204,14 @@ export const discoveryMessagesStyles = {
     paddingHorizontal: 10,
     paddingVertical: 8
   },
+  messagesContactProfileButton: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: 9,
+    minWidth: 0,
+    paddingVertical: 2
+  },
   messagesContactAvatar: {
     alignItems: "center",
     backgroundColor: colors.primarySoft,
@@ -339,6 +347,7 @@ export const discoveryMessagesStyles = {
   },
   messageBubbleRow: {
     alignItems: "flex-start",
+    gap: 6,
     marginBottom: 8,
     width: "100%"
   },
@@ -366,39 +375,47 @@ export const discoveryMessagesStyles = {
   messageBubbleTextMine: {
     color: colors.onPrimary
   },
+  messageMetadata: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 3,
+    marginTop: -2,
+    paddingHorizontal: 3
+  },
+  messageMetadataMine: {
+    justifyContent: "flex-end"
+  },
+  messageTimeText: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "700"
+  },
+  messageReceipt: {
+    alignItems: "center",
+    height: 16,
+    justifyContent: "center",
+    minWidth: 16
+  },
   sharedPostMessage: {
     alignItems: "stretch",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
     borderRadius: 8,
-    borderWidth: 1,
-    gap: 10,
-    maxWidth: "94%",
-    minHeight: 96,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    width: 330
-  },
-  sharedPostMessageMine: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
+    maxWidth: "72%",
+    overflow: "hidden",
+    padding: 0,
+    width: 220
   },
   sharedPostMessageUnavailable: {
     opacity: 0.62
   },
   sharedPostMessageThumbnail: {
     alignSelf: "center",
-    marginTop: 2,
     alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: 6,
-    height: 250,
+    backgroundColor: colors.media,
+    borderRadius: 8,
+    height: 275,
     justifyContent: "center",
     overflow: "hidden",
-    width: 200
-  },
-  sharedPostMessageThumbnailMine: {
-    backgroundColor: colors.surface
+    width: "100%"
   },
   sharedPostMessageThumbnailMedia: {
     height: "100%",
@@ -406,46 +423,34 @@ export const discoveryMessagesStyles = {
   },
   sharedPostMessageThumbnailFallback: {
     alignItems: "center",
+    backgroundColor: colors.media,
     height: "100%",
     justifyContent: "center",
     width: "100%"
   },
-  sharedPostMessageHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "space-between",
-    width: "100%"
+  sharedPostMessageThumbnailOverlay: {
+    bottom: 12,
+    left: 12,
+    position: "absolute",
+    right: 12
   },
-  sharedPostMessageIdentity: {
-    flex: 1,
-    minWidth: 0
-  },
-  sharedPostMessageTitle: {
-    color: colors.text,
+  sharedPostMessageOverlayTitle: {
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "900",
-    lineHeight: 18
-  },
-  sharedPostMessageTitleMine: {
-    color: colors.onPrimary
-  },
-  sharedPostMessageMeta: {
-    color: colors.muted,
-    fontSize: 11,
-    marginTop: 3
-  },
-  sharedPostMessageMetaMine: {
-    color: "rgba(255, 255, 255, 0.76)"
-  },
-  sharedPostMessageCaption: {
-    color: colors.text,
-    fontSize: 13,
     lineHeight: 18,
-    marginTop: 0
+    textShadowColor: "rgba(0, 0, 0, 0.9)",
+    textShadowOffset: { height: 1, width: 0 },
+    textShadowRadius: 4
   },
-  sharedPostMessageCaptionMine: {
-    color: "rgba(255, 255, 255, 0.92)"
+  sharedPostMessageOverlayAuthor: {
+    color: colors.onPrimary,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 3,
+    textShadowColor: "rgba(0, 0, 0, 0.9)",
+    textShadowOffset: { height: 1, width: 0 },
+    textShadowRadius: 3
   },
   messageComposer: {
     alignItems: "flex-end",

@@ -5,6 +5,7 @@ import { XOLOT_WORDMARK } from "../constants/assets";
 import { AccountSetupModal } from "../screens/AccountSetupScreen";
 import { AuthScreen } from "../screens/AuthScreen";
 import { styles } from "../styles/appStyles";
+import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
 import type { AccountProfile, AppUser } from "../types";
 
@@ -25,10 +26,12 @@ type AccountSetupGateProps = BrandLaunchOverlayProps & {
 };
 
 function AppStatusBar() {
+  const { themeMode } = useTheme();
+
   return (
     <StatusBar
       backgroundColor={colors.background}
-      barStyle="dark-content"
+      barStyle={themeMode === "dark" ? "light-content" : "dark-content"}
     />
   );
 }

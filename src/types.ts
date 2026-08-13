@@ -27,7 +27,6 @@ export type Player = {
   videoUri: string | number;
   mediaType?: SubmissionMediaType;
   hasAudio?: boolean;
-  isDemo?: boolean;
   highlight: string;
   tags: string[];
   mentions?: string[];
@@ -103,6 +102,8 @@ export type DirectMessage = {
   recipientUserId: string;
   body: string;
   createdAt: string;
+  deliveredAt?: string;
+  readAt?: string;
   sharedPost?: SharedPostReference;
 };
 
@@ -158,6 +159,7 @@ export type AccountProfile = {
   bio: string;
   city: string;
   club: string;
+  interestTags: string[];
   name: string;
   position: string;
   username: string;

@@ -19,3 +19,6 @@ expo-go-qr.png
 *.key
 *.mobileprovision
 .firebase/
+functions/lib/
+functions/.env*
+functions/.secret.local

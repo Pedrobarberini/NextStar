@@ -17,6 +17,7 @@ import { LabeledInput } from "../components/Navigation";
 import { GOOGLE_SIGNIN_ICON, XOLOT_WORDMARK } from "../constants/assets";
 import { useGoogleSignIn } from "../hooks/useGoogleSignIn";
 import {
+  AccountCompletionRequiredError,
   createFirebaseAccountMetadata,
   getCurrentFirebaseUser,
   getSafeFirebaseAuthMessage,
@@ -54,6 +55,7 @@ export function AuthScreen({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [needsAccountCompletion, setNeedsAccountCompletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     isAvailable: isGoogleAvailable,
@@ -68,11 +70,12 @@ export function AuthScreen({
   const hasStrongPassword = isStrongPassword(password);
   const hasValidPassword = mode === "login" ? password.length >= 1 : hasStrongPassword;
   const isBusy = isSubmitting || isGoogleSigningIn;
+  const mustAcceptTerms = mode === "create" || needsAccountCompletion;
   const canContinue =
     hasValidEmail &&
     hasValidPassword &&
     (mode === "login" || password === passwordConfirmation) &&
-    (mode === "login" || acceptedTerms) &&
+    (!mustAcceptTerms || acceptedTerms) &&
     !isBusy;
   const canContinueWithGoogle =
     !isBusy && isGoogleAvailable && isGoogleReady;
@@ -88,6 +91,7 @@ export function AuthScreen({
     setPassword("");
     setPasswordConfirmation("");
     setAcceptedTerms(false);
+    setNeedsAccountCompletion(false);
   }
 
   async function handleGooglePress() {
@@ -95,7 +99,7 @@ export function AuthScreen({
 
     if (!isGoogleAvailable) {
       Alert.alert(
-        "Login com Google",
+        "Login com o Google",
         "Configure o Firebase no arquivo .env e reinicie o Expo."
       );
       return;
@@ -120,7 +124,7 @@ export function AuthScreen({
         if (mode !== "create") {
           await signOutFirebaseSession();
           setErrorMessage(
-            "Esta identidade ainda não possui uma conta Xolot. Use Cadastrar."
+            "Esta identidade ainda não possui uma conta Xolot. Selecione “Cadastrar”."
           );
           return;
         }
@@ -163,17 +167,28 @@ export function AuthScreen({
         setPasswordConfirmation("");
         setAcceptedTerms(false);
         setSuccessMessage(
-          "Conta criada. Confirme o link enviado ao seu email antes de entrar."
+          "Cadastro recebido. Confirme o link enviado ao seu e-mail para ativar sua conta."
         );
         return;
       }
 
       const firebaseUser = await signInWithEmailAndPasswordSecurely(
         cleanEmail,
-        password
+        password,
+        needsAccountCompletion && acceptedTerms
       );
+      setNeedsAccountCompletion(false);
       onComplete(await loadFirebaseAppUser(firebaseUser));
     } catch (error) {
+      if (error instanceof AccountCompletionRequiredError) {
+        setNeedsAccountCompletion(true);
+        setAcceptedTerms(false);
+        setErrorMessage(
+          "Sua identidade foi encontrada. Aceite os termos abaixo para concluir a conta Xolot."
+        );
+        return;
+      }
+
       setErrorMessage(getSafeFirebaseAuthMessage(error));
     } finally {
       setIsSubmitting(false);
@@ -184,7 +199,7 @@ export function AuthScreen({
     clearFeedback();
 
     if (!hasValidEmail) {
-      setErrorMessage("Informe um email válido para recuperar a senha.");
+      setErrorMessage("Informe um e-mail válido para recuperar a senha.");
       return;
     }
 
@@ -192,7 +207,7 @@ export function AuthScreen({
     try {
       await sendFirebasePasswordReset(cleanEmail);
       setSuccessMessage(
-        "Se existir uma conta para este email, enviaremos as instruções de recuperação."
+        "Se existir uma conta para este e-mail, enviaremos as instruções de recuperação."
       );
     } catch (error) {
       const message = getSafeFirebaseAuthMessage(error);
@@ -204,7 +219,7 @@ export function AuthScreen({
         setErrorMessage(message);
       } else {
         setSuccessMessage(
-          "Se existir uma conta para este email, enviaremos as instruções de recuperação."
+          "Se existir uma conta para este e-mail, enviaremos as instruções de recuperação."
         );
       }
     } finally {
@@ -212,8 +227,12 @@ export function AuthScreen({
     }
   }
 
-  const submitLabel = mode === "login" ? "Entrar" : "Criar conta";
-  const SubmitIcon = mode === "login" ? LogIn : UserPlus;
+  const submitLabel = needsAccountCompletion
+    ? "Concluir cadastro"
+    : mode === "login"
+      ? "Entrar"
+      : "Criar conta";
+  const SubmitIcon = mode === "login" && !needsAccountCompletion ? LogIn : UserPlus;
 
   return (
     <KeyboardAvoidingView
@@ -247,7 +266,7 @@ export function AuthScreen({
 
           <View style={styles.authSocialRow}>
             <Pressable
-              accessibilityLabel="Continuar com Google"
+              accessibilityLabel="Continuar com o Google"
               accessibilityRole="button"
               disabled={!canContinueWithGoogle}
               onPress={() => void handleGooglePress()}
@@ -271,7 +290,7 @@ export function AuthScreen({
 
           <View style={styles.authDivider}>
             <View style={styles.authDividerLine} />
-            <Text style={styles.authDividerText}>ou use seu email</Text>
+            <Text style={styles.authDividerText}>ou use seu e-mail</Text>
             <View style={styles.authDividerLine} />
           </View>
 
@@ -279,9 +298,11 @@ export function AuthScreen({
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
-            label="Email"
+            label="E-mail"
             onChangeText={(value) => {
               setEmail(value);
+              setNeedsAccountCompletion(false);
+              setAcceptedTerms(false);
               clearFeedback();
             }}
             placeholder="você@email.com"
@@ -289,7 +310,7 @@ export function AuthScreen({
           />
           {email.trim() && !hasValidEmail ? (
             <Text accessibilityRole="alert" style={styles.authFieldErrorText}>
-              Digite um email válido, como nome@dominio.com.
+              Digite um e-mail válido, como nome@dominio.com.
             </Text>
           ) : null}
 
@@ -303,7 +324,7 @@ export function AuthScreen({
             }}
             onSubmitEditing={mode === "login" ? submitAuth : undefined}
             placeholder={
-              mode === "login" ? "Sua senha" : "8 caracteres, maiúscula e número"
+              mode === "login" ? "Sua senha" : "8 caracteres, letra maiúscula, minúscula e número"
             }
             returnKeyType={mode === "login" ? "done" : "next"}
             secureTextEntry
@@ -383,7 +404,7 @@ export function AuthScreen({
             </Pressable>
           ) : null}
 
-          {mode === "create" ? (
+          {mustAcceptTerms ? (
             <Pressable
               accessibilityLabel="Aceitar Termos de Uso e Política de Privacidade"
               accessibilityRole="checkbox"
@@ -405,6 +426,12 @@ export function AuthScreen({
                 Aceito os Termos de Uso e a Política de Privacidade da Xolot.
               </Text>
             </Pressable>
+          ) : null}
+
+          {needsAccountCompletion ? (
+            <Text style={styles.authHelperText}>
+              Esta etapa recupera o cadastro sem alterar sua senha.
+            </Text>
           ) : null}
 
           {successMessage ? (

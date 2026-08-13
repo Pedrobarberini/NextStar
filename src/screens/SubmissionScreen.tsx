@@ -59,11 +59,13 @@ const emptySubmissionDraft: SubmissionDraft = {
 export function SubmitVideoScreen({
   accounts,
   onBack,
+  onPublished,
   onSubmit,
   user
 }: {
   accounts: AppUser[];
   onBack: () => void;
+  onPublished: (submission: VideoSubmission) => void;
   onSubmit: (
     submission: VideoSubmission,
     media: PublicationMediaInput,
@@ -92,7 +94,7 @@ export function SubmitVideoScreen({
     age >= 12
       ? null
       : "Revise a idade no perfil. Envios são aceitos a partir de 12 anos.",
-    selectedMedia ? null : "Escolha ou capture uma foto ou vídeo.",
+    selectedMedia ? null : "Escolha ou capture uma foto ou um vídeo.",
     draft.title.trim().length >= 4 && draft.title.trim().length <= 120
       ? null
       : "O título precisa ter entre 4 e 120 caracteres.",
@@ -199,7 +201,7 @@ export function SubmitVideoScreen({
       if (!permission.granted) {
         Alert.alert(
           "Permissão necessária",
-          "Autorize o acesso à galeria para escolher uma foto ou vídeo."
+          "Autorize o acesso à galeria para escolher uma foto ou um vídeo."
         );
         return;
       }
@@ -293,6 +295,7 @@ export function SubmitVideoScreen({
       setSelectedMedia(null);
       setDraft(emptySubmissionDraft);
       setStep("media");
+      onPublished(publishedSubmission);
     } catch (error) {
       Alert.alert(
         "Não foi possível publicar",
