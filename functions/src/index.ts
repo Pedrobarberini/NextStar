@@ -370,3 +370,9 @@ export {
 export { finalizeAccountRegistration } from "./account";
 export { recordPostView, sendDirectMessage, setPostLike } from "./social";
 export { updateDirectMessageReceipts } from "./messageReceipts";
+export {
+  markNotificationsRead,
+  notifyDirectMessage,
+  notifyPostComment,
+  notifyPostLike
+} from "./notifications";

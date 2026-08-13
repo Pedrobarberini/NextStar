@@ -13,6 +13,7 @@ import { discoveryMessagesStyles } from "./app/discoveryMessagesStyles";
 import { profileDiscoveryStyles } from "./app/profileDiscoveryStyles";
 import { commentsStyles } from "./app/commentsStyles";
 import { securityStyles } from "./app/securityStyles";
+import { notificationStyles } from "./app/notificationStyles";
 
 export const styles = createThemedStyles(StyleSheet.create({
   ...baseStyles,
@@ -27,5 +28,6 @@ export const styles = createThemedStyles(StyleSheet.create({
   ...discoveryMessagesStyles,
   ...profileDiscoveryStyles,
   ...commentsStyles,
-  ...securityStyles
+  ...securityStyles,
+  ...notificationStyles
 }));

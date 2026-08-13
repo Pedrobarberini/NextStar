@@ -113,7 +113,9 @@ export default function App() {
     likedPlayerIdSet,
     likeCountsByPlayer,
     markDirectMessagesRead,
+    markNotificationsRead,
     mutedContentKeySet,
+    notifications,
     ownProfileId,
     mutedContactIds,
     pinnedContactIds,
@@ -317,8 +319,10 @@ export default function App() {
       likedPlayerIdSet={likedPlayerIdSet}
       likeCountsByPlayer={likeCountsByPlayer}
       markDirectMessagesRead={markDirectMessagesRead}
+      markNotificationsRead={markNotificationsRead}
       mutedContactIds={mutedContactIds}
       mutedContentKeySet={mutedContentKeySet}
+      notifications={notifications}
       onBrandLaunchFinish={() => setIsBrandLaunchVisible(false)}
       onOpenMessagesForSelectedProfile={openMessagesForSelectedProfile}
       openCampaign={openCampaign}

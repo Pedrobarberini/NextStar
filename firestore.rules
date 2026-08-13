@@ -366,6 +366,12 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /notifications/{notificationId} {
+      allow get, list: if registeredVerifiedUser()
+        && resource.data.recipientUserId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
     match /follows/{followId} {
       allow get, list: if registeredVerifiedUser();
       allow create: if registeredVerifiedUser()

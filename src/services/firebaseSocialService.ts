@@ -17,6 +17,7 @@ import {
   getFirebaseFunctions
 } from "../config/firebase";
 import type {
+  AppNotification,
   ConversationPreferences,
   DirectMessage,
   FollowingByUser,
@@ -25,6 +26,10 @@ import type {
 } from "../types";
 import { EMPTY_CONVERSATION_PREFERENCES } from "../utils/conversations";
 import { normalizePostComments } from "../utils/postComments";
+import {
+  normalizeAppNotification,
+  sortNotificationsNewestFirst
+} from "../utils/notifications";
 import { getCurrentFirebaseUser } from "./firebaseAccountService";
 import type { SocialState } from "./socialStorage";
 
@@ -33,10 +38,12 @@ const ENGAGEMENT_COLLECTION = "postEngagement";
 const DIRECT_MESSAGES_COLLECTION = "directMessages";
 const POST_COMMENTS_COLLECTION = "postComments";
 const SOCIAL_PREFERENCES_COLLECTION = "socialPreferences";
+const NOTIFICATIONS_COLLECTION = "notifications";
 const MAX_FOLLOWS = 5_000;
 const MAX_ENGAGEMENT_DOCUMENTS = 2_000;
 const MAX_MESSAGES_PER_DIRECTION = 500;
 const MAX_COMMENTS = 2_000;
+const MAX_NOTIFICATIONS = 100;
 
 type EngagementCounts = {
   likes: number;
@@ -57,6 +64,7 @@ export type FirebaseSocialSnapshot = {
   engagementByPlayer: Record<string, EngagementCounts>;
   followingByUser: FollowingByUser;
   likedPlayerIds: string[];
+  notifications: AppNotification[];
   postComments: PostComment[];
   preferences: FirebaseSocialPreferences;
   viewedPlayerIds: string[];
@@ -229,6 +237,7 @@ export function subscribeFirebaseSocialState(
   let incomingMessages: DirectMessage[] = [];
   const pendingDeliveryReceiptIds = new Set<string>();
   let postComments: PostComment[] = [];
+  let notifications: AppNotification[] = [];
   let preferences = emptyPreferences;
 
   const emit = () =>
@@ -237,6 +246,7 @@ export function subscribeFirebaseSocialState(
       engagementByPlayer,
       followingByUser,
       likedPlayerIds,
+      notifications,
       postComments,
       preferences,
       viewedPlayerIds
@@ -367,6 +377,26 @@ export function subscribeFirebaseSocialState(
     },
     reportError
   );
+  const unsubscribeNotifications = onSnapshot(
+    query(
+      collection(firestore, NOTIFICATIONS_COLLECTION),
+      where("recipientUserId", "==", uid),
+      limit(MAX_NOTIFICATIONS)
+    ),
+    (snapshot) => {
+      notifications = sortNotificationsNewestFirst(
+        snapshot.docs.flatMap((notification) => {
+          const normalized = normalizeAppNotification(
+            notification.id,
+            notification.data()
+          );
+          return normalized ? [normalized] : [];
+        })
+      );
+      emit();
+    },
+    reportError
+  );
   const unsubscribePreferences = onSnapshot(
     doc(firestore, SOCIAL_PREFERENCES_COLLECTION, uid),
     (snapshot) => {
@@ -384,6 +414,7 @@ export function subscribeFirebaseSocialState(
     unsubscribeOutgoing();
     unsubscribeIncoming();
     unsubscribeComments();
+    unsubscribeNotifications();
     unsubscribePreferences();
   };
 }
@@ -663,6 +694,19 @@ export async function migrateLocalFirebaseSocialState(
   }
 }
 
+export async function markFirebaseNotificationsRead(
+  notificationIds: string[]
+) {
+  if (notificationIds.length === 0) {
+    return;
+  }
+
+  const callable = httpsCallable<
+    { notificationIds: string[] },
+    { updated: number }
+  >(getFirebaseFunctions(), "markNotificationsRead");
+  await callable({ notificationIds });
+}
 export function getSafeFirebaseSocialMessage(error: unknown) {
   if (error instanceof Error && !(error instanceof FirebaseError)) {
     return error.message;

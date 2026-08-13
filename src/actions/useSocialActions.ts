@@ -11,6 +11,7 @@ import {
   deleteFirebasePostComment,
   type FirebaseSocialPreferences,
   getSafeFirebaseSocialMessage,
+  markFirebaseNotificationsRead,
   migrateLocalFirebaseSocialState,
   recordFirebasePostView,
   saveFirebaseDirectMessage,
@@ -22,6 +23,7 @@ import {
   updateFirebaseDirectMessageReceipts
 } from "../services/firebaseSocialService";
 import {
+  AppNotification,
   AppUser,
   ConversationPreferencesByUser,
   DirectMessage,
@@ -96,6 +98,7 @@ export function useSocialActions({
   const [viewedPlayerIdsByUser, setViewedPlayerIdsByUser] =
     useState<SocialSelectionsByUser>({});
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [postComments, setPostComments] = useState<PostComment[]>([]);
   const [isSocialStateLoaded, setIsSocialStateLoaded] = useState(false);
 
@@ -171,6 +174,7 @@ export function useSocialActions({
   useEffect(() => {
     if (!user || !isSocialStateLoaded) {
       setRemoteEngagementByPlayer(null);
+      setNotifications([]);
       return;
     }
 
@@ -189,6 +193,7 @@ export function useSocialActions({
           [currentUserId]: remoteState.viewedPlayerIds
         }));
         setDirectMessages(remoteState.directMessages);
+        setNotifications(remoteState.notifications);
         setPostComments(remoteState.postComments);
         setRemoteEngagementByPlayer(remoteState.engagementByPlayer);
         setConversationPreferencesByUser((current) => ({
@@ -579,6 +584,44 @@ export function useSocialActions({
     void sendMessageToContact(contact, body);
   }
 
+  function markNotificationsRead(notificationIds: string[]) {
+    if (!user) {
+      return;
+    }
+
+    const unreadNotificationIds = Array.from(
+      new Set(notificationIds)
+    ).filter((notificationId) =>
+      notifications.some(
+        (notification) =>
+          notification.id === notificationId &&
+          notification.recipientUserId === user.id &&
+          !notification.readAt
+      )
+    );
+    if (unreadNotificationIds.length === 0) {
+      return;
+    }
+
+    const readAt = new Date().toISOString();
+    setNotifications((current) =>
+      current.map((notification) =>
+        unreadNotificationIds.includes(notification.id)
+          ? { ...notification, readAt }
+          : notification
+      )
+    );
+    void markFirebaseNotificationsRead(unreadNotificationIds).catch((error) => {
+      setNotifications((current) =>
+        current.map((notification) =>
+          unreadNotificationIds.includes(notification.id)
+            ? { ...notification, readAt: undefined }
+            : notification
+        )
+      );
+      reportSocialWriteError(error);
+    });
+  }
   function markDirectMessagesRead(messageIds: string[]) {
     if (!user) {
       return;
@@ -976,6 +1019,7 @@ export function useSocialActions({
     likedPlayerIdSet,
     likeCountsByPlayer,
     mutedContentKeySet,
+    notifications,
     ownProfileId,
     mutedContactIds: currentConversationPreferences.mutedContactIds,
     pinnedContactIds: currentConversationPreferences.pinnedContactIds,
@@ -983,6 +1027,7 @@ export function useSocialActions({
     reportedPlayerIds,
     reportedPlayerIdSet,
     markDirectMessagesRead,
+    markNotificationsRead,
     sendDirectMessage,
     sendSharedPost,
     shareCountsByPlayer,

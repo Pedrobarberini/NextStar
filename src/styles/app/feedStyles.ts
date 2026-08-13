@@ -219,7 +219,7 @@ export const feedStyles = {
     gap: 7,
     position: "absolute",
     right: 10,
-    top: 10,
+    top: 50,
     zIndex: 3
   },
   feedVideoControlButton: {

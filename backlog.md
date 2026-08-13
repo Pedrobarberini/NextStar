@@ -222,7 +222,7 @@ Status: Integracao Cloudflare R2 publicada em producao em 2026-08-11. Credenciai
 Tipo: Backend/Frontend
 
 
-Status: Sincronizacao multi-dispositivo e recibos publicada em 2026-08-12; paginacao, criptografia ponta a ponta e notificacoes continuam pendentes.
+Status: Sincronizacao multi-dispositivo, recibos e central de notificacoes no app publicados em 2026-08-13; paginacao, criptografia ponta a ponta e push externo continuam pendentes.
 
 - [x] Persistir mensagens privadas no Firestore com leitura restrita ao remetente e destinatario.
 - [x] Sincronizar follows, preferencias de seguranca e configuracoes de conversa por conta.
@@ -253,6 +253,9 @@ Status: Sincronizacao multi-dispositivo e recibos publicada em 2026-08-12; pagin
 - [ ] Criar tabelas Conversation, ConversationMember e Message.
 - [ ] Implementar WebSocket ou serviço realtime.
 - [x] Persistir recibos de envio, entrega e leitura.
+- [x] Criar central de notificacoes em tempo real para mensagens, compartilhamentos, curtidas, comentarios e respostas.
+- [x] Restringir alertas no Firestore ao destinatario e gerar eventos somente por Cloud Functions.
+- [x] Exibir sino com contador de nao lidas e navegacao direta para conversa ou publicacao.
 - [ ] Implementar anexos por referência segura à publicação.
 - [ ] Implementar paginação e sincronização offline.
 - [ ] Criar notificações push.

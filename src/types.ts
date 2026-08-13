@@ -96,6 +96,28 @@ export type SharedPostReference = {
   title: string;
 };
 
+export type AppNotificationKind =
+  | "comment"
+  | "like"
+  | "message"
+  | "reply"
+  | "shared-post";
+
+export type AppNotification = {
+  actorName: string;
+  actorUserId: string;
+  actorUsername: string;
+  createdAt: string;
+  id: string;
+  kind: AppNotificationKind;
+  mediaType?: SubmissionMediaType;
+  playerId?: string;
+  preview?: string;
+  readAt?: string;
+  recipientUserId: string;
+  sourceId: string;
+};
+
 export type DirectMessage = {
   id: string;
   senderUserId: string;

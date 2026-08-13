@@ -15,6 +15,10 @@ const socialService = readFileSync(
   new URL("../src/services/firebaseSocialService.ts", import.meta.url),
   "utf8"
 );
+const notificationFunctions = readFileSync(
+  new URL("../functions/src/notifications.ts", import.meta.url),
+  "utf8"
+);
 
 test("regras do Firestore exigem conta registrada, email verificado e deny by default", () => {
   assert.match(rules, /rules_version = '2'/);
@@ -79,6 +83,13 @@ test("estado social sincronizado preserva privacidade e contadores do servidor",
   assert.match(rules, /match \/postComments\/\{commentId\}/);
   assert.match(rules, /resource\.data\.authorUserId == request\.auth\.uid/);
   assert.match(rules, /match \/follows\/\{followId\}/);
+  assert.match(rules, /match \/notifications\/\{notificationId\}/);
+  assert.match(
+    rules,
+    /resource\.data\.recipientUserId == request\.auth\.uid/
+  );
+  assert.match(notificationFunctions, /onDocumentCreated/);
+  assert.match(notificationFunctions, /markNotificationsRead/);
   assert.match(rules, /match \/profileMedia\/\{uid\}[\s\S]*allow create, update, delete: if false/);
   assert.match(socialFunctions, /database\.doc\(`profiles\/\$\{recipientUserId\}`\)/);
 });

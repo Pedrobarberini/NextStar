@@ -4,7 +4,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import {
-  Expand,
+  Bell,
   Heart,
   MessageCircle,
   MoreVertical,
@@ -16,7 +16,7 @@ import {
   UsersRound,
   UserRound
 } from "lucide-react-native";
-import { Alert, Animated, Easing, Image, PanResponder, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { Animated, Easing, Image, PanResponder, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import {
   formatPlaybackTime,
   getCardPalette,
@@ -26,6 +26,7 @@ import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
 import { BackButton } from "../components/Navigation";
 import { CommentsModal } from "../components/CommentsModal";
 import { FeedPostOptionsModal } from "../components/FeedPostOptionsModal";
+import { NotificationsPopover } from "../components/NotificationsPopover";
 import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import {
   ProfileListModal,
@@ -38,6 +39,7 @@ import { FEED_TEXT_LIMIT_COMPACT, FEED_TEXT_LIMIT_WIDE, USE_CENTERED_WEB_LAYOUT 
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
 import type {
+  AppNotification,
   AppUser,
   MessageContact,
   Player,
@@ -70,11 +72,14 @@ export function FeedScreen({
   likeCountsByPlayer,
   shareCountsByPlayer,
   mutedContentKeys,
+  notifications,
   reportedPlayerIds,
   onAddComment,
   onBackToProfile,
   onDeleteComment,
   onImmersiveChange,
+  onMarkNotificationsRead,
+  onOpenNotification,
   onOpenPlayer,
   onOpenTaggedUser,
   onRecordView,
@@ -103,6 +108,7 @@ export function FeedScreen({
   likeCountsByPlayer: Record<string, number>;
   shareCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
+  notifications: AppNotification[];
   reportedPlayerIds: Set<string>;
   onAddComment: (
     playerId: string,
@@ -112,6 +118,8 @@ export function FeedScreen({
   onBackToProfile?: () => void;
   onDeleteComment: (commentId: string) => void;
   onImmersiveChange?: (active: boolean) => void;
+  onMarkNotificationsRead: (notificationIds: string[]) => void;
+  onOpenNotification: (notification: AppNotification) => void;
   onOpenPlayer: (player: Player) => void;
   onOpenTaggedUser: (user: AppUser) => void;
   onRecordView: (playerId: string) => void;
@@ -141,6 +149,7 @@ export function FeedScreen({
   const [preferencePlayer, setPreferencePlayer] = useState<Player | null>(null);
   const [sharePlayer, setSharePlayer] = useState<Player | null>(null);
   const [mentionedPlayer, setMentionedPlayer] = useState<Player | null>(null);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
   const feedScrollRef = useRef<ScrollView | null>(null);
   const activeFeedIndexRef = useRef(0);
   const gestureStartIndexRef = useRef(0);
@@ -154,6 +163,9 @@ export function FeedScreen({
   const pageHeight = feedHeight || height;
   const lastFeedIndex = Math.max(feedPlayers.length - 1, 0);
   const activePlayerId = feedPlayers[activeFeedIndex]?.id;
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !notification.readAt
+  ).length;
   const mentionedUsers = useMemo(
     () =>
       (mentionedPlayer?.mentions ?? [])
@@ -278,6 +290,16 @@ export function FeedScreen({
     });
   }
 
+  function openNotifications() {
+    setNotificationsVisible(true);
+    const unreadNotificationIds = notifications
+      .filter((notification) => !notification.readAt)
+      .map((notification) => notification.id);
+
+    if (unreadNotificationIds.length > 0) {
+      onMarkNotificationsRead(unreadNotificationIds);
+    }
+  }
   function refreshFeed() {
     onRefreshFeed();
     setCommentPlayer(null);
@@ -451,6 +473,38 @@ export function FeedScreen({
           />
         </Pressable>
       </Animated.View>
+      <Animated.View
+        pointerEvents={isCleanView ? "none" : "auto"}
+        style={[
+          styles.feedNotificationControl,
+          { opacity: feedChromeOpacity }
+        ]}
+      >
+        <Pressable
+          accessibilityLabel={
+            unreadNotificationCount > 0
+              ? "Abrir notificações. " +
+                unreadNotificationCount +
+                " não lidas"
+              : "Abrir notificações"
+          }
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={openNotifications}
+          style={styles.feedNotificationButton}
+        >
+          <Bell color="#FFFFFF" size={21} strokeWidth={2.2} />
+          {unreadNotificationCount > 0 ? (
+            <View style={styles.feedNotificationBadge}>
+              <Text style={styles.feedNotificationBadgeText}>
+                {unreadNotificationCount > 99
+                  ? "99+"
+                  : unreadNotificationCount}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </Animated.View>
       <FeedPostOptionsModal
         blocked={Boolean(
           preferencePlayer &&
@@ -543,6 +597,15 @@ export function FeedScreen({
         videoId={sharePlayer?.id ?? ""}
         videoTitle={sharePlayer?.videoTitle ?? ""}
         visible={Boolean(sharePlayer)}
+      />
+      <NotificationsPopover
+        notifications={notifications}
+        onClose={() => setNotificationsVisible(false)}
+        onSelect={(notification) => {
+          setNotificationsVisible(false);
+          onOpenNotification(notification);
+        }}
+        visible={notificationsVisible}
       />
       <ProfileListModal
         emptyBody="Os perfis marcados não estão mais disponíveis."
@@ -1309,7 +1372,6 @@ function ResolvedFeedVideoPlayback({
   trackColor,
   uri
 }: FeedVideoPlaybackProps) {
-  const videoViewRef = useRef<VideoView | null>(null);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [seekTrackWidth, setSeekTrackWidth] = useState(0);
   const [volume, setVolume] = useState(0);
@@ -1478,21 +1540,13 @@ function ResolvedFeedVideoPlayback({
     videoPlayer.play();
   }
 
-  function openFullscreen() {
-    videoViewRef.current?.enterFullscreen().catch(() => {
-      Alert.alert("Tela cheia indisponível", "Tente abrir o vídeo novamente.");
-    });
-  }
-
   return (
     <View style={styles.feedVideoPlayback}>
       <VideoView
-        allowsFullscreen
         contentFit="contain"
         nativeControls={false}
         player={videoPlayer}
         playsInline
-        ref={videoViewRef}
         style={styles.feedVideoMedia}
         surfaceType="textureView"
       />
@@ -1518,15 +1572,6 @@ function ResolvedFeedVideoPlayback({
         pointerEvents={isCleanView ? "none" : "auto"}
         style={[styles.feedVideoFloatingControls, { opacity: chromeOpacity }]}
       >
-        <Pressable
-          accessibilityLabel="Abrir vídeo em tela cheia"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={openFullscreen}
-          style={styles.feedVideoControlButton}
-        >
-          <Expand color="#FFFFFF" size={20} />
-        </Pressable>
         {hasAudio ? (
           <VideoVolumeControl
             active={isActive}

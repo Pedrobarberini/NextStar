@@ -23,6 +23,7 @@ import { styles } from "../styles/appStyles";
 import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
 import type {
+  AppNotification,
   AppUser,
   CampaignObjective,
   DirectMessage,
@@ -63,6 +64,7 @@ type AppRoutesProps = {
   deleteConversation: (contactId: string) => void;
   directMessages: DirectMessage[];
   markDirectMessagesRead: (messageIds: string[]) => void;
+  markNotificationsRead: (notificationIds: string[]) => void;
   deletePostComment: (commentId: string) => void;
   feedFocusPlayerId: string | null;
   focusFeedPlayer: (playerId: string) => void;
@@ -110,6 +112,7 @@ type AppRoutesProps = {
   shareCountsByPlayer: Record<string, number>;
   mutedContactIds: string[];
   mutedContentKeySet: Set<string>;
+  notifications: AppNotification[];
   onBrandLaunchFinish: () => void;
   onOpenMessagesForSelectedProfile: () => void;
   openCampaign: (player: Player) => void;
@@ -195,9 +198,11 @@ export function AppRoutes(props: AppRoutesProps) {
     likedPlayerIdSet,
     likeCountsByPlayer,
     markDirectMessagesRead,
+    markNotificationsRead,
     shareCountsByPlayer,
     mutedContactIds,
     mutedContentKeySet,
+    notifications,
     onBrandLaunchFinish,
     onOpenMessagesForSelectedProfile,
     openCampaign,
@@ -343,6 +348,18 @@ export function AppRoutes(props: AppRoutesProps) {
                   likeCountsByPlayer={likeCountsByPlayer}
                   shareCountsByPlayer={shareCountsByPlayer}
                   mutedContentKeys={mutedContentKeySet}
+                  notifications={notifications}
+                  onMarkNotificationsRead={markNotificationsRead}
+                  onOpenNotification={(notification) => {
+                    if (notification.kind === "message" || notification.kind === "shared-post") {
+                      setActiveMessageContactId(notification.actorUserId);
+                      openTab("messages");
+                      return;
+                    }
+                    if (notification.playerId) {
+                      focusFeedPlayer(notification.playerId);
+                    }
+                  }}
                   onAddComment={addPostComment}
                   onBackToProfile={reelReturnTarget ? returnToReelOrigin : undefined}
                   onDeleteComment={deletePostComment}
