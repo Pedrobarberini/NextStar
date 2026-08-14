@@ -52,6 +52,7 @@ import {
   getPlayerContentKey,
   getPlayerContentLabel
 } from "../utils/feedEngagement";
+import { selectFeedPlaybackIndex } from "../utils/feedPlayback";
 import {
   createMediaTapGestureState,
   MEDIA_DOUBLE_TAP_DELAY_MS,
@@ -144,6 +145,7 @@ export function FeedScreen({
   const [feedHeight, setFeedHeight] = useState(0);
   const [activeFeedIndex, setActiveFeedIndex] = useState(0);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const [isFeedNavigating, setIsFeedNavigating] = useState(false);
   const [isCleanView, setIsCleanView] = useState(false);
   const [commentPlayer, setCommentPlayer] = useState<Player | null>(null);
   const [preferencePlayer, setPreferencePlayer] = useState<Player | null>(null);
@@ -152,9 +154,8 @@ export function FeedScreen({
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const feedScrollRef = useRef<ScrollView | null>(null);
   const activeFeedIndexRef = useRef(0);
-  const gestureStartIndexRef = useRef(0);
-  const gestureStartOffsetRef = useRef(0);
-  const gestureSettledRef = useRef(false);
+  const feedSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestFeedOffsetRef = useRef(0);
   const sectionOffsetsRef = useRef<Record<number, number>>({});
   const cleanViewActiveRef = useRef(false);
   const feedChromeOpacity = useRef(new Animated.Value(1)).current;
@@ -166,6 +167,19 @@ export function FeedScreen({
   const unreadNotificationCount = notifications.filter(
     (notification) => !notification.readAt
   ).length;
+  const hasFeedOverlay = Boolean(
+    commentPlayer ||
+      mentionedPlayer ||
+      notificationsVisible ||
+      preferencePlayer ||
+      sharePlayer
+  );
+  const playbackFeedIndex = selectFeedPlaybackIndex({
+    activeIndex: activeFeedIndex,
+    hasOverlay: hasFeedOverlay,
+    isNavigating: isFeedNavigating,
+    itemCount: feedPlayers.length
+  });
   const mentionedUsers = useMemo(
     () =>
       (mentionedPlayer?.mentions ?? [])
@@ -197,6 +211,9 @@ export function FeedScreen({
     () => () => {
       cleanViewActiveRef.current = false;
       feedChromeOpacity.stopAnimation();
+      if (feedSettleTimerRef.current) {
+        clearTimeout(feedSettleTimerRef.current);
+      }
       immersiveChangeRef.current?.(false);
     },
     [feedChromeOpacity]
@@ -280,15 +297,6 @@ export function FeedScreen({
     return () => cancelAnimationFrame(frame);
   }, [feedPlayers, focusPlayerId, pageHeight]);
 
-  function scrollToFeed(index: number) {
-    const safeIndex = Math.min(Math.max(index, 0), lastFeedIndex);
-    const sectionOffset = sectionOffsetsRef.current[safeIndex];
-
-    feedScrollRef.current?.scrollTo({
-      animated: true,
-      y: sectionOffset ?? safeIndex * pageHeight
-    });
-  }
 
   function openNotifications() {
     setNotificationsVisible(true);
@@ -308,7 +316,9 @@ export function FeedScreen({
     setSharePlayer(null);
     sectionOffsetsRef.current = {};
     activeFeedIndexRef.current = 0;
+    latestFeedOffsetRef.current = 0;
     setActiveFeedIndex(0);
+    setIsFeedNavigating(false);
     feedScrollRef.current?.scrollTo({ animated: false, y: 0 });
     setFeedRefreshKey((current) => current + 1);
   }
@@ -330,27 +340,34 @@ export function FeedScreen({
     return Math.min(Math.max(nearestIndex, 0), lastFeedIndex);
   }
 
-  function settleFeedGesture(offsetY: number) {
+  function clearFeedSettleTimer() {
+    if (!feedSettleTimerRef.current) {
+      return;
+    }
+
+    clearTimeout(feedSettleTimerRef.current);
+    feedSettleTimerRef.current = null;
+  }
+
+  function finishFeedNavigation(offsetY = latestFeedOffsetRef.current) {
+    clearFeedSettleTimer();
+    latestFeedOffsetRef.current = offsetY;
+
     if (!pageHeight || feedPlayers.length === 0) {
+      setIsFeedNavigating(false);
       return;
     }
 
-    if (gestureSettledRef.current) {
-      scrollToFeed(activeFeedIndexRef.current);
-      return;
-    }
+    activateFeedIndex(getNearestFeedIndex(offsetY));
+    setIsFeedNavigating(false);
+  }
 
-    const delta = offsetY - gestureStartOffsetRef.current;
-    const threshold = Math.max(pageHeight * 0.12, 48);
-    const direction = Math.abs(delta) < threshold ? 0 : delta > 0 ? 1 : -1;
-    const nextIndex = Math.min(
-      Math.max(gestureStartIndexRef.current + direction, 0),
-      lastFeedIndex
-    );
-
-    activateFeedIndex(nextIndex);
-    gestureSettledRef.current = true;
-    scrollToFeed(nextIndex);
+  function scheduleFeedNavigationFinish() {
+    clearFeedSettleTimer();
+    feedSettleTimerRef.current = setTimeout(() => {
+      feedSettleTimerRef.current = null;
+      finishFeedNavigation();
+    }, 180);
   }
 
   return (
@@ -366,34 +383,32 @@ export function FeedScreen({
     >
       <ScrollView
         bounces={false}
-        decelerationRate="normal"
+        decelerationRate="fast"
         nativeID="xolot-feed-scroll"
         ref={feedScrollRef}
-        onScroll={(event) => {
-          activateFeedIndex(
-            getNearestFeedIndex(event.nativeEvent.contentOffset.y)
-          );
-        }}
+        onMomentumScrollBegin={clearFeedSettleTimer}
         onMomentumScrollEnd={(event) => {
-          settleFeedGesture(event.nativeEvent.contentOffset.y);
+          finishFeedNavigation(event.nativeEvent.contentOffset.y);
+        }}
+        onScroll={(event) => {
+          latestFeedOffsetRef.current = event.nativeEvent.contentOffset.y;
+          setIsFeedNavigating(true);
+          scheduleFeedNavigationFinish();
         }}
         onScrollBeginDrag={(event) => {
-          const offsetY = event.nativeEvent.contentOffset.y;
-
-          gestureStartIndexRef.current = Math.min(
-            Math.max(getNearestFeedIndex(offsetY), 0),
-            lastFeedIndex
-          );
-          activateFeedIndex(gestureStartIndexRef.current);
-          gestureStartOffsetRef.current = offsetY;
-          gestureSettledRef.current = false;
+          clearFeedSettleTimer();
+          latestFeedOffsetRef.current = event.nativeEvent.contentOffset.y;
+          setIsFeedNavigating(true);
         }}
         onScrollEndDrag={(event) => {
-          settleFeedGesture(event.nativeEvent.contentOffset.y);
+          latestFeedOffsetRef.current = event.nativeEvent.contentOffset.y;
+          scheduleFeedNavigationFinish();
         }}
         scrollEnabled={!isCleanView}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        snapToAlignment="start"
+        snapToInterval={pageHeight}
         style={styles.feedPager}
       >
         {feedPlayers.length === 0 ? (
@@ -423,7 +438,7 @@ export function FeedScreen({
               currentUserId={currentUserId}
               isFollowing={followingProfileIds.includes(player.profileId)}
               commentCount={commentsByPlayer[player.id]?.length ?? 0}
-              isActive={index === activeFeedIndex && !commentPlayer}
+              isActive={index === playbackFeedIndex}
               isLiked={likedPlayerIds.has(player.id)}
               isSponsored={activeCampaignPlayerIds.has(player.id)}
               isCleanView={isCleanView}
@@ -1335,6 +1350,26 @@ type FeedVideoPlaybackProps = {
 };
 
 function FeedVideoPlayback(props: FeedVideoPlaybackProps) {
+  if (!props.isActive) {
+    return (
+      <View style={styles.feedVideoPlayback}>
+        <View
+          style={[
+            styles.feedVideoPlayCircle,
+            styles.feedVideoPlaybackPlay,
+            { backgroundColor: props.accent }
+          ]}
+        >
+          <Play color={props.onAccent} fill={props.onAccent} size={24} />
+        </View>
+      </View>
+    );
+  }
+
+  return <ActiveFeedVideoPlayback {...props} />;
+}
+
+function ActiveFeedVideoPlayback(props: FeedVideoPlaybackProps) {
   const resolvedVideo = useResolvedVideoSource(props.uri);
 
   if (!resolvedVideo.source) {
@@ -1386,6 +1421,7 @@ function ResolvedFeedVideoPlayback({
   });
   const isPlayingRef = useRef(isPlaying);
   const isActiveRef = useRef(isActive);
+  const autoplayRequestedRef = useRef(false);
   const manuallyPausedRef = useRef(false);
   const lastPlaybackToggleAtRef = useRef(0);
   isPlayingRef.current = isPlaying;
@@ -1396,9 +1432,7 @@ function ResolvedFeedVideoPlayback({
   const { status: playerStatus } = useEvent(videoPlayer, "statusChange", {
     status: videoPlayer.status
   });
-  const { playbackRate } = useEvent(videoPlayer, "playbackRateChange", {
-    playbackRate: videoPlayer.playbackRate
-  });
+
   const { currentTime } = useEvent(videoPlayer, "timeUpdate", {
     bufferedPosition: videoPlayer.bufferedPosition,
     currentLiveTimestamp: null,
@@ -1487,35 +1521,33 @@ function ResolvedFeedVideoPlayback({
   }, [currentTime]);
 
   useEffect(() => {
-    if (playbackRate !== 1) {
-      videoPlayer.playbackRate = 1;
-    }
-  }, [playbackRate, videoPlayer]);
-
-  useEffect(() => {
+    autoplayRequestedRef.current = false;
     manuallyPausedRef.current = false;
     isActiveRef.current = isActive;
 
-    if (isActive) {
-      videoPlayer.playbackRate = 1;
-      videoPlayer.play();
-    } else {
+    if (!isActive) {
       videoPlayer.pause();
     }
 
-    return () => videoPlayer.pause();
+    return () => {
+      isActiveRef.current = false;
+      videoPlayer.pause();
+    };
   }, [isActive, videoPlayer]);
 
   useEffect(() => {
     if (
-      playerStatus === "readyToPlay" &&
-      isActiveRef.current &&
-      !manuallyPausedRef.current &&
-      !isPlayingRef.current
+      playerStatus !== "readyToPlay" ||
+      !isActiveRef.current ||
+      manuallyPausedRef.current ||
+      autoplayRequestedRef.current
     ) {
-      videoPlayer.playbackRate = 1;
-      videoPlayer.play();
+      return;
     }
+
+    autoplayRequestedRef.current = true;
+    videoPlayer.playbackRate = 1;
+    videoPlayer.play();
   }, [playerStatus, videoPlayer]);
 
   function togglePlayback() {
