@@ -448,5 +448,6 @@ O escopo anterior de captação e participação em atletas foi removido em 2026
 - [x] Estabilizar toques repetidos nos reels, impedindo pausa residual após toque duplo e mantendo a reprodução em 1x.
 - [x] Corrigir a reprodução do reel aberto por compartilhamento, descartando toques atrasados e evitando alternâncias consecutivas no celular.
 - [x] Garantir apenas um player de vídeo montado no Início, pausando durante a rolagem e ativando o reel somente após o encaixe final.
+- [x] Centralizar o ícone de reprodução exibido enquanto o reel aguarda a ativação do player.
 - [x] Criar visualização limpa ao manter foto, vídeo ou GIF pressionado no Início, com ocultação e retorno animados das sobreposições e do rodapé.
 - [x] Exibir data e horário nas mensagens e persistir os estados enviada, entregue e visualizada entre os dispositivos.

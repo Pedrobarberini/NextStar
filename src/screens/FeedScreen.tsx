@@ -1353,14 +1353,16 @@ function FeedVideoPlayback(props: FeedVideoPlaybackProps) {
   if (!props.isActive) {
     return (
       <View style={styles.feedVideoPlayback}>
-        <View
-          style={[
-            styles.feedVideoPlayCircle,
-            styles.feedVideoPlaybackPlay,
-            { backgroundColor: props.accent }
-          ]}
-        >
-          <Play color={props.onAccent} fill={props.onAccent} size={24} />
+        <View pointerEvents="none" style={styles.feedVideoPlaybackPlaceholder}>
+          <View
+            style={[
+              styles.feedVideoPlayCircle,
+              styles.feedVideoPlaybackPlay,
+              { backgroundColor: props.accent }
+            ]}
+          >
+            <Play color={props.onAccent} fill={props.onAccent} size={24} />
+          </View>
         </View>
       </View>
     );

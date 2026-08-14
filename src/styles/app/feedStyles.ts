@@ -192,6 +192,11 @@ export const feedStyles = {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000000"
   },
+  feedVideoPlaybackPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center"
+  },
   feedVideoMedia: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000000",
