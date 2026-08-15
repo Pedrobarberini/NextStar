@@ -29,6 +29,8 @@ test("o interruptor controla pop-ups sem ocultar a central interna", () => {
 test("pop-ups pedem permissão e mostram somente eventos novos", () => {
   assert.match(deviceNotificationService, /Notification/);
   assert.match(deviceNotificationService, /requestPermission/);
+  assert.match(deviceNotificationService, /serviceWorker/);
+  assert.match(deviceNotificationService, /showNotification/);
   assert.equal(deviceNotificationService.includes('new notificationApi("Xolot"'), true);
   assert.match(socialActions, /notificationSessionStartedAtRef/);
   assert.match(socialActions, /createdAt >= sessionStartedAt/);

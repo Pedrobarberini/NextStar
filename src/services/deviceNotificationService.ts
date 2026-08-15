@@ -37,25 +37,43 @@ export async function requestDeviceNotificationPermission(): Promise<DeviceNotif
   return notificationApi.requestPermission();
 }
 
-export function showDeviceNotification(notification: AppNotification) {
+export async function showDeviceNotification(notification: AppNotification) {
   const notificationApi = getNotificationApi();
 
   if (!notificationApi || notificationApi.permission !== "granted") {
     return false;
   }
 
-  const popup = new notificationApi("Xolot", {
+  const options: NotificationOptions = {
     body: getNotificationText(notification),
     icon: "/favicon.ico",
     tag: "xolot-" + notification.id
-  });
-
-  popup.onclick = () => {
-    if (typeof window !== "undefined") {
-      window.focus();
-    }
-    popup.close();
   };
 
-  return true;
+  try {
+    const popup = new notificationApi("Xolot", options);
+
+    popup.onclick = () => {
+      if (typeof window !== "undefined") {
+        window.focus();
+      }
+      popup.close();
+    };
+    return true;
+  } catch {
+    if (
+      typeof navigator === "undefined" ||
+      !("serviceWorker" in navigator)
+    ) {
+      return false;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification("Xolot", options);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
