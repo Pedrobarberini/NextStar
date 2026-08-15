@@ -23,6 +23,12 @@ import {
   updateFirebaseDirectMessageReceipts
 } from "../services/firebaseSocialService";
 import {
+  getDeviceNotificationPermission,
+  requestDeviceNotificationPermission,
+  showDeviceNotification,
+  type DeviceNotificationPermission
+} from "../services/deviceNotificationService";
+import {
   AppNotification,
   AppUser,
   ConversationPreferencesByUser,
@@ -100,16 +106,26 @@ export function useSocialActions({
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
   const [autoplayEnabled, setAutoplayEnabledState] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
+  const [
+    notificationsPreferenceEnabled,
+    setNotificationsPreferenceEnabled
+  ] = useState(false);
+  const [deviceNotificationPermission, setDeviceNotificationPermission] =
+    useState<DeviceNotificationPermission>(getDeviceNotificationPermission);
   const [postComments, setPostComments] = useState<PostComment[]>([]);
   const [isSocialStateLoaded, setIsSocialStateLoaded] = useState(false);
 
   const [remoteEngagementByPlayer, setRemoteEngagementByPlayer] = useState<
     Record<string, { likes: number; shares: number; views: number }> | null
   >(null);
+  const notificationsEnabled =
+    notificationsPreferenceEnabled &&
+    deviceNotificationPermission === "granted";
   const socialErrorShownRef = useRef(false);
   const loadedSocialStateRef = useRef<SocialState | null>(null);
   const socialMigrationUserIdsRef = useRef(new Set<string>());
+  const knownNotificationIdsRef = useRef<Set<string> | null>(null);
+  const notificationSessionStartedAtRef = useRef(Date.now());
   useEffect(() => {
     let isMounted = true;
 
@@ -176,7 +192,7 @@ export function useSocialActions({
   useEffect(() => {
     if (!user || !isSocialStateLoaded) {
       setAutoplayEnabledState(true);
-      setNotificationsEnabledState(true);
+      setNotificationsPreferenceEnabled(false);
       setRemoteEngagementByPlayer(null);
       setNotifications([]);
       return;
@@ -189,7 +205,7 @@ export function useSocialActions({
       (remoteState) => {
         setAutoplayEnabledState(remoteState.preferences.autoplayEnabled);
         setFollowingByUser(remoteState.followingByUser);
-        setNotificationsEnabledState(
+        setNotificationsPreferenceEnabled(
           remoteState.preferences.notificationsEnabled
         );
         setLikedPlayerIdsByUser((current) => ({
@@ -245,6 +261,39 @@ export function useSocialActions({
       }
     );
   }, [isSocialStateLoaded, user?.id]);
+
+  useEffect(() => {
+    knownNotificationIdsRef.current = null;
+    notificationSessionStartedAtRef.current = Date.now();
+    setDeviceNotificationPermission(getDeviceNotificationPermission());
+  }, [user?.id]);
+
+  useEffect(() => {
+    const knownNotificationIds = knownNotificationIdsRef.current;
+    const currentNotificationIds = new Set(
+      notifications.map((notification) => notification.id)
+    );
+    const sessionStartedAt = notificationSessionStartedAtRef.current;
+
+    knownNotificationIdsRef.current = currentNotificationIds;
+    if (!notificationsEnabled) {
+      return;
+    }
+
+    notifications
+      .filter((notification) => {
+        const createdAt = Date.parse(notification.createdAt);
+
+        return (
+          !notification.readAt &&
+          !knownNotificationIds?.has(notification.id) &&
+          Number.isFinite(createdAt) &&
+          createdAt >= sessionStartedAt
+        );
+      })
+      .slice(0, 3)
+      .forEach(showDeviceNotification);
+  }, [notifications, notificationsEnabled]);
 
   useEffect(() => {
     if (!isSocialStateLoaded) {
@@ -505,7 +554,7 @@ export function useSocialActions({
         currentConversationPreferences.mutedContactIds,
       mutedContentKeys: overrides.mutedContentKeys ?? mutedContentKeys,
       notificationsEnabled:
-        overrides.notificationsEnabled ?? notificationsEnabled,
+        overrides.notificationsEnabled ?? notificationsPreferenceEnabled,
       pinnedContactIds:
         overrides.pinnedContactIds ??
         currentConversationPreferences.pinnedContactIds,
@@ -519,9 +568,32 @@ export function useSocialActions({
     syncSocialPreferences({ autoplayEnabled: enabled });
   }
 
-  function setNotificationsEnabled(enabled: boolean) {
-    setNotificationsEnabledState(enabled);
-    syncSocialPreferences({ notificationsEnabled: enabled });
+  async function setNotificationsEnabled(enabled: boolean) {
+    if (!enabled) {
+      setNotificationsPreferenceEnabled(false);
+      syncSocialPreferences({ notificationsEnabled: false });
+      return;
+    }
+
+    const permission = await requestDeviceNotificationPermission();
+    setDeviceNotificationPermission(permission);
+
+    if (permission !== "granted") {
+      setNotificationsPreferenceEnabled(false);
+      syncSocialPreferences({ notificationsEnabled: false });
+      Alert.alert(
+        permission === "unsupported"
+          ? "Notificações indisponíveis"
+          : "Permissão de notificações bloqueada",
+        permission === "unsupported"
+          ? "Este navegador não oferece pop-ups de notificação. No celular, abra a Xolot em um navegador compatível."
+          : "Libere as notificações da Xolot nas configurações do navegador e tente novamente."
+      );
+      return;
+    }
+
+    setNotificationsPreferenceEnabled(true);
+    syncSocialPreferences({ notificationsEnabled: true });
   }
 
   function addMessageContact(contact: MessageContact) {

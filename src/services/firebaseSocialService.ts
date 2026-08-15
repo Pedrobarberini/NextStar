@@ -79,7 +79,7 @@ const emptyPreferences: FirebaseSocialPreferences = {
   hiddenPlayerIds: [],
   interestedContentKeys: [],
   mutedContentKeys: [],
-  notificationsEnabled: true,
+  notificationsEnabled: false,
   reportedPlayerIds: []
 };
 
@@ -211,7 +211,7 @@ function normalizePreferences(value: unknown): FirebaseSocialPreferences {
     notificationsEnabled:
       typeof data.notificationsEnabled === "boolean"
         ? data.notificationsEnabled
-        : true,
+        : false,
     pinnedContactIds: normalizeStringArray(data.pinnedContactIds, 3),
     reportedPlayerIds: normalizeStringArray(data.reportedPlayerIds)
   };
@@ -605,7 +605,7 @@ export async function migrateLocalFirebaseSocialState(
     mutedContactIds:
       state.conversationPreferencesByUser[uid]?.mutedContactIds ?? [],
     mutedContentKeys: state.mutedContentKeysByUser[uid] ?? [],
-    notificationsEnabled: true,
+    notificationsEnabled: false,
     pinnedContactIds:
       state.conversationPreferencesByUser[uid]?.pinnedContactIds ?? [],
     reportedPlayerIds: state.reportedPlayerIdsByUser[uid] ?? []

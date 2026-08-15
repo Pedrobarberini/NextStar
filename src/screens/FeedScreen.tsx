@@ -5,7 +5,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import {
   Bell,
-  BellOff,
   Heart,
   MessageCircle,
   MoreVertical,
@@ -76,7 +75,6 @@ export function FeedScreen({
   shareCountsByPlayer,
   mutedContentKeys,
   notifications,
-  notificationsEnabled,
   reportedPlayerIds,
   onAddComment,
   onBackToProfile,
@@ -114,7 +112,6 @@ export function FeedScreen({
   shareCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
   notifications: AppNotification[];
-  notificationsEnabled: boolean;
   reportedPlayerIds: Set<string>;
   onAddComment: (
     playerId: string,
@@ -169,8 +166,7 @@ export function FeedScreen({
   const pageHeight = feedHeight || height;
   const lastFeedIndex = Math.max(feedPlayers.length - 1, 0);
   const activePlayerId = feedPlayers[activeFeedIndex]?.id;
-  const visibleNotifications = notificationsEnabled ? notifications : [];
-  const unreadNotificationCount = visibleNotifications.filter(
+  const unreadNotificationCount = notifications.filter(
     (notification) => !notification.readAt
   ).length;
   const hasFeedOverlay = Boolean(
@@ -306,7 +302,7 @@ export function FeedScreen({
 
   function openNotifications() {
     setNotificationsVisible(true);
-    const unreadNotificationIds = visibleNotifications
+    const unreadNotificationIds = notifications
       .filter((notification) => !notification.readAt)
       .map((notification) => notification.id);
 
@@ -515,11 +511,7 @@ export function FeedScreen({
           onPress={openNotifications}
           style={styles.feedNotificationButton}
         >
-          {notificationsEnabled ? (
-            <Bell color="#FFFFFF" size={21} strokeWidth={2.2} />
-          ) : (
-            <BellOff color="#FFFFFF" size={21} strokeWidth={2.2} />
-          )}
+          <Bell color="#FFFFFF" size={21} strokeWidth={2.2} />
           {unreadNotificationCount > 0 ? (
             <View style={styles.feedNotificationBadge}>
               <Text style={styles.feedNotificationBadgeText}>
@@ -625,8 +617,7 @@ export function FeedScreen({
         visible={Boolean(sharePlayer)}
       />
       <NotificationsPopover
-        enabled={notificationsEnabled}
-        notifications={visibleNotifications}
+        notifications={notifications}
         onClose={() => setNotificationsVisible(false)}
         onSelect={(notification) => {
           setNotificationsVisible(false);

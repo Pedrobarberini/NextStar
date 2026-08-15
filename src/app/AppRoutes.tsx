@@ -358,7 +358,6 @@ export function AppRoutes(props: AppRoutesProps) {
                   shareCountsByPlayer={shareCountsByPlayer}
                   mutedContentKeys={mutedContentKeySet}
                   notifications={notifications}
-                  notificationsEnabled={notificationsEnabled}
                   onMarkNotificationsRead={markNotificationsRead}
                   onOpenNotification={(notification) => {
                     if (notification.kind === "message" || notification.kind === "shared-post") {

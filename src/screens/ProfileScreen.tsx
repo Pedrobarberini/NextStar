@@ -866,12 +866,13 @@ function SettingsView({
             <Bell color={colors.primary} size={19} />
           </View>
           <View style={styles.settingsRowBody}>
-            <Text style={styles.settingsRowTitle}>Notificações</Text>
+            <Text style={styles.settingsRowTitle}>Notificações do dispositivo</Text>
             <Text style={styles.settingsRowDescription}>
-              Avisos sobre publicações, mensagens e campanhas.
+              Mostrar novos avisos como pop-ups no celular ou computador.
             </Text>
           </View>
           <Switch
+            accessibilityLabel="Ativar pop-ups de notificação"
             onValueChange={onChangeNotifications}
             thumbColor={colors.surface}
             trackColor={{ false: colors.borderStrong, true: colors.primary }}
