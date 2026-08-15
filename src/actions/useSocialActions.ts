@@ -98,7 +98,9 @@ export function useSocialActions({
   const [viewedPlayerIdsByUser, setViewedPlayerIdsByUser] =
     useState<SocialSelectionsByUser>({});
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
+  const [autoplayEnabled, setAutoplayEnabledState] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [postComments, setPostComments] = useState<PostComment[]>([]);
   const [isSocialStateLoaded, setIsSocialStateLoaded] = useState(false);
 
@@ -173,6 +175,8 @@ export function useSocialActions({
   }, [isSocialStateLoaded, players, user?.id, users]);
   useEffect(() => {
     if (!user || !isSocialStateLoaded) {
+      setAutoplayEnabledState(true);
+      setNotificationsEnabledState(true);
       setRemoteEngagementByPlayer(null);
       setNotifications([]);
       return;
@@ -183,7 +187,11 @@ export function useSocialActions({
     return subscribeFirebaseSocialState(
       currentUserId,
       (remoteState) => {
+        setAutoplayEnabledState(remoteState.preferences.autoplayEnabled);
         setFollowingByUser(remoteState.followingByUser);
+        setNotificationsEnabledState(
+          remoteState.preferences.notificationsEnabled
+        );
         setLikedPlayerIdsByUser((current) => ({
           ...current,
           [currentUserId]: remoteState.likedPlayerIds
@@ -483,6 +491,7 @@ export function useSocialActions({
     }
 
     void setFirebaseSocialPreferences(user.id, {
+      autoplayEnabled: overrides.autoplayEnabled ?? autoplayEnabled,
       blockedProfileIds:
         overrides.blockedProfileIds ?? blockedProfileIds,
       deletedAtByContactId:
@@ -495,6 +504,8 @@ export function useSocialActions({
         overrides.mutedContactIds ??
         currentConversationPreferences.mutedContactIds,
       mutedContentKeys: overrides.mutedContentKeys ?? mutedContentKeys,
+      notificationsEnabled:
+        overrides.notificationsEnabled ?? notificationsEnabled,
       pinnedContactIds:
         overrides.pinnedContactIds ??
         currentConversationPreferences.pinnedContactIds,
@@ -502,6 +513,17 @@ export function useSocialActions({
         overrides.reportedPlayerIds ?? reportedPlayerIds
     }).catch(reportSocialWriteError);
   }
+
+  function setAutoplayEnabled(enabled: boolean) {
+    setAutoplayEnabledState(enabled);
+    syncSocialPreferences({ autoplayEnabled: enabled });
+  }
+
+  function setNotificationsEnabled(enabled: boolean) {
+    setNotificationsEnabledState(enabled);
+    syncSocialPreferences({ notificationsEnabled: enabled });
+  }
+
   function addMessageContact(contact: MessageContact) {
     if (!user) {
       return;
@@ -1002,6 +1024,7 @@ export function useSocialActions({
   return {
     addMessageContact,
     addPostComment,
+    autoplayEnabled,
     blockedProfileIdSet,
     commentsByPlayer,
     currentMessageContacts,
@@ -1020,6 +1043,7 @@ export function useSocialActions({
     likeCountsByPlayer,
     mutedContentKeySet,
     notifications,
+    notificationsEnabled,
     ownProfileId,
     mutedContactIds: currentConversationPreferences.mutedContactIds,
     pinnedContactIds: currentConversationPreferences.pinnedContactIds,
@@ -1031,6 +1055,8 @@ export function useSocialActions({
     sendDirectMessage,
     sendSharedPost,
     shareCountsByPlayer,
+    setAutoplayEnabled,
+    setNotificationsEnabled,
     setPlayerHidden,
     setPlayerReported,
     toggleBlockedProfile,

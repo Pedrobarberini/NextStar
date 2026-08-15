@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import {
   Bell,
+  BellOff,
   Heart,
   MessageCircle,
   PlaySquare,
@@ -44,11 +45,13 @@ function NotificationKindIcon({
 }
 
 export function NotificationsPopover({
+  enabled,
   notifications,
   onClose,
   onSelect,
   visible
 }: {
+  enabled: boolean;
   notifications: AppNotification[];
   onClose: () => void;
   onSelect: (notification: AppNotification) => void;
@@ -121,12 +124,18 @@ export function NotificationsPopover({
 
           {notifications.length === 0 ? (
             <View style={styles.notificationsEmpty}>
-              <Bell color={colors.muted} size={26} />
+              {enabled ? (
+                <Bell color={colors.muted} size={26} />
+              ) : (
+                <BellOff color={colors.muted} size={26} />
+              )}
               <Text style={styles.notificationsEmptyTitle}>
-                Tudo tranquilo por aqui
+                {enabled ? "Tudo tranquilo por aqui" : "Notificações desativadas"}
               </Text>
               <Text style={styles.notificationsEmptyBody}>
-                Curtidas, comentários e mensagens aparecerão neste espaço.
+                {enabled
+                  ? "Curtidas, comentários e mensagens aparecerão neste espaço."
+                  : "Ative as notificações em Configurações para receber novos avisos."}
               </Text>
             </View>
           ) : (

@@ -60,6 +60,7 @@ type ProfileView = "edit-profile" | "overview" | "professional" | "security" | "
 
 export function ProfileScreen({
   accounts,
+  autoplayEnabled,
   avatar,
   blockedProfileIds,
   campaigns,
@@ -71,7 +72,10 @@ export function ProfileScreen({
   likeCountsByPlayer,
   mutedContentKeys,
   messagesCount,
+  notificationsEnabled,
+  onChangeAutoplay,
   onChangeAvatar,
+  onChangeNotifications,
   onDeleteVideo,
   onOpenProfile,
   onOpenVideo,
@@ -96,6 +100,7 @@ export function ProfileScreen({
   viewCountsByPlayer
 }: {
   accounts: AppUser[];
+  autoplayEnabled: boolean;
   avatar?: ProfileAvatar;
   blockedProfileIds: Set<string>;
   campaigns: PromotionCampaign[];
@@ -107,7 +112,10 @@ export function ProfileScreen({
   likeCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
   messagesCount: number;
+  notificationsEnabled: boolean;
+  onChangeAutoplay: (value: boolean) => void;
   onChangeAvatar: (avatar: ProfileAvatar | null) => void;
+  onChangeNotifications: (value: boolean) => void;
   onDeleteVideo: (video: VideoSubmission) => Promise<boolean>;
   onOpenProfile: (account: AppUser) => void;
   onOpenVideo: (video: VideoSubmission) => void;
@@ -148,8 +156,7 @@ export function ProfileScreen({
   const profileNavigationTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [autoplayEnabled, setAutoplayEnabled] = useState(true);
+
   const mySubmissions = submissions.filter((item) => item.userId === user.id);
   const accountSubmissions = user.role === "Admin" ? submissions : mySubmissions;
   const publishedVideos = mySubmissions.filter(
@@ -328,8 +335,8 @@ export function ProfileScreen({
             notificationsEnabled={notificationsEnabled}
             onBack={() => setProfileView("overview")}
             onChangeAvatar={onChangeAvatar}
-            onChangeAutoplay={setAutoplayEnabled}
-            onChangeNotifications={setNotificationsEnabled}
+            onChangeAutoplay={onChangeAutoplay}
+            onChangeNotifications={onChangeNotifications}
             onRequestAvatarPosition={() => setIsAvatarPositionVisible(true)}
             onOpenEditProfile={() => setProfileView("edit-profile")}
             user={user}

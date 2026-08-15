@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import {
   Bell,
+  BellOff,
   Heart,
   MessageCircle,
   MoreVertical,
@@ -62,6 +63,7 @@ import {
 
 export function FeedScreen({
   activeCampaignPlayerIds,
+  autoplayEnabled,
   backLabel = "Voltar ao perfil",
   blockedProfileIds,
   commentsByPlayer,
@@ -74,6 +76,7 @@ export function FeedScreen({
   shareCountsByPlayer,
   mutedContentKeys,
   notifications,
+  notificationsEnabled,
   reportedPlayerIds,
   onAddComment,
   onBackToProfile,
@@ -98,6 +101,7 @@ export function FeedScreen({
   users
 }: {
   activeCampaignPlayerIds: Set<string>;
+  autoplayEnabled: boolean;
   backLabel?: string;
   blockedProfileIds: Set<string>;
   commentsByPlayer: Record<string, PostComment[]>;
@@ -110,6 +114,7 @@ export function FeedScreen({
   shareCountsByPlayer: Record<string, number>;
   mutedContentKeys: Set<string>;
   notifications: AppNotification[];
+  notificationsEnabled: boolean;
   reportedPlayerIds: Set<string>;
   onAddComment: (
     playerId: string,
@@ -164,7 +169,8 @@ export function FeedScreen({
   const pageHeight = feedHeight || height;
   const lastFeedIndex = Math.max(feedPlayers.length - 1, 0);
   const activePlayerId = feedPlayers[activeFeedIndex]?.id;
-  const unreadNotificationCount = notifications.filter(
+  const visibleNotifications = notificationsEnabled ? notifications : [];
+  const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.readAt
   ).length;
   const hasFeedOverlay = Boolean(
@@ -300,7 +306,7 @@ export function FeedScreen({
 
   function openNotifications() {
     setNotificationsVisible(true);
-    const unreadNotificationIds = notifications
+    const unreadNotificationIds = visibleNotifications
       .filter((notification) => !notification.readAt)
       .map((notification) => notification.id);
 
@@ -433,6 +439,7 @@ export function FeedScreen({
             }}
           >
             <FeedReel
+              autoplayEnabled={autoplayEnabled}
               avatar={profileAvatars[player.profileId]}
               chromeOpacity={feedChromeOpacity}
               currentUserId={currentUserId}
@@ -508,7 +515,11 @@ export function FeedScreen({
           onPress={openNotifications}
           style={styles.feedNotificationButton}
         >
-          <Bell color="#FFFFFF" size={21} strokeWidth={2.2} />
+          {notificationsEnabled ? (
+            <Bell color="#FFFFFF" size={21} strokeWidth={2.2} />
+          ) : (
+            <BellOff color="#FFFFFF" size={21} strokeWidth={2.2} />
+          )}
           {unreadNotificationCount > 0 ? (
             <View style={styles.feedNotificationBadge}>
               <Text style={styles.feedNotificationBadgeText}>
@@ -614,7 +625,8 @@ export function FeedScreen({
         visible={Boolean(sharePlayer)}
       />
       <NotificationsPopover
-        notifications={notifications}
+        enabled={notificationsEnabled}
+        notifications={visibleNotifications}
         onClose={() => setNotificationsVisible(false)}
         onSelect={(notification) => {
           setNotificationsVisible(false);
@@ -643,6 +655,7 @@ export function FeedScreen({
 }
 
 function FeedReel({
+  autoplayEnabled,
   avatar,
   chromeOpacity,
   commentCount,
@@ -666,6 +679,7 @@ function FeedReel({
   player,
   reelHeight
 }: {
+  autoplayEnabled: boolean;
   avatar?: ProfileAvatar;
   chromeOpacity: Animated.Value;
   commentCount: number;
@@ -856,6 +870,7 @@ function FeedReel({
         >
           <View style={styles.feedVideoBackground} />
           <FeedVideoBox
+            autoplayEnabled={autoplayEnabled}
             chromeOpacity={chromeOpacity}
             isActive={isActive}
             isCleanView={isCleanView}
@@ -1105,6 +1120,7 @@ function FeedMentionsButton({
 }
 
 function FeedVideoBox({
+  autoplayEnabled,
   chromeOpacity,
   isActive,
   isCleanView,
@@ -1114,6 +1130,7 @@ function FeedVideoBox({
   palette,
   player
 }: {
+  autoplayEnabled: boolean;
   chromeOpacity: Animated.Value;
   isActive: boolean;
   isCleanView: boolean;
@@ -1140,6 +1157,7 @@ function FeedVideoBox({
       ) : (
         <FeedVideoPlayback
           accent={palette.accent}
+          autoplayEnabled={autoplayEnabled}
           chromeOpacity={chromeOpacity}
           caption={player.videoTitle}
           durationLabel={player.videoLength}
@@ -1335,6 +1353,7 @@ function FeedImagePlayback({
 
 type FeedVideoPlaybackProps = {
   accent: string;
+  autoplayEnabled: boolean;
   chromeOpacity: Animated.Value;
   caption: string;
   durationLabel: string;
@@ -1396,6 +1415,7 @@ function ActiveFeedVideoPlayback(props: FeedVideoPlaybackProps) {
 
 function ResolvedFeedVideoPlayback({
   accent,
+  autoplayEnabled,
   chromeOpacity,
   caption,
   durationLabel,
@@ -1524,10 +1544,10 @@ function ResolvedFeedVideoPlayback({
 
   useEffect(() => {
     autoplayRequestedRef.current = false;
-    manuallyPausedRef.current = false;
+    manuallyPausedRef.current = !autoplayEnabled;
     isActiveRef.current = isActive;
 
-    if (!isActive) {
+    if (!isActive || !autoplayEnabled) {
       videoPlayer.pause();
     }
 
@@ -1535,10 +1555,11 @@ function ResolvedFeedVideoPlayback({
       isActiveRef.current = false;
       videoPlayer.pause();
     };
-  }, [isActive, videoPlayer]);
+  }, [autoplayEnabled, isActive, videoPlayer]);
 
   useEffect(() => {
     if (
+      !autoplayEnabled ||
       playerStatus !== "readyToPlay" ||
       !isActiveRef.current ||
       manuallyPausedRef.current ||
@@ -1550,7 +1571,7 @@ function ResolvedFeedVideoPlayback({
     autoplayRequestedRef.current = true;
     videoPlayer.playbackRate = 1;
     videoPlayer.play();
-  }, [playerStatus, videoPlayer]);
+  }, [autoplayEnabled, playerStatus, videoPlayer]);
 
   function togglePlayback() {
     if (!isActiveRef.current) {

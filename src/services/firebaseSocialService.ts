@@ -52,10 +52,12 @@ type EngagementCounts = {
 };
 
 export type FirebaseSocialPreferences = ConversationPreferences & {
+  autoplayEnabled: boolean;
   blockedProfileIds: string[];
   hiddenPlayerIds: string[];
   interestedContentKeys: string[];
   mutedContentKeys: string[];
+  notificationsEnabled: boolean;
   reportedPlayerIds: string[];
 };
 
@@ -72,10 +74,12 @@ export type FirebaseSocialSnapshot = {
 
 const emptyPreferences: FirebaseSocialPreferences = {
   ...EMPTY_CONVERSATION_PREFERENCES,
+  autoplayEnabled: true,
   blockedProfileIds: [],
   hiddenPlayerIds: [],
   interestedContentKeys: [],
   mutedContentKeys: [],
+  notificationsEnabled: true,
   reportedPlayerIds: []
 };
 
@@ -196,12 +200,18 @@ function normalizePreferences(value: unknown): FirebaseSocialPreferences {
       : {};
 
   return {
+    autoplayEnabled:
+      typeof data.autoplayEnabled === "boolean" ? data.autoplayEnabled : true,
     blockedProfileIds: normalizeStringArray(data.blockedProfileIds),
     deletedAtByContactId,
     hiddenPlayerIds: normalizeStringArray(data.hiddenPlayerIds),
     interestedContentKeys: normalizeStringArray(data.interestedContentKeys),
     mutedContactIds: normalizeStringArray(data.mutedContactIds),
     mutedContentKeys: normalizeStringArray(data.mutedContentKeys),
+    notificationsEnabled:
+      typeof data.notificationsEnabled === "boolean"
+        ? data.notificationsEnabled
+        : true,
     pinnedContactIds: normalizeStringArray(data.pinnedContactIds, 3),
     reportedPlayerIds: normalizeStringArray(data.reportedPlayerIds)
   };
@@ -457,6 +467,7 @@ export async function setFirebaseSocialPreferences(
 ) {
   assertCurrentUser(uid);
   await setDoc(doc(getFirebaseFirestore(), SOCIAL_PREFERENCES_COLLECTION, uid), {
+    autoplayEnabled: preferences.autoplayEnabled,
     blockedProfileIds: normalizeStringArray(preferences.blockedProfileIds),
     deletedAtByContactId: preferences.deletedAtByContactId,
     hiddenPlayerIds: normalizeStringArray(preferences.hiddenPlayerIds),
@@ -465,6 +476,7 @@ export async function setFirebaseSocialPreferences(
     ),
     mutedContactIds: normalizeStringArray(preferences.mutedContactIds),
     mutedContentKeys: normalizeStringArray(preferences.mutedContentKeys),
+    notificationsEnabled: preferences.notificationsEnabled,
     ownerUid: uid,
     pinnedContactIds: normalizeStringArray(preferences.pinnedContactIds, 3),
     reportedPlayerIds: normalizeStringArray(preferences.reportedPlayerIds),
@@ -584,6 +596,7 @@ export async function migrateLocalFirebaseSocialState(
   const allowedPlayers = new Set(validPlayerIds);
   const allowedUsers = new Set(validUserIds);
   const localPreferences: FirebaseSocialPreferences = {
+    autoplayEnabled: true,
     blockedProfileIds: state.blockedProfileIdsByUser[uid] ?? [],
     deletedAtByContactId:
       state.conversationPreferencesByUser[uid]?.deletedAtByContactId ?? {},
@@ -592,16 +605,18 @@ export async function migrateLocalFirebaseSocialState(
     mutedContactIds:
       state.conversationPreferencesByUser[uid]?.mutedContactIds ?? [],
     mutedContentKeys: state.mutedContentKeysByUser[uid] ?? [],
+    notificationsEnabled: true,
     pinnedContactIds:
       state.conversationPreferencesByUser[uid]?.pinnedContactIds ?? [],
     reportedPlayerIds: state.reportedPlayerIdsByUser[uid] ?? []
   };
-  const hasLocalPreferences =
-    Object.values(localPreferences).some((value) =>
-      Array.isArray(value)
-        ? value.length > 0
-        : Object.keys(value).length > 0
-    );
+  const hasLocalPreferences = Object.values(localPreferences).some((value) =>
+    Array.isArray(value)
+      ? value.length > 0
+      : typeof value === "object" && value !== null
+        ? Object.keys(value).length > 0
+        : false
+  );
 
   if (hasLocalPreferences) {
     const preferenceReference = doc(
@@ -616,6 +631,7 @@ export async function migrateLocalFirebaseSocialState(
       Array.from(new Set([...remote, ...local])).slice(0, maximum);
 
     await setFirebaseSocialPreferences(uid, {
+      autoplayEnabled: remotePreferences.autoplayEnabled,
       blockedProfileIds: mergeSelection(
         remotePreferences.blockedProfileIds,
         localPreferences.blockedProfileIds
@@ -640,6 +656,7 @@ export async function migrateLocalFirebaseSocialState(
         remotePreferences.mutedContentKeys,
         localPreferences.mutedContentKeys
       ),
+      notificationsEnabled: remotePreferences.notificationsEnabled,
       pinnedContactIds: mergeSelection(
         remotePreferences.pinnedContactIds,
         localPreferences.pinnedContactIds,

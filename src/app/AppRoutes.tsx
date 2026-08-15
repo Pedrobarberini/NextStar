@@ -46,6 +46,7 @@ import { getPlayerContentKey } from "../utils/feedEngagement";
 type AppRoutesProps = {
   activeCampaignPlayerIds: Set<string>;
   activeMessageContactId: string | null;
+  autoplayEnabled: boolean;
   approvedSubmissionPlayers: Player[];
   availablePlayers: Player[];
   blockedProfileIdSet: Set<string>;
@@ -113,6 +114,7 @@ type AppRoutesProps = {
   mutedContactIds: string[];
   mutedContentKeySet: Set<string>;
   notifications: AppNotification[];
+  notificationsEnabled: boolean;
   onBrandLaunchFinish: () => void;
   onOpenMessagesForSelectedProfile: () => void;
   openCampaign: (player: Player) => void;
@@ -139,6 +141,8 @@ type AppRoutesProps = {
   selectedProfileVideos: Player[];
   sendDirectMessage: (contactId: string, body: string) => void;
   sendSharedPost: (contact: MessageContact, player: Player, message?: string) => void;
+  setAutoplayEnabled: (enabled: boolean) => void;
+  setNotificationsEnabled: (enabled: boolean) => void;
   setPlayerHidden: (playerId: string, hidden: boolean) => void;
   setPlayerReported: (playerId: string, reported: boolean) => void;
   setActiveMessageContactId: Dispatch<SetStateAction<string | null>>;
@@ -164,6 +168,7 @@ export function AppRoutes(props: AppRoutesProps) {
   const {
     activeCampaignPlayerIds,
     activeMessageContactId,
+    autoplayEnabled,
     approvedSubmissionPlayers,
     availablePlayers,
     blockedProfileIdSet,
@@ -203,6 +208,7 @@ export function AppRoutes(props: AppRoutesProps) {
     mutedContactIds,
     mutedContentKeySet,
     notifications,
+    notificationsEnabled,
     onBrandLaunchFinish,
     onOpenMessagesForSelectedProfile,
     openCampaign,
@@ -229,6 +235,8 @@ export function AppRoutes(props: AppRoutesProps) {
     selectedProfileVideos,
     sendDirectMessage,
     sendSharedPost,
+    setAutoplayEnabled,
+    setNotificationsEnabled,
     setPlayerHidden,
     setPlayerReported,
     setActiveMessageContactId,
@@ -337,6 +345,7 @@ export function AppRoutes(props: AppRoutesProps) {
               {tab === "feed" ? (
                 <FeedScreen
                   activeCampaignPlayerIds={activeCampaignPlayerIds}
+                  autoplayEnabled={autoplayEnabled}
                   backLabel={reelReturnTarget?.type === "messages" ? "Voltar para mensagens" : "Voltar ao perfil"}
                   blockedProfileIds={blockedProfileIdSet}
                   commentsByPlayer={commentsByPlayer}
@@ -349,6 +358,7 @@ export function AppRoutes(props: AppRoutesProps) {
                   shareCountsByPlayer={shareCountsByPlayer}
                   mutedContentKeys={mutedContentKeySet}
                   notifications={notifications}
+                  notificationsEnabled={notificationsEnabled}
                   onMarkNotificationsRead={markNotificationsRead}
                   onOpenNotification={(notification) => {
                     if (notification.kind === "message" || notification.kind === "shared-post") {
@@ -464,6 +474,7 @@ export function AppRoutes(props: AppRoutesProps) {
                 <ScreenFrame animated={false} key="profile">
                   <ProfileScreen
                     accounts={registeredUsers}
+                    autoplayEnabled={autoplayEnabled}
                     avatar={ownProfileId ? profileAvatars[ownProfileId] : undefined}
                     blockedProfileIds={blockedProfileIdSet}
                     campaigns={currentUserCampaigns}
@@ -475,6 +486,9 @@ export function AppRoutes(props: AppRoutesProps) {
                     likeCountsByPlayer={likeCountsByPlayer}
                     mutedContentKeys={mutedContentKeySet}
                     messagesCount={directMessages.filter((message) => message.recipientUserId === user.id).length}
+                    notificationsEnabled={notificationsEnabled}
+                    onChangeAutoplay={setAutoplayEnabled}
+                    onChangeNotifications={setNotificationsEnabled}
                     onDeleteVideo={handleDeleteVideo}
                     onOpenProfile={openAccountProfile}
                     onOpenVideo={(submission) => {

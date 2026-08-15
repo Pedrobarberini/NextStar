@@ -256,6 +256,9 @@ Status: Sincronizacao multi-dispositivo, recibos e central de notificacoes no ap
 - [x] Criar central de notificacoes em tempo real para mensagens, compartilhamentos, curtidas, comentarios e respostas.
 - [x] Restringir alertas no Firestore ao destinatario e gerar eventos somente por Cloud Functions.
 - [x] Exibir sino com contador de nao lidas e navegacao direta para conversa ou publicacao.
+- [x] Persistir no Firestore as preferencias de notificacoes e reproducao automatica por conta.
+- [x] Fazer o player ativo obedecer a reproducao automatica, mantendo a reproducao manual disponivel.
+- [x] Desativar badges e avisos na central quando a conta optar por nao receber notificacoes no app.
 - [ ] Implementar anexos por referência segura à publicação.
 - [ ] Implementar paginação e sincronização offline.
 - [ ] Criar notificações push.

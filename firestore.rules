@@ -173,9 +173,10 @@ service cloud.firestore {
 
     function validSocialPreferences(uid, data) {
       return data.keys().hasOnly([
-          'blockedProfileIds', 'deletedAtByContactId', 'hiddenPlayerIds',
-          'interestedContentKeys', 'mutedContactIds', 'mutedContentKeys',
-          'ownerUid', 'pinnedContactIds', 'reportedPlayerIds', 'updatedAt'
+          'autoplayEnabled', 'blockedProfileIds', 'deletedAtByContactId',
+          'hiddenPlayerIds', 'interestedContentKeys', 'mutedContactIds',
+          'mutedContentKeys', 'notificationsEnabled', 'ownerUid',
+          'pinnedContactIds', 'reportedPlayerIds', 'updatedAt'
         ])
         && data.keys().hasAll([
           'blockedProfileIds', 'deletedAtByContactId', 'hiddenPlayerIds',
@@ -183,6 +184,10 @@ service cloud.firestore {
           'ownerUid', 'pinnedContactIds', 'reportedPlayerIds', 'updatedAt'
         ])
         && data.ownerUid == uid
+        && (
+          !data.keys().hasAny(['autoplayEnabled'])
+          || data.autoplayEnabled is bool
+        )
         && data.blockedProfileIds is list && data.blockedProfileIds.size() <= 500
         && data.deletedAtByContactId is map
         && data.deletedAtByContactId.size() <= 500
@@ -191,6 +196,10 @@ service cloud.firestore {
         && data.interestedContentKeys.size() <= 500
         && data.mutedContactIds is list && data.mutedContactIds.size() <= 500
         && data.mutedContentKeys is list && data.mutedContentKeys.size() <= 500
+        && (
+          !data.keys().hasAny(['notificationsEnabled'])
+          || data.notificationsEnabled is bool
+        )
         && data.pinnedContactIds is list && data.pinnedContactIds.size() <= 3
         && data.reportedPlayerIds is list
         && data.reportedPlayerIds.size() <= 500

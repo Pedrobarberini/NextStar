@@ -97,6 +97,7 @@ export default function App() {
   const {
     addMessageContact,
     addPostComment,
+    autoplayEnabled,
     blockedProfileIdSet,
     commentsByPlayer,
     currentMessageContacts,
@@ -116,6 +117,7 @@ export default function App() {
     markNotificationsRead,
     mutedContentKeySet,
     notifications,
+    notificationsEnabled,
     ownProfileId,
     mutedContactIds,
     pinnedContactIds,
@@ -124,6 +126,8 @@ export default function App() {
     sendDirectMessage,
     sendSharedPost,
     shareCountsByPlayer,
+    setAutoplayEnabled,
+    setNotificationsEnabled,
     setPlayerHidden,
     setPlayerReported,
     toggleBlockedProfile,
@@ -285,6 +289,7 @@ export default function App() {
     <AppRoutes
       activeCampaignPlayerIds={activeCampaignPlayerIds}
       activeMessageContactId={activeMessageContactId}
+      autoplayEnabled={autoplayEnabled}
       approvedSubmissionPlayers={approvedSubmissionPlayers}
       availablePlayers={availablePlayers}
       blockedProfileIdSet={blockedProfileIdSet}
@@ -323,6 +328,7 @@ export default function App() {
       mutedContactIds={mutedContactIds}
       mutedContentKeySet={mutedContentKeySet}
       notifications={notifications}
+      notificationsEnabled={notificationsEnabled}
       onBrandLaunchFinish={() => setIsBrandLaunchVisible(false)}
       onOpenMessagesForSelectedProfile={openMessagesForSelectedProfile}
       openCampaign={openCampaign}
@@ -350,6 +356,8 @@ export default function App() {
       sendDirectMessage={sendDirectMessage}
       sendSharedPost={sendSharedPost}
       shareCountsByPlayer={shareCountsByPlayer}
+      setAutoplayEnabled={setAutoplayEnabled}
+      setNotificationsEnabled={setNotificationsEnabled}
       setPlayerHidden={setPlayerHidden}
       setPlayerReported={setPlayerReported}
       setActiveMessageContactId={setActiveMessageContactId}
