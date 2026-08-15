@@ -188,6 +188,7 @@ Status: Integracao Cloudflare R2 publicada em producao em 2026-08-11. Credenciai
 - [x] Persistir avatar e enquadramento no R2 por Functions autenticadas e sincronizar `profileMedia/{uid}` em tempo real.
 - [x] Separar troca de arquivo e ajuste de enquadramento para persistir foco e escala sem reenviar o avatar.
 - [x] Tornar o snapshot do Firestore autoritativo depois da restauração do cache local e na troca de conta.
+- [x] Unificar as publicacoes do perfil aberto pela conta ou pelo reel usando UID e `profileId`.
 - [x] Isolar reels incompatíveis ou com mídia indisponível sem ocultar os demais e registrar diagnóstico de sincronização.
 - [ ] Executar teste real de upload, recarga e exclusao com uma conta verificada.
 - [x] Ativar `EXPO_PUBLIC_R2_MEDIA_ENABLED=true` e publicar o Hosting.

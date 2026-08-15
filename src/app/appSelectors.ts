@@ -120,13 +120,23 @@ export function selectProfileAccount(
 
 export function selectProfileVideos(
   selectedPlayer: Player | null,
-  availablePlayers: Player[]
+  availablePlayers: Player[],
+  selectedAccount?: AppUser
 ) {
-  return selectedPlayer
-    ? availablePlayers.filter(
-        (player) => player.profileId === selectedPlayer.profileId
-      )
-    : [];
+  const profileId =
+    selectedPlayer?.profileId ??
+    (selectedAccount ? `profile-${selectedAccount.id}` : undefined);
+  const ownerUserId = selectedAccount?.id ?? selectedPlayer?.ownerUserId;
+
+  if (!profileId && !ownerUserId) {
+    return [];
+  }
+
+  return availablePlayers.filter(
+    (player) =>
+      player.profileId === profileId ||
+      Boolean(ownerUserId && player.ownerUserId === ownerUserId)
+  );
 }
 
 export function selectProfileFollowers(

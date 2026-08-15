@@ -199,6 +199,8 @@ test("seleciona relações e dados derivados do perfil", () => {
   assert.deepEqual(selectProfileFollowers(player.profileId, { [player.profileId]: [completeUser.id] }, [completeUser]), [completeUser]);
   assert.deepEqual(selectProfileFollowing([`profile-${otherUser.id}`, player.profileId], [completeUser, otherUser]), [otherUser, completeUser]);
   assert.deepEqual(selectProfileVideos(player, [basePlayer, player]), [player]);
+  const legacyProfilePlayer = { ...player, id: "video-legado", profileId: "profile-legado" };
+  assert.deepEqual(selectProfileVideos(null, [basePlayer, legacyProfilePlayer], completeUser), [legacyProfilePlayer]);
   assert.equal(selectProfileId(player, completeUser), player.profileId);
   assert.deepEqual(selectPlayersByOwner([basePlayer, player], completeUser.id), [player]);
   assert.equal(selectApprovedPlayerForSubmission([{ ...player, id: "approved-video-aprovado" }], approvedSubmission.id)?.id, "approved-video-aprovado");

@@ -192,7 +192,11 @@ export default function App() {
     selectedPlayer,
     registeredUsers
   );
-  const selectedProfileVideos = selectProfileVideos(selectedPlayer, availablePlayers);
+  const selectedProfileVideos = selectProfileVideos(
+    selectedPlayer,
+    availablePlayers,
+    selectedProfileAccount
+  );
   const selectedProfileId = selectProfileId(selectedPlayer, selectedProfileAccount);
   const selectedProfileOwnerId =
     selectedProfileAccount?.id ?? selectedProfilePlayer?.ownerUserId;
