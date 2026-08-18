@@ -365,6 +365,7 @@ Tipo: Backend/Mobile/Web
 - [x] Publicar no perfil o selo Xolot Plus somente quando a assinatura estiver autorizada pelo backend.
 - [ ] Exigir verificação documental aprovada para manter o selo junto à assinatura Xolot Plus.
 - [x] Publicar checkout, sincronização, webhook e regras privadas no Firebase.
+- [x] Exibir no checkout o motivo seguro e específico quando as contas de teste do vendedor e comprador forem incompatíveis.
 - [ ] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
 - [ ] Emitir recibos e histórico de cobrança.
 - [ ] Tratar trial, falha de pagamento, grace period e reembolso.

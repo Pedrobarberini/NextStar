@@ -73,7 +73,10 @@ function readSubscription(
 function toFriendlyError(error: unknown) {
   if (error instanceof FirebaseError) {
     if (error.code === "functions/failed-precondition") {
-      return "Confirme seu e-mail e complete o perfil antes de assinar.";
+      return (
+        error.message ||
+        "Confirme seu e-mail e complete o perfil antes de assinar."
+      );
     }
     if (error.code === "functions/unavailable") {
       return "O Mercado Pago está temporariamente indisponível. Tente novamente.";

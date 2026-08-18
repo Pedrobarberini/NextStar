@@ -44,6 +44,63 @@ type MercadoPagoSubscription = {
   status?: string;
 };
 
+type MercadoPagoApiError = {
+  cause?: Array<{ code?: string; description?: string }>;
+  error?: string;
+  message?: string;
+  status?: number;
+};
+
+function readMercadoPagoApiError(error: unknown): MercadoPagoApiError {
+  if (!error || typeof error !== "object") {
+    return {
+      message: error instanceof Error ? error.message : "Erro desconhecido"
+    };
+  }
+
+  const candidate = error as MercadoPagoApiError;
+  return {
+    cause: Array.isArray(candidate.cause)
+      ? candidate.cause.map((item) => ({
+          code: typeof item?.code === "string" ? item.code : undefined,
+          description:
+            typeof item?.description === "string"
+              ? item.description
+              : undefined
+        }))
+      : undefined,
+    error: typeof candidate.error === "string" ? candidate.error : undefined,
+    message:
+      typeof candidate.message === "string"
+        ? candidate.message
+        : error instanceof Error
+          ? error.message
+          : "Erro desconhecido",
+    status: typeof candidate.status === "number" ? candidate.status : undefined
+  };
+}
+
+function toCheckoutError(error: unknown) {
+  const details = readMercadoPagoApiError(error);
+  const normalizedMessage = details.message?.toLowerCase() ?? "";
+
+  if (
+    normalizedMessage.includes(
+      "both payer and collector must be real or test users"
+    )
+  ) {
+    return new HttpsError(
+      "failed-precondition",
+      "O teste do Mercado Pago está usando contas incompatíveis. Configure o Access Token de produção da conta vendedora de teste e mantenha o comprador de teste."
+    );
+  }
+
+  return new HttpsError(
+    "unavailable",
+    "Não foi possível abrir o pagamento agora. Tente novamente em instantes."
+  );
+}
+
 function getClient() {
   return new PreApproval(
     new MercadoPagoConfig({
@@ -265,14 +322,17 @@ export const createPlusSubscription = onCall(createSubscriptionOptions, async (r
       status
     };
   } catch (error) {
+    const details = readMercadoPagoApiError(error);
     console.error("Falha ao criar assinatura Xolot Plus.", {
-      message: error instanceof Error ? error.message : "Erro desconhecido",
+      causeCodes: details.cause
+        ?.map((item) => item.code)
+        .filter((code): code is string => Boolean(code)),
+      error: details.error,
+      message: details.message,
+      status: details.status,
       uid
     });
-    throw new HttpsError(
-      "unavailable",
-      "Não foi possível abrir o pagamento agora. Tente novamente em instantes."
-    );
+    throw toCheckoutError(error);
   }
 });
 
