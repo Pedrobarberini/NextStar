@@ -6,7 +6,9 @@ import {
   formatCompactMetric,
   getCampaignObjectiveLabel,
   getProfessionalCategoryLabel,
-  getProfessionalPlanLabel
+  getProfessionalPlanLabel,
+  getProfessionalSubscriptionStatusLabel,
+  isProfessionalSubscriptionActive
 } from "../src/utils/professional.ts";
 
 test("cria configuração profissional gratuita e desativada por padrão", () => {
@@ -37,4 +39,24 @@ test("formata métricas e rótulos do domínio profissional", () => {
   assert.equal(getProfessionalCategoryLabel("brand"), "Marca");
   assert.equal(getProfessionalPlanLabel("business"), "Xolot Negócios");
   assert.equal(getCampaignObjectiveLabel("messages"), "Mais mensagens");
+});
+test("libera o Plus somente para assinatura autorizada pelo servidor", () => {
+  const pending = {
+    amount: 19.9,
+    currency: "BRL" as const,
+    plan: "pro" as const,
+    provider: "mercado_pago" as const,
+    status: "pending" as const,
+    updatedAt: new Date().toISOString()
+  };
+  assert.equal(isProfessionalSubscriptionActive(null), false);
+  assert.equal(isProfessionalSubscriptionActive(pending), false);
+  assert.equal(
+    isProfessionalSubscriptionActive({ ...pending, status: "authorized" }),
+    true
+  );
+  assert.equal(
+    getProfessionalSubscriptionStatusLabel(pending),
+    "Aguardando pagamento"
+  );
 });

@@ -14,6 +14,7 @@ import {
 } from "lucide-react-native";
 import {
   Alert,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -45,11 +46,17 @@ import type {
   MessageContact,
   Player,
   ProfessionalSettings,
+  ProfessionalSubscription,
   ProfileAvatar,
   ProfileAvatarsByProfile,
   PromotionCampaign,
   VideoSubmission
 } from "../types";
+import {
+  createPlusSubscriptionCheckout,
+  subscribeToProfessionalSubscription,
+  syncProfessionalSubscription
+} from "../services/firebaseProfessionalService";
 import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
 import { getProfileVideoVisibilityIds } from "../utils/profileVideoSelection";
 import { AccountSetupScreen } from "./AccountSetupScreen";
@@ -153,6 +160,10 @@ export function ProfileScreen({
     VideoSubmission[]
   >([]);
   const [profileView, setProfileView] = useState<ProfileView>("overview");
+  const [professionalSubscription, setProfessionalSubscription] =
+    useState<ProfessionalSubscription | null>(null);
+  const [isProfessionalSubscriptionLoading, setIsProfessionalSubscriptionLoading] =
+    useState(user.role === "Usuário");
   const profileNavigationTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -194,6 +205,26 @@ export function ProfileScreen({
     [following, profileAvatars]
   );
 
+  useEffect(() => {
+    if (user.role !== "Usuário") {
+      setProfessionalSubscription(null);
+      setIsProfessionalSubscriptionLoading(false);
+      return;
+    }
+
+    setIsProfessionalSubscriptionLoading(true);
+    return subscribeToProfessionalSubscription(
+      user.id,
+      (subscription) => {
+        setProfessionalSubscription(subscription);
+        setIsProfessionalSubscriptionLoading(false);
+      },
+      () => {
+        setProfessionalSubscription(null);
+        setIsProfessionalSubscriptionLoading(false);
+      }
+    );
+  }, [user.id, user.role]);
   useEffect(
     () => () => {
       if (profileNavigationTimer.current) {
@@ -267,6 +298,48 @@ export function ProfileScreen({
     />
   );
 
+  async function startPlusSubscription() {
+    try {
+      const checkout = await createPlusSubscriptionCheckout();
+
+      if (checkout.status === "authorized") {
+        Alert.alert("Xolot Plus", "Sua assinatura já está ativa.");
+        return;
+      }
+
+      if (!checkout.checkoutUrl) {
+        throw new Error("O link de pagamento não foi disponibilizado.");
+      }
+
+      await Linking.openURL(checkout.checkoutUrl);
+    } catch (error) {
+      Alert.alert(
+        "Pagamento indisponível",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível abrir o Mercado Pago."
+      );
+    }
+  }
+
+  async function refreshPlusSubscription() {
+    try {
+      const result = await syncProfessionalSubscription();
+      Alert.alert(
+        "Assinatura atualizada",
+        result.synced
+          ? "O status mais recente do Mercado Pago foi carregado."
+          : "Inicie a assinatura antes de atualizar o pagamento."
+      );
+    } catch (error) {
+      Alert.alert(
+        "Não foi possível atualizar",
+        error instanceof Error
+          ? error.message
+          : "Tente novamente em alguns instantes."
+      );
+    }
+  }
   if (profileView === "professional") {
     return (
       <ScreenTransition key="professional" style={styles.profileViewScene}>
@@ -280,10 +353,14 @@ export function ProfileScreen({
           }}
           onBack={() => setProfileView("overview")}
           onPromotePost={onPromotePost}
+          onStartSubscription={startPlusSubscription}
+          onSyncSubscription={refreshPlusSubscription}
           onToggleCampaign={onToggleCampaign}
           onUpdateSettings={onUpdateProfessionalSettings}
           posts={professionalPosts}
           settings={professionalSettings}
+          subscription={professionalSubscription}
+          subscriptionLoading={isProfessionalSubscriptionLoading}
         />
       </ScreenTransition>
     );

@@ -36,6 +36,23 @@ export type Player = {
 
 export type ProfessionalPlanId = "free" | "pro" | "business";
 
+export type ProfessionalSubscriptionStatus =
+  | "authorized"
+  | "cancelled"
+  | "paused"
+  | "pending";
+
+export type ProfessionalSubscription = {
+  amount: number;
+  checkoutUrl?: string;
+  currency: "BRL";
+  nextPaymentAt?: string;
+  plan: "pro";
+  provider: "mercado_pago";
+  status: ProfessionalSubscriptionStatus;
+  updatedAt: string;
+};
+
 export type ProfessionalCategory =
   | "talent"
   | "creator"

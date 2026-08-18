@@ -3,12 +3,13 @@ import {
   BarChart3,
   BriefcaseBusiness,
   Link2,
+  LockKeyhole,
   Megaphone,
-  Pause,
-  Play,
+  RefreshCw,
   Sparkles
 } from "lucide-react-native";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   Switch,
@@ -22,26 +23,27 @@ import { colors } from "../theme";
 import type {
   Player,
   ProfessionalSettings,
+  ProfessionalSubscription,
   PromotionCampaign
 } from "../types";
 import {
   PROFESSIONAL_CATEGORY_OPTIONS,
   PROFESSIONAL_PLAN_OPTIONS,
   formatCompactMetric,
-  getCampaignObjectiveLabel,
   getProfessionalCategoryLabel,
-  getProfessionalPlanLabel
+  getProfessionalSubscriptionStatusLabel,
+  isProfessionalSubscriptionActive
 } from "../utils/professional";
 
 export function ProfessionalDashboardScreen({
-  campaigns,
   metrics,
   onBack,
-  onPromotePost,
-  onToggleCampaign,
+  onStartSubscription,
+  onSyncSubscription,
   onUpdateSettings,
-  posts,
-  settings
+  settings,
+  subscription,
+  subscriptionLoading
 }: {
   campaigns: PromotionCampaign[];
   metrics: {
@@ -52,23 +54,55 @@ export function ProfessionalDashboardScreen({
   };
   onBack: () => void;
   onPromotePost: (player: Player) => void;
+  onStartSubscription: () => Promise<void>;
+  onSyncSubscription: () => Promise<void>;
   onToggleCampaign: (campaignId: string) => void;
   onUpdateSettings: (settings: ProfessionalSettings) => void;
   posts: Player[];
   settings: ProfessionalSettings;
+  subscription: ProfessionalSubscription | null;
+  subscriptionLoading: boolean;
 }) {
   const [externalLink, setExternalLink] = useState(settings.externalLink);
+  const [subscriptionAction, setSubscriptionAction] = useState<
+    "checkout" | "sync" | null
+  >(null);
+  const isPro = isProfessionalSubscriptionActive(subscription);
+  const currentPlan = isPro ? "pro" : "free";
 
   function updateSettings(update: Partial<ProfessionalSettings>) {
     onUpdateSettings({
       ...settings,
       ...update,
+      plan: currentPlan,
       updatedAt: new Date().toISOString()
     });
   }
 
   function saveExternalLink() {
-    updateSettings({ externalLink: externalLink.trim() });
+    if (isPro) {
+      updateSettings({ externalLink: externalLink.trim() });
+    }
+  }
+
+  async function startSubscription() {
+    if (subscriptionAction || isPro) return;
+    setSubscriptionAction("checkout");
+    try {
+      await onStartSubscription();
+    } finally {
+      setSubscriptionAction(null);
+    }
+  }
+
+  async function syncSubscription() {
+    if (subscriptionAction) return;
+    setSubscriptionAction("sync");
+    try {
+      await onSyncSubscription();
+    } finally {
+      setSubscriptionAction(null);
+    }
   }
 
   return (
@@ -82,15 +116,19 @@ export function ProfessionalDashboardScreen({
       <View style={s.hero}>
         <Text style={s.heroEyebrow}>Crescimento e publicidade</Text>
         <Text style={s.heroTitle}>
-          {settings.enabled ? "Seu perfil está no modo profissional" : "Ative o modo profissional"}
+          {isPro ? "Xolot Plus ativo" : "Fortaleça sua presença profissional"}
         </Text>
         <Text style={s.heroDescription}>
-          Acompanhe resultados, organize sua presença e promova publicações para alcançar novas pessoas.
+          {isPro
+            ? "Seu acesso pago foi confirmado pelo Mercado Pago."
+            : "Ative o perfil profissional gratuitamente ou assine o Plus para liberar métricas detalhadas."}
         </Text>
         <View style={s.switchRow}>
           <View style={s.switchText}>
             <Text style={[s.optionTitle, { color: colors.onPrimary }]}>Modo profissional</Text>
-            <Text style={[s.optionDescription, { color: "rgba(255,255,255,0.72)" }]}>Categoria atual: {getProfessionalCategoryLabel(settings.category)}</Text>
+            <Text style={[s.optionDescription, { color: "rgba(255,255,255,0.72)" }]}>
+              Categoria atual: {getProfessionalCategoryLabel(settings.category)}
+            </Text>
           </View>
           <Switch
             onValueChange={(enabled) => updateSettings({ enabled })}
@@ -105,15 +143,26 @@ export function ProfessionalDashboardScreen({
         <View style={s.row}>
           <View>
             <Text style={s.sectionTitle}>Visão geral</Text>
-            <Text style={s.sectionDescription}>Desempenho orgânico do seu conteúdo.</Text>
+            <Text style={s.sectionDescription}>
+              {isPro
+                ? "Desempenho real do conteúdo publicado."
+                : "Disponível para assinantes do Xolot Plus."}
+            </Text>
           </View>
           <BarChart3 color={colors.primary} size={22} />
         </View>
-        <View style={s.metricGrid}>
-          <Metric label="visualizações" value={formatCompactMetric(metrics.views)} />
-          <Metric label="curtidas" value={formatCompactMetric(metrics.likes)} />
-          <Metric label="mensagens" value={formatCompactMetric(metrics.messages)} />
-        </View>
+        {isPro ? (
+          <View style={s.metricGrid}>
+            <Metric label="visualizações" value={formatCompactMetric(metrics.views)} />
+            <Metric label="curtidas" value={formatCompactMetric(metrics.likes)} />
+            <Metric label="mensagens" value={formatCompactMetric(metrics.messages)} />
+          </View>
+        ) : (
+          <LockedFeature
+            body="Assine para acompanhar visualizações, curtidas e contatos em um único lugar."
+            title="Métricas detalhadas"
+          />
+        )}
       </View>
 
       <View style={s.section}>
@@ -129,45 +178,62 @@ export function ProfessionalDashboardScreen({
                 onPress={() => updateSettings({ category: option.id })}
                 style={[s.categoryOption, active ? s.categoryOptionActive : null]}
               >
-                <Text style={[s.categoryOptionText, active ? s.categoryOptionTextActive : null]}>{option.label}</Text>
+                <Text style={[s.categoryOptionText, active ? s.categoryOptionTextActive : null]}>
+                  {option.label}
+                </Text>
               </Pressable>
             );
           })}
         </View>
-        <Text style={[s.label, { marginTop: 18 }]}>Link profissional</Text>
-        <TextInput
-          autoCapitalize="none"
-          keyboardType="url"
-          onBlur={saveExternalLink}
-          onChangeText={setExternalLink}
-          onSubmitEditing={saveExternalLink}
-          placeholder="https://seusite.com.br"
-          placeholderTextColor={colors.muted}
-          style={s.input}
-          value={externalLink}
-        />
+        <View style={s.row}>
+          <Text style={[s.label, { marginTop: 18 }]}>Link profissional</Text>
+          {!isPro ? <LockKeyhole color={colors.muted} size={16} /> : null}
+        </View>
+        <View style={s.inputWithIcon}>
+          <Link2 color={isPro ? colors.primary : colors.muted} size={18} />
+          <TextInput
+            autoCapitalize="none"
+            editable={isPro}
+            keyboardType="url"
+            onBlur={saveExternalLink}
+            onChangeText={setExternalLink}
+            onSubmitEditing={saveExternalLink}
+            placeholder={isPro ? "https://seusite.com.br" : "Disponível no Xolot Plus"}
+            placeholderTextColor={colors.muted}
+            style={s.inputFlex}
+            value={externalLink}
+          />
+        </View>
       </View>
 
       <View style={s.section}>
         <View style={s.row}>
           <View>
             <Text style={s.sectionTitle}>Planos</Text>
-            <Text style={s.sectionDescription}>Atual: {getProfessionalPlanLabel(settings.plan)}</Text>
+            <Text style={s.sectionDescription}>
+              {subscriptionLoading
+                ? "Consultando assinatura..."
+                : getProfessionalSubscriptionStatusLabel(subscription)}
+            </Text>
           </View>
           <Sparkles color={colors.primary} size={22} />
         </View>
+
         {PROFESSIONAL_PLAN_OPTIONS.map((plan) => {
-          const active = plan.id === settings.plan;
+          const active = plan.id === currentPlan;
+          const isPlusPlan = plan.id === "pro";
+          const isBusinessPlan = plan.id === "business";
+
           return (
-            <Pressable
-              accessibilityRole="button"
+            <View
               key={plan.id}
-              onPress={() => updateSettings({ plan: plan.id })}
               style={[s.planCard, active ? s.planCardActive : null]}
             >
               <View style={s.optionHeader}>
                 <Text style={s.optionTitle}>{plan.label}</Text>
-                <Text style={s.planPrice}>{plan.priceLabel}</Text>
+                <Text style={s.planPrice}>
+                  {isBusinessPlan ? "Em breve" : plan.priceLabel}
+                </Text>
               </View>
               <Text style={s.optionDescription}>{plan.description}</Text>
               <View style={{ marginTop: 9 }}>
@@ -175,11 +241,56 @@ export function ProfessionalDashboardScreen({
                   <Text key={feature} style={s.planFeature}>• {feature}</Text>
                 ))}
               </View>
-            </Pressable>
+
+              {isPlusPlan ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={Boolean(subscriptionAction) || isPro}
+                  onPress={() => void startSubscription()}
+                  style={[
+                    s.actionButton,
+                    s.planAction,
+                    subscriptionAction || isPro ? s.actionButtonDisabled : null
+                  ]}
+                >
+                  {subscriptionAction === "checkout" ? (
+                    <ActivityIndicator color={colors.onPrimary} size="small" />
+                  ) : (
+                    <Sparkles color={colors.onPrimary} size={18} />
+                  )}
+                  <Text style={s.actionButtonText}>
+                    {isPro
+                      ? "Assinatura ativa"
+                      : subscription?.status === "pending"
+                        ? "Continuar pagamento"
+                        : "Assinar Xolot Plus"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           );
         })}
+
+        {subscription?.status === "pending" || subscription?.status === "paused" ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={Boolean(subscriptionAction)}
+            onPress={() => void syncSubscription()}
+            style={s.secondaryAction}
+          >
+            {subscriptionAction === "sync" ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <RefreshCw color={colors.primary} size={17} />
+            )}
+            <Text style={s.secondaryActionText}>Atualizar status do pagamento</Text>
+          </Pressable>
+        ) : null}
+
         <View style={[s.notice, { marginTop: 12 }]}>
-          <Text style={s.noticeText}>Os planos pagos estão em pré-lançamento. Sua escolha fica salva, mas nenhuma cobrança é realizada agora.</Text>
+          <Text style={s.noticeText}>
+            A cobrança mensal de R$ 19,90 é processada pelo Mercado Pago. O Xolot não recebe nem armazena os dados do cartão.
+          </Text>
         </View>
       </View>
 
@@ -187,63 +298,57 @@ export function ProfessionalDashboardScreen({
         <View style={s.row}>
           <View>
             <Text style={s.sectionTitle}>Promover publicação</Text>
-            <Text style={s.sectionDescription}>Escolha um conteúdo do seu perfil.</Text>
+            <Text style={s.sectionDescription}>Publicidade vinculada a conteúdo real do seu perfil.</Text>
           </View>
           <Megaphone color={colors.primary} size={22} />
         </View>
-        {posts.length === 0 ? (
+        {isPro ? (
           <View style={[s.emptyState, { marginTop: 12 }]}>
             <BriefcaseBusiness color={colors.muted} size={28} />
-            <Text style={s.emptyTitle}>Nenhuma publicação disponível</Text>
-            <Text style={s.emptyBody}>Publique uma foto ou vídeo para criar sua primeira campanha.</Text>
+            <Text style={s.emptyTitle}>Entrega patrocinada em preparação</Text>
+            <Text style={s.emptyBody}>
+              Esta função só será ativada quando orçamento, audiência e resultados estiverem conectados ao servidor real.
+            </Text>
           </View>
         ) : (
-          posts.map((post, index) => (
-            <View key={post.id} style={[s.postItem, index === 0 ? s.postItemFirst : null]}>
-              <View style={s.postMediaIcon}>
-                <Play color={colors.primary} size={20} fill={colors.primary} />
-              </View>
-              <View style={s.postText}>
-                <Text numberOfLines={1} style={s.postTitle}>{post.videoTitle}</Text>
-                <Text style={s.postType}>{post.mediaType === "image" ? "Foto" : "Vídeo"}</Text>
-              </View>
-              <Pressable onPress={() => onPromotePost(post)} style={s.inlineButton}>
-                <Megaphone color={colors.text} size={15} />
-                <Text style={s.inlineButtonText}>Promover</Text>
-              </Pressable>
-            </View>
-          ))
+          <LockedFeature
+            body="A criação e a gestão de campanhas serão exclusivas do plano Plus."
+            title="Recurso do Xolot Plus"
+          />
         )}
       </View>
 
       <View style={s.section}>
         <Text style={s.sectionTitle}>Campanhas</Text>
-        <Text style={s.sectionDescription}>{campaigns.length} {campaigns.length === 1 ? "campanha criada" : "campanhas criadas"}</Text>
-        {campaigns.length === 0 ? (
+        <Text style={s.sectionDescription}>Somente campanhas reais serão exibidas neste painel.</Text>
+        {isPro ? (
           <View style={[s.emptyState, { marginTop: 12 }]}>
             <Megaphone color={colors.muted} size={28} />
-            <Text style={s.emptyTitle}>Comece com uma publicação</Text>
-            <Text style={s.emptyBody}>Suas promoções e resultados aparecerão aqui.</Text>
+            <Text style={s.emptyTitle}>Nenhuma campanha ativa</Text>
+            <Text style={s.emptyBody}>
+              O painel não cria mais alcance estimado ou campanhas simuladas.
+            </Text>
           </View>
         ) : (
-          campaigns.map((campaign, index) => (
-            <View key={campaign.id} style={[s.campaignItem, index === 0 ? s.campaignItemFirst : null]}>
-              <View style={s.row}>
-                <Text numberOfLines={1} style={s.campaignTitle}>{campaign.title}</Text>
-                <Text style={[s.campaignStatus, campaign.status !== "active" ? s.campaignStatusPaused : null]}>{campaign.status === "active" ? "Ativa" : campaign.status === "paused" ? "Pausada" : "Concluída"}</Text>
-              </View>
-              <Text style={s.campaignMeta}>{getCampaignObjectiveLabel(campaign.objective)} · alcance estimado {formatCompactMetric(campaign.estimatedReach)} · {campaign.durationDays} dias</Text>
-              {campaign.status !== "completed" ? (
-                <Pressable onPress={() => onToggleCampaign(campaign.id)} style={[s.inlineButton, { alignSelf: "flex-start" }]}>
-                  {campaign.status === "active" ? <Pause color={colors.text} size={15} /> : <Play color={colors.text} size={15} />}
-                  <Text style={s.inlineButtonText}>{campaign.status === "active" ? "Pausar" : "Retomar"}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ))
+          <LockedFeature
+            body="Assine o Plus para acessar campanhas quando a entrega publicitária estiver disponível."
+            title="Campanhas bloqueadas"
+          />
         )}
       </View>
     </ScrollView>
+  );
+}
+
+function LockedFeature({ body, title }: { body: string; title: string }) {
+  return (
+    <View style={s.lockedFeature}>
+      <LockKeyhole color={colors.primary} size={24} />
+      <View style={s.lockedFeatureBody}>
+        <Text style={s.lockedFeatureTitle}>{title}</Text>
+        <Text style={s.lockedFeatureText}>{body}</Text>
+      </View>
+    </View>
   );
 }
 

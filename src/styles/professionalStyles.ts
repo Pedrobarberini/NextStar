@@ -166,6 +166,50 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
     minHeight: 46,
     paddingHorizontal: 13
   },
+  inputFlex: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 14,
+    minHeight: 44,
+    minWidth: 0,
+    paddingVertical: 0
+  },
+  inputWithIcon: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 7,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 9,
+    minHeight: 46,
+    paddingHorizontal: 13
+  },
+  lockedFeature: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 7,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+    padding: 14
+  },
+  lockedFeatureBody: {
+    flex: 1,
+    minWidth: 0
+  },
+  lockedFeatureText: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3
+  },
+  lockedFeatureTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900"
+  },
   label: {
     color: colors.text,
     fontSize: 12,
@@ -243,6 +287,9 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
     borderWidth: 1,
     marginTop: 10,
     padding: 14
+  },
+  planAction: {
+    marginTop: 14
   },
   planCardActive: {
     backgroundColor: colors.primarySoft,
@@ -337,6 +384,23 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
   sectionTitle: {
     color: colors.text,
     fontSize: 18,
+    fontWeight: "900"
+  },
+  secondaryAction: {
+    alignItems: "center",
+    borderColor: colors.primary,
+    borderRadius: 7,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    marginTop: 12,
+    minHeight: 42,
+    paddingHorizontal: 14
+  },
+  secondaryActionText: {
+    color: colors.primary,
+    fontSize: 13,
     fontWeight: "900"
   },
   selectorRow: {

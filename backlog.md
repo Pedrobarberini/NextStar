@@ -66,7 +66,7 @@ Tipo: Produto/Frontend
 Status: Concluído em modo de pré-lançamento em 2026-07-25.
 
 - [x] Definir plano Gratuito.
-- [x] Definir Xolot Pro por R$ 19,90/mês.
+- [x] Definir Xolot Plus por R$ 19,90/mês.
 - [x] Definir Xolot Negócios por R$ 99/mês.
 - [x] Exibir comparação resumida de benefícios no painel.
 - [x] Persistir localmente a seleção de plano.
@@ -354,11 +354,13 @@ Tipo: Backend/Data/Frontend
 Tipo: Backend/Mobile/Web
 
 - [ ] Criar catálogo único de produtos e benefícios.
-- [ ] Implementar entitlement server-side.
+- [x] Implementar entitlement server-side.
 - [ ] Integrar Google Play Billing.
 - [ ] Integrar StoreKit/App Store.
-- [ ] Integrar checkout web compatível com as regras das lojas.
-- [ ] Processar webhooks idempotentes.
+- [x] Integrar checkout web recorrente do Xolot Plus com Mercado Pago.
+- [x] Processar webhooks idempotentes com validação de assinatura.
+- [ ] Criar a aplicação do Mercado Pago e cadastrar os segredos de teste no Firebase.
+- [ ] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
 - [ ] Emitir recibos e histórico de cobrança.
 - [ ] Tratar trial, falha de pagamento, grace period e reembolso.
 
@@ -369,11 +371,13 @@ Tipo: Frontend/Produto
 - [x] Criar painel local com métricas agregadas.
 - [x] Criar seleção de categoria, plano e link profissional.
 - [x] Listar campanhas e permitir pausar ou retomar.
+- [x] Bloquear métricas detalhadas e link profissional sem assinatura ativa confirmada pelo servidor.
+- [x] Remover campanhas e estimativas de alcance simuladas do painel profissional.
 - [ ] Adicionar filtros por período.
 - [ ] Criar gráficos acessíveis de crescimento e conversão.
 - [ ] Exibir origem das visitas e melhores publicações.
 - [ ] Adicionar recomendações acionáveis sem inventar dados.
-- [ ] Criar estado de carregamento e retry conectado à API.
+- [x] Criar estado de carregamento e atualização manual conectado à API de assinatura.
 
 ## P2 - Qualidade do frontend
 

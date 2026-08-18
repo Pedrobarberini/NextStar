@@ -15,6 +15,10 @@ const socialService = readFileSync(
   new URL("../src/services/firebaseSocialService.ts", import.meta.url),
   "utf8"
 );
+const mercadoPagoFunctions = readFileSync(
+  new URL("../functions/src/mercadoPago.ts", import.meta.url),
+  "utf8"
+);
 const notificationFunctions = readFileSync(
   new URL("../functions/src/notifications.ts", import.meta.url),
   "utf8"
@@ -105,4 +109,17 @@ test("IDs visuais do feed sao convertidos para o documento real do post", () => 
   );
   assert.match(socialService, /postId: getPostDocumentId\(comment\.playerId\)/);
   assert.match(rules, /data\.playerId == 'approved-' \+ data\.postId/);
+});
+test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
+  assert.match(rules, /match \/subscriptions\/\{uid\}/);
+  assert.match(rules, /allow get: if owns\(uid\)/);
+  assert.match(
+    rules,
+    /match \/subscriptions\/\{uid\}[\s\S]*allow create, update, delete: if false/
+  );
+  assert.match(mercadoPagoFunctions, /MERCADO_PAGO_ACCESS_TOKEN|mercadoPagoAccessToken/);
+  assert.match(mercadoPagoFunctions, /WebhookSignatureValidator\.validate/);
+  assert.match(mercadoPagoFunctions, /transaction_amount: PLUS_AMOUNT/);
+  assert.match(mercadoPagoFunctions, /currency_id: PLUS_CURRENCY/);
+  assert.match(mercadoPagoFunctions, /externalUid !== uid/);
 });

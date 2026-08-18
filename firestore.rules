@@ -406,6 +406,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /subscriptions/{uid} {
+      allow get: if owns(uid);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
     match /postComments/{commentId} {
       allow get, list: if registeredVerifiedUser();
       allow create: if registeredVerifiedUser()

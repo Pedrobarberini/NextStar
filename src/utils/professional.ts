@@ -2,7 +2,8 @@ import type {
   CampaignObjective,
   ProfessionalCategory,
   ProfessionalPlanId,
-  ProfessionalSettings
+  ProfessionalSettings,
+  ProfessionalSubscription
 } from "../types";
 
 export const PROFESSIONAL_PLAN_OPTIONS: Array<{
@@ -21,9 +22,9 @@ export const PROFESSIONAL_PLAN_OPTIONS: Array<{
   },
   {
     description: "Para criadores e talentos que querem crescer com consistência.",
-    features: ["Métricas detalhadas", "Links no perfil", "Campanhas promocionais"],
+    features: ["Métricas detalhadas", "Link profissional", "Status de assinante"],
     id: "pro",
-    label: "Xolot Pro",
+    label: "Xolot Plus",
     priceLabel: "R$ 19,90/mês"
   },
   {
@@ -133,4 +134,19 @@ export function formatCurrency(value: number) {
     minimumFractionDigits: 0,
     style: "currency"
   }).format(value);
+}
+export function isProfessionalSubscriptionActive(
+  subscription: ProfessionalSubscription | null
+) {
+  return subscription?.status === "authorized";
+}
+
+export function getProfessionalSubscriptionStatusLabel(
+  subscription: ProfessionalSubscription | null
+) {
+  if (!subscription) return "Plano gratuito";
+  if (subscription.status === "authorized") return "Assinatura ativa";
+  if (subscription.status === "paused") return "Pagamento pendente";
+  if (subscription.status === "cancelled") return "Assinatura cancelada";
+  return "Aguardando pagamento";
 }
