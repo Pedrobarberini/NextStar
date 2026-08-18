@@ -219,7 +219,6 @@ export function ProfileVideoGallery({
                     mediaType={video.mediaType}
                     uri={video.uri}
                   />
-                  <View style={styles.profileGalleryCardShade} />
                   <Text numberOfLines={2} style={styles.profileGalleryCardTitle}>
                     {video.title}
                   </Text>
@@ -262,7 +261,7 @@ export function ProfileVideoGallery({
                       pressed ? styles.buttonPressed : null
                     ]}
                   >
-                    <MoreVertical color={colors.onPrimary} size={18} />
+                    <MoreVertical color={colors.onPrimary} size={16} />
                   </Pressable>
                 ) : null}
               </View>

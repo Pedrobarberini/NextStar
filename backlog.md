@@ -56,6 +56,7 @@ Status: Concluído em 2026-07-25.
 - [x] Remover fundo e borda dos controles flutuantes de tela cheia e volume.
 - [x] Permitir curtir fotos e vídeos com dois toques e exibir confirmação animada.
 - [x] Manter o perfil social e a galeria como vitrine principal.
+- [x] Exibir títulos diretamente sobre as miniaturas da galeria e compactar o botão de opções.
 - [x] Substituir o item secundário do menu do Perfil por `Painel profissional`.
 
 ### Task PIVOT-003 - Preparar planos de monetização

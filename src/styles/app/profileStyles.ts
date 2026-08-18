@@ -330,24 +330,17 @@ export const profileStyles = {
     height: "100%",
     width: "100%"
   },
-  profileGalleryCardShade: {
-    backgroundColor: "rgba(0, 0, 0, 0.44)",
-    bottom: 0,
-    height: "44%",
-    left: 0,
-    position: "absolute",
-    right: 0
-  },
+
   profileGalleryMenuButton: {
     alignItems: "center",
     backgroundColor: "rgba(5, 10, 7, 0.68)",
     borderRadius: 999,
-    height: 30,
+    height: 26,
     justifyContent: "center",
     position: "absolute",
-    right: 8,
-    top: 8,
-    width: 30
+    right: 6,
+    top: 6,
+    width: 26
   },
   profileGallerySelectionOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -379,7 +372,10 @@ export const profileStyles = {
     left: 8,
     lineHeight: 14,
     position: "absolute",
-    right: 48
+    right: 48,
+    textShadowColor: "rgba(0, 0, 0, 0.86)",
+    textShadowOffset: { height: 1, width: 0 },
+    textShadowRadius: 3
   },
   profileGalleryViewCount: {
     alignItems: "center",
