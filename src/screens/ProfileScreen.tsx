@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
+  BadgeCheck,
   Bell,
   BriefcaseBusiness,
   Camera,
@@ -188,6 +189,8 @@ export function ProfileScreen({
     (total, video) => total + (viewCountsByPlayer[video.id] ?? 0),
     0
   );
+  const isPlusSubscriber =
+    professionalSubscription?.status === "authorized" || user.plusActive === true;
   const profileInitials = user.name
     .split(" ")
     .slice(0, 2)
@@ -309,6 +312,11 @@ export function ProfileScreen({
 
       if (!checkout.checkoutUrl) {
         throw new Error("O link de pagamento não foi disponibilizado.");
+      }
+
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.location.assign(checkout.checkoutUrl);
+        return;
       }
 
       await Linking.openURL(checkout.checkoutUrl);
@@ -465,9 +473,19 @@ export function ProfileScreen({
                 )}
               </Pressable>
               <View style={styles.profileTitleBlock}>
-                <Text numberOfLines={1} style={styles.profilePrimaryUsername}>
-                  @{user.username}
-                </Text>
+                <View style={{ alignItems: "center", flexDirection: "row", gap: 6 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.profilePrimaryUsername, { flexShrink: 1 }]}
+                  >
+                    @{user.username}
+                  </Text>
+                  {isPlusSubscriber ? (
+                    <View accessible accessibilityLabel="Assinante Xolot Plus">
+                      <BadgeCheck color={colors.primary} size={18} />
+                    </View>
+                  ) : null}
+                </View>
                 <Text numberOfLines={1} style={styles.profileSecondaryName}>
                   {user.name}
                 </Text>

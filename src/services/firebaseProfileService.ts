@@ -100,6 +100,7 @@ export function toPublicAppUser(
     id: profile.uid,
     name: profile.name,
     photoURL: profile.photoURL || undefined,
+    plusActive: profile.plusActive,
     position: profile.position,
     profileCompleted: true,
     role: "Usuário",
@@ -235,8 +236,15 @@ export async function saveFirebaseProfile(
       throw new InvalidPublicProfileError();
     }
 
+    const currentProfileData = profileSnapshot.data();
+    const serverManagedProfileFields =
+      typeof currentProfileData?.plusActive === "boolean"
+        ? { plusActive: currentProfileData.plusActive }
+        : {};
+
     transaction.set(profileReference, {
       ...normalizedProfile,
+      ...serverManagedProfileFields,
       createdAt: profileSnapshot.exists()
         ? profileSnapshot.data().createdAt
         : serverTimestamp(),

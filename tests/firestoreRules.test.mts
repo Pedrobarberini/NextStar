@@ -19,6 +19,10 @@ const mercadoPagoFunctions = readFileSync(
   new URL("../functions/src/mercadoPago.ts", import.meta.url),
   "utf8"
 );
+const profileScreen = readFileSync(
+  new URL("../src/screens/ProfileScreen.tsx", import.meta.url),
+  "utf8"
+);
 const notificationFunctions = readFileSync(
   new URL("../functions/src/notifications.ts", import.meta.url),
   "utf8"
@@ -129,4 +133,10 @@ test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
   assert.match(mercadoPagoFunctions, /environment === "production"/);
   assert.match(mercadoPagoFunctions, /testuser/);
   assert.match(mercadoPagoFunctions, /payerEmailHash === payerEmailHash/);
+  assert.match(mercadoPagoFunctions, /plusActive: status === "authorized"/);
+  assert.match(
+    rules,
+    /affectedKeys\(\)\.hasAny\(\['plusActive'\]\)/
+  );
+  assert.match(profileScreen, /window\.location\.assign\(checkout\.checkoutUrl\)/);
 });

@@ -66,7 +66,7 @@ service cloud.firestore {
     function validProfile(uid, data) {
       return data.keys().hasOnly([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
-          'interestTags', 'position', 'profileCompleted', 'uid', 'updatedAt', 'username'
+          'interestTags', 'plusActive', 'position', 'profileCompleted', 'uid', 'updatedAt', 'username'
         ])
         && data.keys().hasAll([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
@@ -85,6 +85,7 @@ service cloud.firestore {
           || (data.interestTags is list && data.interestTags.size() <= 6)
         )
         && data.photoURL is string && data.photoURL.size() <= 2048
+        && (!data.keys().hasAny(['plusActive']) || data.plusActive is bool)
         && data.profileCompleted == true
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -296,11 +297,14 @@ service cloud.firestore {
         && validProfile(uid, request.resource.data)
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
+        && (!request.resource.data.keys().hasAny(['plusActive'])
+          || request.resource.data.plusActive == false)
         && usernameOwnedAfter(uid, request.resource.data.username);
       allow update: if owns(uid)
         && validProfile(uid, request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plusActive'])
         && usernameOwnedAfter(uid, request.resource.data.username)
         && oldUsernameReleasedAfter(uid);
       allow delete: if false;

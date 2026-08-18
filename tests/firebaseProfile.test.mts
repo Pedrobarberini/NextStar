@@ -10,6 +10,7 @@ const profile = {
   club: "Projeto Xolot",
   name: "Pessoa Criadora",
   photoURL: "https://example.com/avatar.jpg",
+  plusActive: false,
   position: "Criador",
   profileCompleted: true,
   uid: "uid-seguro-1",
@@ -27,6 +28,12 @@ test("normaliza apenas os campos públicos permitidos", () => {
   assert.deepEqual(normalized, profile);
   assert.equal("email" in (normalized ?? {}), false);
   assert.equal("role" in (normalized ?? {}), false);
+  assert.equal(normalized?.plusActive, false);
+  assert.equal(
+    normalizePublicProfileDocument(profile.uid, { ...profile, plusActive: true })
+      ?.plusActive,
+    true
+  );
 
   assert.equal("passwordHash" in (normalized ?? {}), false);
 });

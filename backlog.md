@@ -361,6 +361,9 @@ Tipo: Backend/Mobile/Web
 - [x] Processar webhooks idempotentes com validação de assinatura.
 - [x] Criar a aplicação do Mercado Pago e cadastrar os segredos de teste no Firebase.
 - [x] Separar checkout de teste e produção e vincular o sandbox ao comprador de teste sem persistir seu e-mail em texto aberto.
+- [x] Abrir o checkout do Mercado Pago na mesma aba no navegador para evitar bloqueio de popup após a chamada assíncrona.
+- [x] Publicar no perfil o selo Xolot Plus somente quando a assinatura estiver autorizada pelo backend.
+- [ ] Exigir verificação documental aprovada para manter o selo junto à assinatura Xolot Plus.
 - [x] Publicar checkout, sincronização, webhook e regras privadas no Firebase.
 - [ ] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
 - [ ] Emitir recibos e histórico de cobrança.

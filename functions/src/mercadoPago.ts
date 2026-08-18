@@ -94,36 +94,51 @@ async function saveSubscription(
     throw new Error("O Mercado Pago não retornou o identificador da assinatura.");
   }
 
-  const reference = getFirestore().doc(`subscriptions/${uid}`);
-  const snapshot = await reference.get();
-  const payload: Record<string, unknown> = {
-    amount: PLUS_AMOUNT,
-    checkoutUrl: subscription.init_point ?? null,
-    currency: PLUS_CURRENCY,
-    nextPaymentAt: subscription.next_payment_date ?? null,
-    ownerUid: uid,
-    plan: "pro",
-    provider: "mercado_pago",
-    providerSubscriptionId: subscription.id,
-    status: normalizeStatus(subscription.status),
-    updatedAt: FieldValue.serverTimestamp()
-  };
+  const database = getFirestore();
+  const reference = database.doc(`subscriptions/${uid}`);
+  const profileReference = database.doc(`profiles/${uid}`);
+  const status = normalizeStatus(subscription.status);
 
-  if (!snapshot.exists) {
-    payload.createdAt = FieldValue.serverTimestamp();
-  }
-  if (context.checkoutAttemptId) {
-    payload.checkoutAttemptId = context.checkoutAttemptId;
-  }
-  if (context.paymentEnvironment) {
-    payload.paymentEnvironment = context.paymentEnvironment;
-  }
-  if (context.payerEmailHash) {
-    payload.payerEmailHash = context.payerEmailHash;
-  }
+  await database.runTransaction(async (transaction) => {
+    const [snapshot, profileSnapshot] = await Promise.all([
+      transaction.get(reference),
+      transaction.get(profileReference)
+    ]);
+    const payload: Record<string, unknown> = {
+      amount: PLUS_AMOUNT,
+      checkoutUrl: subscription.init_point ?? null,
+      currency: PLUS_CURRENCY,
+      nextPaymentAt: subscription.next_payment_date ?? null,
+      ownerUid: uid,
+      plan: "pro",
+      provider: "mercado_pago",
+      providerSubscriptionId: subscription.id,
+      status,
+      updatedAt: FieldValue.serverTimestamp()
+    };
 
-  await reference.set(payload, { merge: true });
-  return normalizeStatus(subscription.status);
+    if (!snapshot.exists) {
+      payload.createdAt = FieldValue.serverTimestamp();
+    }
+    if (context.checkoutAttemptId) {
+      payload.checkoutAttemptId = context.checkoutAttemptId;
+    }
+    if (context.paymentEnvironment) {
+      payload.paymentEnvironment = context.paymentEnvironment;
+    }
+    if (context.payerEmailHash) {
+      payload.payerEmailHash = context.payerEmailHash;
+    }
+
+    transaction.set(reference, payload, { merge: true });
+    if (profileSnapshot.exists) {
+      transaction.update(profileReference, {
+        plusActive: status === "authorized"
+      });
+    }
+  });
+
+  return status;
 }
 
 async function loadProviderSubscription(subscriptionId: string) {

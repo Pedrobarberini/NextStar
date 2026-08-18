@@ -217,6 +217,7 @@ export type AppUser = AccountProfile & {
   authProvider?: AuthProvider;
   googleUid?: string;
   photoURL?: string;
+  plusActive?: boolean;
   profileCompleted: boolean;
 };
 

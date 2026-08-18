@@ -81,6 +81,7 @@ export function PublicProfileScreen({
   const profileBio = account?.bio ?? "";
   const profileClub = account?.club ?? player?.club ?? "";
   const isProfessional = professionalSettings?.enabled === true;
+  const isPlusSubscriber = account?.plusActive === true;
   const totalViews = videos.reduce(
     (total, video) => total + (viewCountsByPlayer[video.id] ?? 0),
     0
@@ -119,7 +120,7 @@ export function PublicProfileScreen({
                 <Text numberOfLines={1} style={[styles.profilePrimaryUsername, { flexShrink: 1 }]}>
                   {profileUsername ? `@${profileUsername}` : profileName}
                 </Text>
-                {isProfessional ? <BadgeCheck color={colors.primary} size={18} /> : null}
+                {isPlusSubscriber ? <BadgeCheck color={colors.primary} size={18} /> : null}
               </View>
               {profileUsername ? <Text numberOfLines={1} style={styles.profileSecondaryName}>{profileName}</Text> : null}
               <Text numberOfLines={2} style={[styles.profileMeta, styles.publicProfileMeta]}>

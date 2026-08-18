@@ -12,6 +12,7 @@ export type PublicProfileDocument = {
   interestTags: string[];
   name: string;
   photoURL: string;
+  plusActive: boolean;
   position: string;
   profileCompleted: true;
   uid: string;
@@ -90,6 +91,7 @@ export function normalizePublicProfileDocument(
     name,
     interestTags: normalizeInterestTags(data.interestTags),
     photoURL: normalizeText(data.photoURL, 2048),
+    plusActive: data.plusActive === true,
     position:
       normalizeText(data.position, 40) ||
       (allowLegacyFallback ? "Área não informada" : ""),
