@@ -359,7 +359,8 @@ Tipo: Backend/Mobile/Web
 - [ ] Integrar StoreKit/App Store.
 - [x] Integrar checkout web recorrente do Xolot Plus com Mercado Pago.
 - [x] Processar webhooks idempotentes com validação de assinatura.
-- [ ] Criar a aplicação do Mercado Pago e cadastrar os segredos de teste no Firebase.
+- [x] Criar a aplicação do Mercado Pago e cadastrar os segredos de teste no Firebase.
+- [x] Publicar checkout, sincronização, webhook e regras privadas no Firebase.
 - [ ] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
 - [ ] Emitir recibos e histórico de cobrança.
 - [ ] Tratar trial, falha de pagamento, grace period e reembolso.
