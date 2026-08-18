@@ -26,6 +26,8 @@ export type Player = {
   videoLength: string;
   videoUri: string | number;
   mediaType?: SubmissionMediaType;
+  mediaHeight?: number;
+  mediaWidth?: number;
   hasAudio?: boolean;
   highlight: string;
   tags: string[];

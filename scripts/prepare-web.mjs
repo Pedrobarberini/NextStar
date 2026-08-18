@@ -23,6 +23,10 @@ const pageShellStyle = `    <style id="xolot-page-shell">
         scroll-snap-type: y mandatory;
       }
 
+      #xolot-volume-slider {
+        overscroll-behavior: contain;
+        touch-action: none;
+      }
       [id^="xolot-feed-section-"] {
         scroll-snap-align: start;
         scroll-snap-stop: always;

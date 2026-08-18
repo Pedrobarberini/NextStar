@@ -30,6 +30,8 @@ export function buildPlayerFromSubmission(submission: VideoSubmission): Player {
     videoLength: formatVideoDuration(submission.videoDurationMs) ?? "",
     videoUri: submission.videoLink,
     mediaType: submission.mediaType ?? "video",
+    mediaHeight: submission.mediaHeight,
+    mediaWidth: submission.mediaWidth,
     hasAudio: (submission.mediaType ?? "video") === "video",
     highlight: submission.highlight,
     tags:

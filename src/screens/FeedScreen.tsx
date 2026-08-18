@@ -52,7 +52,10 @@ import {
   getPlayerContentKey,
   getPlayerContentLabel
 } from "../utils/feedEngagement";
-import { selectFeedPlaybackIndex } from "../utils/feedPlayback";
+import {
+  selectFeedContentFit,
+  selectFeedPlaybackIndex
+} from "../utils/feedPlayback";
 import {
   createMediaTapGestureState,
   MEDIA_DOUBLE_TAP_DELAY_MS,
@@ -147,6 +150,7 @@ export function FeedScreen({
   const [feedHeight, setFeedHeight] = useState(0);
   const [activeFeedIndex, setActiveFeedIndex] = useState(0);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const [feedVolume, setFeedVolume] = useState(0);
   const [isFeedNavigating, setIsFeedNavigating] = useState(false);
   const [isCleanView, setIsCleanView] = useState(false);
   const [commentPlayer, setCommentPlayer] = useState<Player | null>(null);
@@ -455,9 +459,11 @@ export function FeedScreen({
               onShare={() => setSharePlayer(player)}
               onToggleLike={() => onToggleLike(player)}
               onToggleFollow={() => onToggleFollow(player)}
+              onVolumeChange={setFeedVolume}
               palette={getCardPalette(index)}
               player={player}
               reelHeight={pageHeight}
+              volume={feedVolume}
             />
           </View>
         ))}
@@ -666,9 +672,11 @@ function FeedReel({
   onShare,
   onToggleLike,
   onToggleFollow,
+  onVolumeChange,
   palette,
   player,
-  reelHeight
+  reelHeight,
+  volume
 }: {
   autoplayEnabled: boolean;
   avatar?: ProfileAvatar;
@@ -690,9 +698,11 @@ function FeedReel({
   onShare: () => void;
   onToggleLike: () => void;
   onToggleFollow: () => void;
+  onVolumeChange: (volume: number) => void;
   palette: CardPalette;
   player: Player;
   reelHeight: number;
+  volume: number;
 }) {
   const { width } = useWindowDimensions();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -727,6 +737,12 @@ function FeedReel({
     ? Math.max(540, Math.min(reelHeight - 44, 700))
     : reelHeight;
   const canvasWidth = isWide ? Math.min(width - 80, 1080) : width;
+  const mediaContentFit = selectFeedContentFit({
+    containerHeight: canvasHeight,
+    containerWidth: canvasWidth,
+    mediaHeight: player.mediaHeight,
+    mediaWidth: player.mediaWidth
+  });
 
   function handleToggleLike() {
     if (!isLiked) {
@@ -866,10 +882,13 @@ function FeedReel({
             isActive={isActive}
             isCleanView={isCleanView}
             isWide={isWide}
+            contentFit={mediaContentFit}
+            onVolumeChange={onVolumeChange}
             palette={palette}
             player={player}
             onCleanViewChange={onCleanViewChange}
             onDoublePress={handleDoublePressLike}
+            volume={volume}
           />
 
           <Animated.View
@@ -1113,23 +1132,29 @@ function FeedMentionsButton({
 function FeedVideoBox({
   autoplayEnabled,
   chromeOpacity,
+  contentFit,
   isActive,
   isCleanView,
   isWide,
   onCleanViewChange,
   onDoublePress,
+  onVolumeChange,
   palette,
-  player
+  player,
+  volume
 }: {
   autoplayEnabled: boolean;
   chromeOpacity: Animated.Value;
+  contentFit: "contain" | "cover";
   isActive: boolean;
   isCleanView: boolean;
   isWide: boolean;
   onCleanViewChange: (active: boolean) => void;
   onDoublePress: () => void;
+  onVolumeChange: (volume: number) => void;
   palette: CardPalette;
   player: Player;
+  volume: number;
 }) {
   return (
     <View
@@ -1141,6 +1166,7 @@ function FeedVideoBox({
     >
       {player.mediaType === "image" ? (
         <FeedImagePlayback
+          contentFit={contentFit}
           onCleanViewChange={onCleanViewChange}
           onDoublePress={onDoublePress}
           uri={player.videoUri}
@@ -1150,6 +1176,7 @@ function FeedVideoBox({
           accent={palette.accent}
           autoplayEnabled={autoplayEnabled}
           chromeOpacity={chromeOpacity}
+          contentFit={contentFit}
           caption={player.videoTitle}
           durationLabel={player.videoLength}
           hasAudio={player.hasAudio !== false}
@@ -1159,8 +1186,10 @@ function FeedVideoBox({
           onAccent={palette.onAccent}
           onCleanViewChange={onCleanViewChange}
           onDoublePress={onDoublePress}
+          onVolumeChange={onVolumeChange}
           trackColor={palette.progressTrack}
           uri={player.videoUri}
+          volume={volume}
         />
       )}
     </View>
@@ -1295,10 +1324,12 @@ function FeedMediaTapTarget({
 }
 
 function FeedImagePlayback({
+  contentFit,
   onCleanViewChange,
   onDoublePress,
   uri
 }: {
+  contentFit: "contain" | "cover";
   onCleanViewChange: (active: boolean) => void;
   onDoublePress: () => void;
   uri: string | number;
@@ -1326,7 +1357,7 @@ function FeedImagePlayback({
     <View style={styles.feedVideoPlayback}>
       <Image
         accessibilityLabel="Foto da publicação"
-        resizeMode="contain"
+        resizeMode={contentFit}
         source={
           typeof resolvedImage.source === "number"
             ? resolvedImage.source
@@ -1346,6 +1377,7 @@ type FeedVideoPlaybackProps = {
   accent: string;
   autoplayEnabled: boolean;
   chromeOpacity: Animated.Value;
+  contentFit: "contain" | "cover";
   caption: string;
   durationLabel: string;
   hasAudio: boolean;
@@ -1355,8 +1387,10 @@ type FeedVideoPlaybackProps = {
   onAccent: string;
   onCleanViewChange: (active: boolean) => void;
   onDoublePress: () => void;
+  onVolumeChange: (volume: number) => void;
   trackColor: string;
   uri: string | number;
+  volume: number;
 };
 
 function FeedVideoPlayback(props: FeedVideoPlaybackProps) {
@@ -1408,6 +1442,7 @@ function ResolvedFeedVideoPlayback({
   accent,
   autoplayEnabled,
   chromeOpacity,
+  contentFit,
   caption,
   durationLabel,
   hasAudio,
@@ -1417,15 +1452,18 @@ function ResolvedFeedVideoPlayback({
   onAccent,
   onCleanViewChange,
   onDoublePress,
+  onVolumeChange,
   trackColor,
-  uri
+  uri,
+  volume
 }: FeedVideoPlaybackProps) {
   const [playbackTime, setPlaybackTime] = useState(0);
   const [seekTrackWidth, setSeekTrackWidth] = useState(0);
-  const [volume, setVolume] = useState(0);
+  const normalizedVolume = Math.min(Math.max(volume, 0), 1);
   const videoPlayer = useVideoPlayer(uri, (player) => {
     player.loop = true;
-    player.muted = true;
+    player.volume = normalizedVolume;
+    player.muted = normalizedVolume <= 0;
     player.playbackRate = 1;
     player.timeUpdateEventInterval = 0.1;
   });
@@ -1445,6 +1483,11 @@ function ResolvedFeedVideoPlayback({
   const { status: playerStatus } = useEvent(videoPlayer, "statusChange", {
     status: videoPlayer.status
   });
+
+  useEffect(() => {
+    videoPlayer.volume = normalizedVolume;
+    videoPlayer.muted = normalizedVolume <= 0;
+  }, [normalizedVolume, videoPlayer]);
 
   const { currentTime } = useEvent(videoPlayer, "timeUpdate", {
     bufferedPosition: videoPlayer.bufferedPosition,
@@ -1589,7 +1632,7 @@ function ResolvedFeedVideoPlayback({
   return (
     <View style={styles.feedVideoPlayback}>
       <VideoView
-        contentFit="contain"
+        contentFit={contentFit}
         nativeControls={false}
         player={videoPlayer}
         playsInline
@@ -1625,11 +1668,11 @@ function ResolvedFeedVideoPlayback({
             onChange={(targetVolume) => {
               const nextVolume = Math.min(Math.max(targetVolume, 0), 1);
 
-              setVolume(nextVolume);
+              onVolumeChange(nextVolume);
               videoPlayer.volume = nextVolume;
               videoPlayer.muted = nextVolume <= 0;
             }}
-            volume={volume}
+            volume={normalizedVolume}
           />
         ) : null}
       </Animated.View>

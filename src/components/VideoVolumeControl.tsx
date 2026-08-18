@@ -44,6 +44,7 @@ export function VideoVolumeControl({
       onMoveShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (event) => {
+        event.stopPropagation();
         const locationY = getPointerLocationY(event.nativeEvent);
 
         if (locationY !== null) {
@@ -51,12 +52,15 @@ export function VideoVolumeControl({
         }
       },
       onPanResponderMove: (event) => {
+        event.stopPropagation();
         const locationY = getPointerLocationY(event.nativeEvent);
 
         if (locationY !== null) {
           setVolumeFromOffsetRef.current(locationY);
         }
       },
+      onPanResponderRelease: (event) => event.stopPropagation(),
+      onPanResponderTerminate: (event) => event.stopPropagation(),
       onPanResponderTerminationRequest: () => false,
       onShouldBlockNativeResponder: () => true,
       onStartShouldSetPanResponder: () => true,
@@ -118,6 +122,7 @@ export function VideoVolumeControl({
                 onChangeRef.current(effectiveVolumeRef.current - 0.1);
               }
             }}
+            nativeID="xolot-volume-slider"
             onLayout={(event) => {
               const nextHeight = event.nativeEvent.layout.height;
 

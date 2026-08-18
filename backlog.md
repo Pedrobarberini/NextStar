@@ -201,6 +201,8 @@ Status: Integracao Cloudflare R2 publicada em producao em 2026-08-11. Credenciai
 - [x] Preservar feed, envio e avatar locais sem bloquear o restante do app.
 - [x] Pausar vídeos fora da área visível.
 - [x] Preservar a proporção completa de fotos e vídeos no feed sem cortar as bordas.
+- [x] Preencher as laterais em mídias verticais compatíveis e manter o enquadramento completo nos formatos cuja proporção causaria corte relevante.
+- [x] Isolar o gesto do volume da rolagem do feed e preservar o nível ao trocar ou remontar o player.
 - [x] Suportar foto, vídeo, descrição, tags e marcações no frontend.
 - [x] Escolher Firebase Storage para mídia e Cloud Firestore para metadados.
 - [x] Criar upload autenticado e resumível pelo SDK Firebase, com progresso visual.

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { selectFeedPlaybackIndex } from "../src/utils/feedPlayback.ts";
+import {
+  selectFeedContentFit,
+  selectFeedPlaybackIndex
+} from "../src/utils/feedPlayback.ts";
 
 test("mantem exatamente um player ativo quando o feed esta parado", () => {
   const activeIndex = selectFeedPlaybackIndex({
@@ -59,5 +62,36 @@ test("limita o indice ativo a colecao disponivel", () => {
       itemCount: 2
     }),
     0
+  );
+});
+
+test("preenche a tela quando a proporcao vertical e compativel", () => {
+  assert.equal(
+    selectFeedContentFit({
+      containerHeight: 640,
+      containerWidth: 390,
+      mediaHeight: 1920,
+      mediaWidth: 1080
+    }),
+    "cover"
+  );
+});
+
+test("preserva o conteudo de formatos com proporcao discrepante", () => {
+  assert.equal(
+    selectFeedContentFit({
+      containerHeight: 640,
+      containerWidth: 390,
+      mediaHeight: 1080,
+      mediaWidth: 1920
+    }),
+    "contain"
+  );
+  assert.equal(
+    selectFeedContentFit({
+      containerHeight: 640,
+      containerWidth: 390
+    }),
+    "contain"
   );
 });

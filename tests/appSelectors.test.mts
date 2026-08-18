@@ -72,6 +72,8 @@ const approvedSubmission: VideoSubmission = {
   hasGuardianConsent: false,
   highlight: "Texto da publicação",
   id: "video-aprovado",
+  mediaHeight: 1920,
+  mediaWidth: 1080,
   position: "Criador",
   status: "Aprovado",
   submittedAt: "2026-07-18T12:00:00.000Z",
@@ -112,6 +114,8 @@ test("seleciona publicações aprovadas e aplica dados atuais do perfil", () => 
   assert.equal(players[0]?.name, completeUser.name);
   assert.equal(players[0]?.username, completeUser.username);
   assert.equal(players[0]?.mediaType, "video");
+  assert.equal(players[0]?.mediaHeight, 1920);
+  assert.equal(players[0]?.mediaWidth, 1080);
 });
 
 test("mantém a lista vazia quando não existem publicações reais", () => {

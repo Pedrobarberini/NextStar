@@ -253,6 +253,7 @@ export const feedStyles = {
     height: 58,
     justifyContent: "center",
     position: "relative",
+    touchAction: "none",
     width: 34
   },
   feedVideoVolumeTrack: {
