@@ -122,4 +122,11 @@ test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
   assert.match(mercadoPagoFunctions, /transaction_amount: PLUS_AMOUNT/);
   assert.match(mercadoPagoFunctions, /currency_id: PLUS_CURRENCY/);
   assert.match(mercadoPagoFunctions, /externalUid !== uid/);
+  assert.match(
+    mercadoPagoFunctions,
+    /MERCADO_PAGO_TEST_PAYER_EMAIL|mercadoPagoTestPayerEmail/
+  );
+  assert.match(mercadoPagoFunctions, /environment === "production"/);
+  assert.match(mercadoPagoFunctions, /testuser/);
+  assert.match(mercadoPagoFunctions, /payerEmailHash === payerEmailHash/);
 });

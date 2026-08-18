@@ -5,12 +5,14 @@ import {
   PreApproval,
   WebhookSignatureValidator
 } from "mercadopago";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { requireVerifiedUser, verifyRegisteredUser } from "./auth";
 import {
   REGION,
   mercadoPagoAccessToken,
+  mercadoPagoEnvironment,
+  mercadoPagoTestPayerEmail,
   mercadoPagoWebhookSecret
 } from "./config";
 
@@ -22,6 +24,13 @@ const WEBHOOK_URL =
   "https://southamerica-east1-xolot-384e9.cloudfunctions.net/mercadoPagoWebhook?source_news=webhooks";
 
 type SubscriptionStatus = "authorized" | "cancelled" | "paused" | "pending";
+type MercadoPagoEnvironment = "production" | "test";
+
+type CheckoutContext = {
+  checkoutAttemptId?: string;
+  paymentEnvironment?: MercadoPagoEnvironment;
+  payerEmailHash?: string;
+};
 
 type MercadoPagoSubscription = {
   auto_recurring?: {
@@ -77,7 +86,7 @@ function assertExpectedSubscription(subscription: MercadoPagoSubscription) {
 async function saveSubscription(
   uid: string,
   subscription: MercadoPagoSubscription,
-  checkoutAttemptId?: string
+  context: CheckoutContext = {}
 ) {
   assertExpectedSubscription(subscription);
 
@@ -103,8 +112,14 @@ async function saveSubscription(
   if (!snapshot.exists) {
     payload.createdAt = FieldValue.serverTimestamp();
   }
-  if (checkoutAttemptId) {
-    payload.checkoutAttemptId = checkoutAttemptId;
+  if (context.checkoutAttemptId) {
+    payload.checkoutAttemptId = context.checkoutAttemptId;
+  }
+  if (context.paymentEnvironment) {
+    payload.paymentEnvironment = context.paymentEnvironment;
+  }
+  if (context.payerEmailHash) {
+    payload.payerEmailHash = context.payerEmailHash;
   }
 
   await reference.set(payload, { merge: true });
@@ -115,26 +130,66 @@ async function loadProviderSubscription(subscriptionId: string) {
   return (await getClient().get({ id: subscriptionId })) as MercadoPagoSubscription;
 }
 
+function getPaymentEnvironment(): MercadoPagoEnvironment {
+  const value = mercadoPagoEnvironment.value().trim().toLowerCase();
+  if (value === "test" || value === "production") {
+    return value;
+  }
+
+  throw new HttpsError(
+    "failed-precondition",
+    "O ambiente de pagamento não está configurado corretamente."
+  );
+}
+
+function getPayerEmail(
+  accountEmail: string,
+  environment: MercadoPagoEnvironment
+) {
+  if (environment === "production") {
+    return accountEmail;
+  }
+
+  const testEmail = mercadoPagoTestPayerEmail.value().trim().toLowerCase();
+  if (!/^[^\s@]+@testuser\.com$/i.test(testEmail)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "O comprador de teste do Mercado Pago não está configurado corretamente."
+    );
+  }
+
+  return testEmail;
+}
+
 const callableOptions = {
   region: REGION,
   secrets: [mercadoPagoAccessToken]
 };
 
-export const createPlusSubscription = onCall(callableOptions, async (request) => {
+const createSubscriptionOptions = {
+  region: REGION,
+  secrets: [mercadoPagoAccessToken, mercadoPagoTestPayerEmail]
+};
+
+export const createPlusSubscription = onCall(createSubscriptionOptions, async (request) => {
   const uid = requireVerifiedUser(request);
   await verifyRegisteredUser(uid);
 
-  const payerEmail =
+  const accountEmail =
     typeof request.auth?.token.email === "string"
       ? request.auth.token.email.trim().toLowerCase()
       : "";
 
-  if (!payerEmail) {
+  if (!accountEmail) {
     throw new HttpsError(
       "failed-precondition",
       "Sua conta precisa ter um e-mail válido para assinar o Xolot Plus."
     );
   }
+
+  const paymentEnvironment = getPaymentEnvironment();
+  const payerEmail = getPayerEmail(accountEmail, paymentEnvironment);
+  const payerEmailHash = createHash("sha256").update(payerEmail).digest("hex");
 
   const reference = getFirestore().doc(`subscriptions/${uid}`);
   const existing = await reference.get();
@@ -146,6 +201,8 @@ export const createPlusSubscription = onCall(callableOptions, async (request) =>
 
   if (
     existingData?.status === "pending" &&
+    existingData.paymentEnvironment === paymentEnvironment &&
+    existingData.payerEmailHash === payerEmailHash &&
     typeof existingData.checkoutUrl === "string" &&
     existingData.checkoutUrl.startsWith("https://")
   ) {
@@ -178,11 +235,11 @@ export const createPlusSubscription = onCall(callableOptions, async (request) =>
       requestOptions: { idempotencyKey: checkoutAttemptId }
     })) as MercadoPagoSubscription;
 
-    const status = await saveSubscription(
-      uid,
-      subscription,
-      checkoutAttemptId
-    );
+    const status = await saveSubscription(uid, subscription, {
+      checkoutAttemptId,
+      paymentEnvironment,
+      payerEmailHash
+    });
 
     if (!subscription.init_point) {
       throw new Error("O Mercado Pago não retornou o link de pagamento.");
