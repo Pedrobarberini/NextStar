@@ -23,7 +23,6 @@ import {
   getPublicAppUrl,
   isFirebaseConfigured
 } from "../config/firebase";
-import type { AuthProvider } from "../types";
 
 const ACCOUNTS_COLLECTION = "accounts";
 const PENDING_ACCOUNTS_COLLECTION = "pendingAccounts";
@@ -62,15 +61,12 @@ function assertFirebaseAvailable() {
   }
 }
 
-function getAuthProvider(user: User): AuthProvider {
-  if (user.providerData.some((provider) => provider.providerId === "apple.com")) {
-    return "apple";
-  }
-
-  return user.providerData.some((provider) => provider.providerId === "google.com")
-    ? "google"
-    : "password";
+export function isGoogleFirebaseUser(user: User) {
+  return user.providerData.some(
+    (provider) => provider.providerId === "google.com"
+  );
 }
+
 
 function getAccountReference(uid: string) {
   return doc(getFirebaseFirestore(), ACCOUNTS_COLLECTION, uid);
@@ -83,35 +79,6 @@ function getPendingAccountReference(uid: string) {
 export async function hasFirebaseAccount(uid: string) {
   assertFirebaseAvailable();
   return (await getDoc(getAccountReference(uid))).exists();
-}
-
-export async function createFirebaseAccountMetadata(
-  user: User,
-  acceptedTerms: boolean
-) {
-  assertFirebaseAvailable();
-
-  if (!acceptedTerms || !user.uid) {
-    throw new Error("É necessário aceitar os termos para criar a conta.");
-  }
-
-  if (!user.emailVerified) {
-    throw new EmailVerificationRequiredError();
-  }
-
-  const accountReference = getAccountReference(user.uid);
-  const existingAccount = await getDoc(accountReference);
-
-  if (existingAccount.exists()) {
-    return;
-  }
-
-  await setDoc(accountReference, {
-    authProvider: getAuthProvider(user),
-    createdAt: serverTimestamp(),
-    termsAcceptedAt: serverTimestamp(),
-    uid: user.uid
-  });
 }
 
 async function createPendingFirebaseAccount(
@@ -154,6 +121,30 @@ async function activateVerifiedFirebaseAccount(
     }
     throw error;
   }
+}
+
+export async function completeCurrentFirebaseAccountRegistration(
+  acceptedTerms: boolean
+) {
+  assertFirebaseAvailable();
+
+  if (!acceptedTerms) {
+    throw new Error("É necessário aceitar os termos para criar a conta.");
+  }
+
+  const auth = getFirebaseAuth();
+  const currentUser = auth.currentUser;
+
+  if (!currentUser || !isGoogleFirebaseUser(currentUser)) {
+    throw new AccountRegistrationRequiredError();
+  }
+
+  await currentUser.reload();
+  const authenticatedUser = auth.currentUser ?? currentUser;
+  await authenticatedUser.getIdToken(true);
+  await activateVerifiedFirebaseAccount(authenticatedUser, true);
+
+  return authenticatedUser;
 }
 
 export async function registerWithEmailAndPassword(

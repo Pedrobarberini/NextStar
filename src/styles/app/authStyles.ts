@@ -227,6 +227,37 @@ export const authStyles = {
     resizeMode: "contain",
     width: 21
   },
+  authGoogleConfirmation: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 4,
+    padding: 14
+  },
+  authGoogleConfirmationIcon: {
+    height: 28,
+    resizeMode: "contain",
+    width: 28
+  },
+  authGoogleConfirmationCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  authGoogleConfirmationTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  authGoogleConfirmationEmail: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 3
+  },
   authDivider: {
     alignItems: "center",
     flexDirection: "row",

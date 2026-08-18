@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { isFirebaseConfigured } from "../config/firebase";
 import {
   hasFirebaseAccount,
+  isGoogleFirebaseUser,
   observeFirebaseAuth,
   signOutFirebaseSession
 } from "../services/firebaseAccountService";
@@ -78,10 +79,16 @@ export function useFirebaseAccounts() {
           }
 
           if (!hasAccount) {
-            void signOutFirebaseSession();
+            if (!isGoogleFirebaseUser(firebaseUser)) {
+              void signOutFirebaseSession();
+            }
             setUser(null);
             setRegisteredUsers([]);
-            setSessionError("A conta autenticada não possui cadastro Xolot.");
+            setSessionError(
+              isGoogleFirebaseUser(firebaseUser)
+                ? ""
+                : "A conta autenticada não possui cadastro Xolot."
+            );
             setIsSessionLoaded(true);
             return;
           }

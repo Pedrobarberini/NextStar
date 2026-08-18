@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Check, LogIn, UserPlus } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import { Check, LogIn, UserPlus, X } from "lucide-react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -18,10 +18,11 @@ import { GOOGLE_SIGNIN_ICON, XOLOT_WORDMARK } from "../constants/assets";
 import { useGoogleSignIn } from "../hooks/useGoogleSignIn";
 import {
   AccountCompletionRequiredError,
-  createFirebaseAccountMetadata,
+  completeCurrentFirebaseAccountRegistration,
   getCurrentFirebaseUser,
   getSafeFirebaseAuthMessage,
   hasFirebaseAccount,
+  isGoogleFirebaseUser,
   registerWithEmailAndPassword,
   sendFirebasePasswordReset,
   signInWithEmailAndPasswordSecurely,
@@ -56,6 +57,9 @@ export function AuthScreen({
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [needsAccountCompletion, setNeedsAccountCompletion] = useState(false);
+  const [needsGoogleAccountCompletion, setNeedsGoogleAccountCompletion] =
+    useState(false);
+  const [googleAccountEmail, setGoogleAccountEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     isAvailable: isGoogleAvailable,
@@ -70,15 +74,23 @@ export function AuthScreen({
   const hasStrongPassword = isStrongPassword(password);
   const hasValidPassword = mode === "login" ? password.length >= 1 : hasStrongPassword;
   const isBusy = isSubmitting || isGoogleSigningIn;
-  const mustAcceptTerms = mode === "create" || needsAccountCompletion;
-  const canContinue =
-    hasValidEmail &&
-    hasValidPassword &&
-    (mode === "login" || password === passwordConfirmation) &&
-    (!mustAcceptTerms || acceptedTerms) &&
-    !isBusy;
+  const mustAcceptTerms =
+    mode === "create" ||
+    needsAccountCompletion ||
+    needsGoogleAccountCompletion;
+  const canContinue = needsGoogleAccountCompletion
+    ? acceptedTerms && !isBusy
+    : hasValidEmail &&
+      hasValidPassword &&
+      (mode === "login" || password === passwordConfirmation) &&
+      (!mustAcceptTerms || acceptedTerms) &&
+      !isBusy;
   const canContinueWithGoogle =
-    !isBusy && isGoogleAvailable && isGoogleReady;
+    mode === "login" &&
+    !needsGoogleAccountCompletion &&
+    !isBusy &&
+    isGoogleAvailable &&
+    isGoogleReady;
 
   function clearFeedback() {
     setErrorMessage("");
@@ -92,7 +104,36 @@ export function AuthScreen({
     setPasswordConfirmation("");
     setAcceptedTerms(false);
     setNeedsAccountCompletion(false);
+    setNeedsGoogleAccountCompletion(false);
+    setGoogleAccountEmail("");
   }
+
+  useEffect(() => {
+    let isMounted = true;
+    const firebaseUser = getCurrentFirebaseUser();
+
+    if (!firebaseUser || !isGoogleFirebaseUser(firebaseUser)) {
+      return;
+    }
+
+    void hasFirebaseAccount(firebaseUser.uid)
+      .then((hasAccount) => {
+        if (!isMounted || hasAccount) {
+          return;
+        }
+
+        setGoogleAccountEmail(firebaseUser.email ?? "");
+        setNeedsGoogleAccountCompletion(true);
+        setSuccessMessage(
+          "Conta Google confirmada. Aceite os termos para concluir seu primeiro acesso."
+        );
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleGooglePress() {
     clearFeedback();
@@ -105,8 +146,7 @@ export function AuthScreen({
       return;
     }
 
-    if (mode === "create" && !acceptedTerms) {
-      setErrorMessage("Aceite os Termos de Uso e a Política de Privacidade.");
+    if (mode !== "login") {
       return;
     }
 
@@ -121,15 +161,13 @@ export function AuthScreen({
 
       const hasAccount = await hasFirebaseAccount(firebaseUser.uid);
       if (!hasAccount) {
-        if (mode !== "create") {
-          await signOutFirebaseSession();
-          setErrorMessage(
-            "Esta identidade ainda não possui uma conta Xolot. Selecione “Cadastrar”."
-          );
-          return;
-        }
-
-        await createFirebaseAccountMetadata(firebaseUser, acceptedTerms);
+        setAcceptedTerms(false);
+        setGoogleAccountEmail(firebaseUser.email ?? "");
+        setNeedsGoogleAccountCompletion(true);
+        setSuccessMessage(
+          "Conta Google confirmada. Aceite os termos para concluir seu primeiro acesso."
+        );
+        return;
       }
 
       onComplete(await loadFirebaseAppUser(firebaseUser));
@@ -144,6 +182,42 @@ export function AuthScreen({
       }
 
       setErrorMessage(getSafeFirebaseAuthMessage(error));
+    }
+  }
+
+  async function completeGoogleAccount() {
+    if (!acceptedTerms || !needsGoogleAccountCompletion) {
+      setErrorMessage("Aceite os Termos de Uso e a Política de Privacidade.");
+      return;
+    }
+
+    clearFeedback();
+    setIsSubmitting(true);
+
+    try {
+      const firebaseUser =
+        await completeCurrentFirebaseAccountRegistration(true);
+      setNeedsGoogleAccountCompletion(false);
+      setGoogleAccountEmail("");
+      onComplete(await loadFirebaseAppUser(firebaseUser));
+    } catch (error) {
+      setErrorMessage(getSafeFirebaseAuthMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function cancelGoogleAccountCompletion() {
+    setIsSubmitting(true);
+
+    try {
+      await signOutFirebaseSession();
+      setNeedsGoogleAccountCompletion(false);
+      setGoogleAccountEmail("");
+      setAcceptedTerms(false);
+      clearFeedback();
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -227,12 +301,19 @@ export function AuthScreen({
     }
   }
 
-  const submitLabel = needsAccountCompletion
-    ? "Concluir cadastro"
-    : mode === "login"
-      ? "Entrar"
-      : "Criar conta";
-  const SubmitIcon = mode === "login" && !needsAccountCompletion ? LogIn : UserPlus;
+  const submitLabel = needsGoogleAccountCompletion
+    ? "Aceitar e continuar"
+    : needsAccountCompletion
+      ? "Concluir cadastro"
+      : mode === "login"
+        ? "Entrar"
+        : "Criar conta";
+  const SubmitIcon =
+    mode === "login" &&
+    !needsAccountCompletion &&
+    !needsGoogleAccountCompletion
+      ? LogIn
+      : UserPlus;
 
   return (
     <KeyboardAvoidingView
@@ -261,10 +342,16 @@ export function AuthScreen({
           />
           <Text style={styles.authEyebrow}>Descubra. Avalie. Conecte.</Text>
           <Text style={styles.authTitle}>
-            {mode === "login" ? "Entre na sua conta" : "Crie sua conta"}
+            {needsGoogleAccountCompletion
+              ? "Conclua seu primeiro acesso"
+              : mode === "login"
+                ? "Entre na sua conta"
+                : "Crie sua conta"}
           </Text>
 
-          <View style={styles.authSocialRow}>
+          {mode === "login" && !needsGoogleAccountCompletion ? (
+            <>
+              <View style={styles.authSocialRow}>
             <Pressable
               accessibilityLabel="Continuar com o Google"
               accessibilityRole="button"
@@ -286,17 +373,21 @@ export function AuthScreen({
               )}
               <Text style={styles.authSocialButtonText}>Google</Text>
             </Pressable>
-          </View>
+              </View>
 
-          <View style={styles.authDivider}>
-            <View style={styles.authDividerLine} />
-            <Text style={styles.authDividerText}>ou use seu e-mail</Text>
-            <View style={styles.authDividerLine} />
-          </View>
+              <View style={styles.authDivider}>
+                <View style={styles.authDividerLine} />
+                <Text style={styles.authDividerText}>ou use seu e-mail</Text>
+                <View style={styles.authDividerLine} />
+              </View>
+            </>
+          ) : null}
 
-          <LabeledInput
-            autoCapitalize="none"
-            autoComplete="email"
+          {!needsGoogleAccountCompletion ? (
+            <>
+              <LabeledInput
+                autoCapitalize="none"
+                autoComplete="email"
             keyboardType="email-address"
             label="E-mail"
             onChangeText={(value) => {
@@ -394,15 +485,38 @@ export function AuthScreen({
             </>
           ) : null}
 
-          {mode === "login" ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={handlePasswordReset}
-              style={styles.authInlineAction}
-            >
-              <Text style={styles.authInlineActionText}>Esqueci minha senha</Text>
-            </Pressable>
-          ) : null}
+              {mode === "login" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handlePasswordReset}
+                  style={styles.authInlineAction}
+                >
+                  <Text style={styles.authInlineActionText}>
+                    Esqueci minha senha
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <View style={styles.authGoogleConfirmation}>
+              <Image
+                accessibilityIgnoresInvertColors
+                source={GOOGLE_SIGNIN_ICON}
+                style={styles.authGoogleConfirmationIcon}
+              />
+              <View style={styles.authGoogleConfirmationCopy}>
+                <Text style={styles.authGoogleConfirmationTitle}>
+                  Conta Google confirmada
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={styles.authGoogleConfirmationEmail}
+                >
+                  {googleAccountEmail}
+                </Text>
+              </View>
+            </View>
+          )}
 
           {mustAcceptTerms ? (
             <Pressable
@@ -428,9 +542,11 @@ export function AuthScreen({
             </Pressable>
           ) : null}
 
-          {needsAccountCompletion ? (
+          {needsAccountCompletion || needsGoogleAccountCompletion ? (
             <Text style={styles.authHelperText}>
-              Esta etapa recupera o cadastro sem alterar sua senha.
+              {needsGoogleAccountCompletion
+                ? "Os termos serão registrados apenas neste primeiro acesso com o Google."
+                : "Esta etapa recupera o cadastro sem alterar sua senha."}
             </Text>
           ) : null}
 
@@ -449,7 +565,11 @@ export function AuthScreen({
           <Pressable
             accessibilityRole="button"
             disabled={!canContinue}
-            onPress={submitAuth}
+            onPress={() =>
+              void (needsGoogleAccountCompletion
+                ? completeGoogleAccount()
+                : submitAuth())
+            }
             style={[
               styles.primaryButton,
               !canContinue ? styles.primaryButtonDisabled : null
@@ -465,16 +585,26 @@ export function AuthScreen({
 
           <Pressable
             accessibilityRole="button"
-            onPress={() => changeMode(mode === "login" ? "create" : "login")}
+            onPress={() =>
+              needsGoogleAccountCompletion
+                ? void cancelGoogleAccountCompletion()
+                : changeMode(mode === "login" ? "create" : "login")
+            }
             style={styles.secondaryButton}
           >
-            {mode === "login" ? (
+            {needsGoogleAccountCompletion ? (
+              <X color={colors.primary} size={18} />
+            ) : mode === "login" ? (
               <UserPlus color={colors.primary} size={18} />
             ) : (
               <LogIn color={colors.primary} size={18} />
             )}
             <Text style={styles.secondaryButtonText}>
-              {mode === "login" ? "Cadastrar" : "Voltar para login"}
+              {needsGoogleAccountCompletion
+                ? "Cancelar"
+                : mode === "login"
+                  ? "Cadastrar"
+                  : "Voltar para login"}
             </Text>
           </Pressable>
         </ScreenTransition>

@@ -122,6 +122,8 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [x] Exigir verificação de email antes de acessar dados sociais.
 - [x] Implementar recuperação de senha com resposta antienumeração.
 - [x] Integrar login Google à mesma autoridade de sessão.
+- [x] Criar automaticamente a conta Xolot no primeiro login Google após um único aceite explícito dos termos.
+- [x] Remover o Google da tela de cadastro por email e manter o provedor apenas na entrada principal.
 - [x] Remover o login Apple Web e seu código específico por decisão de produto.
 - [x] Exibir Google em largura total, com ícone oficial, carregamento e acessibilidade.
 - [x] Usar o asset oficial do Google Identity, sem dependência de fonte web.

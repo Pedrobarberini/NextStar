@@ -10,6 +10,14 @@ const accountService = readFileSync(
   new URL("../src/services/firebaseAccountService.ts", import.meta.url),
   "utf8",
 );
+const authScreen = readFileSync(
+  new URL("../src/screens/AuthScreen.tsx", import.meta.url),
+  "utf8",
+);
+const accountObserver = readFileSync(
+  new URL("../src/actions/useFirebaseAccounts.ts", import.meta.url),
+  "utf8",
+);
 const discoveryScreen = readFileSync(
   new URL("../src/screens/ProfileDiscoveryScreen.tsx", import.meta.url),
   "utf8",
@@ -32,4 +40,30 @@ test("login recupera cadastro incompleto pela Function autenticada", () => {
 test("busca abre em sugestoes e consulta todas as contas quando ha texto", () => {
   assert.match(discoveryScreen, /useState<SearchMode>\("suggestions"\)/);
   assert.match(discoveryScreen, /normalizedQuery\s*\? allProfiles\.filter/);
+});
+
+test("Google no login cria uma conta nova somente depois do aceite dos termos", () => {
+  assert.match(authScreen, /mode === "login" && !needsGoogleAccountCompletion/);
+  assert.match(authScreen, /setNeedsGoogleAccountCompletion\(true\)/);
+  assert.match(authScreen, /completeCurrentFirebaseAccountRegistration\(true\)/);
+  assert.match(authScreen, /Aceitar e continuar/);
+  assert.doesNotMatch(
+    authScreen,
+    /Esta identidade ainda não possui uma conta Xolot\. Selecione/
+  );
+  assert.match(
+    accountService,
+    /completeCurrentFirebaseAccountRegistration[\s\S]*activateVerifiedFirebaseAccount\(authenticatedUser, true\)/
+  );
+});
+
+test("a sessão Google incompleta permanece ativa para a etapa única de termos", () => {
+  assert.match(
+    accountObserver,
+    /if \(!isGoogleFirebaseUser\(firebaseUser\)\) \{\s*void signOutFirebaseSession\(\)/
+  );
+  assert.match(
+    accountFunction,
+    /if \(!hasValidPendingAccount && !acceptedTerms\)/
+  );
 });
