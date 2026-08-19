@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   BarChart3,
   BriefcaseBusiness,
+  CircleX,
   Link2,
   LockKeyhole,
   Megaphone,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react-native";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   Switch,
@@ -38,6 +40,7 @@ import {
 export function ProfessionalDashboardScreen({
   metrics,
   onBack,
+  onCancelSubscription,
   onStartSubscription,
   onSyncSubscription,
   onUpdateSettings,
@@ -53,6 +56,7 @@ export function ProfessionalDashboardScreen({
     views: number;
   };
   onBack: () => void;
+  onCancelSubscription: () => Promise<void>;
   onPromotePost: (player: Player) => void;
   onStartSubscription: () => Promise<void>;
   onSyncSubscription: () => Promise<void>;
@@ -64,8 +68,10 @@ export function ProfessionalDashboardScreen({
   subscriptionLoading: boolean;
 }) {
   const [externalLink, setExternalLink] = useState(settings.externalLink);
+  const [isCancelConfirmationVisible, setIsCancelConfirmationVisible] =
+    useState(false);
   const [subscriptionAction, setSubscriptionAction] = useState<
-    "checkout" | "sync" | null
+    "cancel" | "checkout" | "sync" | null
   >(null);
   const isPro = isProfessionalSubscriptionActive(subscription);
   const currentPlan = isPro ? "pro" : "free";
@@ -105,6 +111,17 @@ export function ProfessionalDashboardScreen({
     }
   }
 
+
+  async function cancelSubscription() {
+    if (subscriptionAction || !isPro) return;
+    setIsCancelConfirmationVisible(false);
+    setSubscriptionAction("cancel");
+    try {
+      await onCancelSubscription();
+    } finally {
+      setSubscriptionAction(null);
+    }
+  }
   return (
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       <View style={s.header}>
@@ -286,6 +303,24 @@ export function ProfessionalDashboardScreen({
             <Text style={s.secondaryActionText}>Atualizar status do pagamento</Text>
           </Pressable>
         ) : null}
+        {isPro ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={Boolean(subscriptionAction)}
+            onPress={() => setIsCancelConfirmationVisible(true)}
+            style={[s.secondaryAction, s.cancelAction]}
+          >
+            {subscriptionAction === "cancel" ? (
+              <ActivityIndicator color={colors.danger} size="small" />
+            ) : (
+              <CircleX color={colors.danger} size={17} />
+            )}
+            <Text style={[s.secondaryActionText, s.cancelActionText]}>
+              Cancelar assinatura
+            </Text>
+          </Pressable>
+        ) : null}
+
 
         <View style={[s.notice, { marginTop: 12 }]}>
           <Text style={s.noticeText}>
@@ -336,6 +371,40 @@ export function ProfessionalDashboardScreen({
           />
         )}
       </View>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setIsCancelConfirmationVisible(false)}
+        transparent
+        visible={isCancelConfirmationVisible}
+      >
+        <Pressable
+          onPress={() => setIsCancelConfirmationVisible(false)}
+          style={s.modalBackdrop}
+        >
+          <Pressable onPress={(event) => event.stopPropagation()} style={s.modalCard}>
+            <Text style={s.modalTitle}>Cancelar Xolot Plus?</Text>
+            <Text style={s.modalBody}>
+              A renovação será interrompida e os recursos Plus serão desativados
+              quando o Mercado Pago confirmar o cancelamento.
+            </Text>
+            <View style={s.modalActions}>
+              <Pressable
+                onPress={() => setIsCancelConfirmationVisible(false)}
+                style={s.modalSecondaryButton}
+              >
+                <Text style={s.modalSecondaryButtonText}>Manter assinatura</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void cancelSubscription()}
+                style={s.modalDangerButton}
+              >
+                <Text style={s.modalDangerButtonText}>Cancelar</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }

@@ -372,6 +372,68 @@ export const syncPlusSubscription = onCall(callableOptions, async (request) => {
   }
 });
 
+export const cancelPlusSubscription = onCall(callableOptions, async (request) => {
+  const uid = requireVerifiedUser(request);
+  await verifyRegisteredUser(uid);
+
+  const reference = getFirestore().doc(`subscriptions/${uid}`);
+  const snapshot = await reference.get();
+  const subscriptionId = snapshot.data()?.providerSubscriptionId;
+
+  if (typeof subscriptionId !== "string" || !subscriptionId) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Nenhuma assinatura foi encontrada para esta conta."
+    );
+  }
+
+  try {
+    const currentSubscription = await loadProviderSubscription(subscriptionId);
+    const externalUid = getUidFromExternalReference(
+      currentSubscription.external_reference
+    );
+
+    if (externalUid !== uid) {
+      throw new Error("A assinatura não pertence à conta conectada.");
+    }
+
+    if (normalizeStatus(currentSubscription.status) === "cancelled") {
+      const status = await saveSubscription(uid, currentSubscription);
+      return { status };
+    }
+
+    await getClient().update({
+      body: { status: "cancelled" },
+      id: subscriptionId
+    });
+
+    const updatedSubscription = await loadProviderSubscription(subscriptionId);
+    const updatedUid = getUidFromExternalReference(
+      updatedSubscription.external_reference
+    );
+
+    if (updatedUid !== uid) {
+      throw new Error("A assinatura atualizada não pertence à conta conectada.");
+    }
+
+    const status = await saveSubscription(uid, updatedSubscription);
+    if (status !== "cancelled") {
+      throw new Error("O Mercado Pago não confirmou o cancelamento.");
+    }
+
+    return { status };
+  } catch (error) {
+    console.error("Falha ao cancelar assinatura Xolot Plus.", {
+      message: error instanceof Error ? error.message : "Erro desconhecido",
+      uid
+    });
+    throw new HttpsError(
+      "unavailable",
+      "Não foi possível cancelar a assinatura agora. Tente novamente."
+    );
+  }
+});
+
 export const mercadoPagoWebhook = onRequest(
   {
     cors: false,

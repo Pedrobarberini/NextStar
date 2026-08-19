@@ -403,6 +403,73 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
     fontSize: 13,
     fontWeight: "900"
   },
+  cancelAction: {
+    borderColor: colors.danger
+  },
+  cancelActionText: {
+    color: colors.danger
+  },
+  modalBackdrop: {
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.48)",
+    flex: 1,
+    justifyContent: "center",
+    padding: 20
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    maxWidth: 420,
+    padding: 20,
+    width: "100%"
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: "900"
+  },
+  modalBody: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20
+  },
+  modalSecondaryButton: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 7,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12
+  },
+  modalSecondaryButtonText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  modalDangerButton: {
+    alignItems: "center",
+    backgroundColor: colors.danger,
+    borderRadius: 7,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12
+  },
+  modalDangerButtonText: {
+    color: colors.onPrimary,
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center"
+  },
   selectorRow: {
     flexDirection: "row",
     gap: 8

@@ -23,6 +23,10 @@ const profileScreen = readFileSync(
   new URL("../src/screens/ProfileScreen.tsx", import.meta.url),
   "utf8"
 );
+const appRoutes = readFileSync(
+  new URL("../src/app/AppRoutes.tsx", import.meta.url),
+  "utf8"
+);
 const notificationFunctions = readFileSync(
   new URL("../functions/src/notifications.ts", import.meta.url),
   "utf8"
@@ -139,4 +143,9 @@ test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
     /affectedKeys\(\)\.hasAny\(\['plusActive'\]\)/
   );
   assert.match(profileScreen, /window\.location\.assign\(checkout\.checkoutUrl\)/);
+  assert.match(mercadoPagoFunctions, /cancelPlusSubscription/);
+  assert.match(mercadoPagoFunctions, /body: \{ status: "cancelled" \}/);
+  assert.match(mercadoPagoFunctions, /updatedUid !== uid/);
+  assert.match(profileScreen, /onCancelSubscription/);
+  assert.match(appRoutes, /syncProfessionalSubscription/);
 });

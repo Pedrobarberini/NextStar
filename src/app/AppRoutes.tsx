@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, View } from "react-native";
 import {
@@ -19,6 +19,7 @@ import { PromotePostScreen } from "../screens/PromotePostScreen";
 import { PublicProfileScreen } from "../screens/PublicProfileScreen";
 import { SearchScreen } from "../screens/ProfileDiscoveryScreen";
 import { SubmitVideoScreen } from "../screens/SubmissionScreen";
+import { syncProfessionalSubscription } from "../services/firebaseProfessionalService";
 import { styles } from "../styles/appStyles";
 import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
@@ -165,6 +166,7 @@ type AppRoutesProps = {
 export function AppRoutes(props: AppRoutesProps) {
   const { themeMode } = useTheme();
   const [isFeedImmersive, setIsFeedImmersive] = useState(false);
+  const subscriptionReturnHandledRef = useRef(false);
   const {
     activeCampaignPlayerIds,
     activeMessageContactId,
@@ -261,6 +263,33 @@ export function AppRoutes(props: AppRoutesProps) {
       setIsFeedImmersive(false);
     }
   }, [isFeedImmersive, tab]);
+
+  useEffect(() => {
+    if (
+      Platform.OS !== "web" ||
+      typeof window === "undefined" ||
+      subscriptionReturnHandledRef.current ||
+      user.role !== "Usuário"
+    ) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscription") !== "return") {
+      return;
+    }
+
+    subscriptionReturnHandledRef.current = true;
+    params.delete("subscription");
+    const nextSearch = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`
+    );
+    openTab("profile");
+    void syncProfessionalSubscription().catch(() => undefined);
+  }, [openTab, user.role]);
 
   const openAccountProfile = (account: AppUser) => {
     if (isOwnAccountProfile(account, user.id)) {

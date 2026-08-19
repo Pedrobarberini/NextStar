@@ -366,7 +366,10 @@ Tipo: Backend/Mobile/Web
 - [ ] Exigir verificação documental aprovada para manter o selo junto à assinatura Xolot Plus.
 - [x] Publicar checkout, sincronização, webhook e regras privadas no Firebase.
 - [x] Exibir no checkout o motivo seguro e específico quando as contas de teste do vendedor e comprador forem incompatíveis.
-- [ ] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
+- [x] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
+- [x] Sincronizar automaticamente a assinatura ao retornar do checkout.
+- [x] Permitir cancelamento autenticado, validado no servidor e confirmado no Mercado Pago.
+- [ ] Ativar credenciais e webhook de produção após a revisão final da conta vendedora.
 - [ ] Emitir recibos e histórico de cobrança.
 - [ ] Tratar trial, falha de pagamento, grace period e reembolso.
 

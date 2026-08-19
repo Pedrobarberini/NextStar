@@ -377,6 +377,7 @@ export {
   notifyPostLike
 } from "./notifications";
 export {
+  cancelPlusSubscription,
   createPlusSubscription,
   mercadoPagoWebhook,
   syncPlusSubscription

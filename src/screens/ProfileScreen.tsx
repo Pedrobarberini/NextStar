@@ -54,6 +54,7 @@ import type {
   VideoSubmission
 } from "../types";
 import {
+  cancelProfessionalSubscription,
   createPlusSubscriptionCheckout,
   subscribeToProfessionalSubscription,
   syncProfessionalSubscription
@@ -348,6 +349,23 @@ export function ProfileScreen({
       );
     }
   }
+
+  async function cancelPlusSubscription() {
+    try {
+      await cancelProfessionalSubscription();
+      Alert.alert(
+        "Assinatura cancelada",
+        "A renovação do Xolot Plus foi cancelada com sucesso."
+      );
+    } catch (error) {
+      Alert.alert(
+        "Não foi possível cancelar",
+        error instanceof Error
+          ? error.message
+          : "Tente novamente em alguns instantes."
+      );
+    }
+  }
   if (profileView === "professional") {
     return (
       <ScreenTransition key="professional" style={styles.profileViewScene}>
@@ -361,6 +379,7 @@ export function ProfileScreen({
           }}
           onBack={() => setProfileView("overview")}
           onPromotePost={onPromotePost}
+          onCancelSubscription={cancelPlusSubscription}
           onStartSubscription={startPlusSubscription}
           onSyncSubscription={refreshPlusSubscription}
           onToggleCampaign={onToggleCampaign}

@@ -70,7 +70,10 @@ function readSubscription(
   };
 }
 
-function toFriendlyError(error: unknown) {
+function toFriendlyError(
+  error: unknown,
+  fallback = "Não foi possível iniciar a assinatura agora."
+) {
   if (error instanceof FirebaseError) {
     if (error.code === "functions/failed-precondition") {
       return (
@@ -83,7 +86,7 @@ function toFriendlyError(error: unknown) {
     }
   }
 
-  return "Não foi possível iniciar a assinatura agora.";
+  return fallback;
 }
 
 export function subscribeToProfessionalSubscription(
@@ -130,5 +133,23 @@ export async function syncProfessionalSubscription() {
     return (await callable({})).data;
   } catch (error) {
     throw new Error(toFriendlyError(error));
+  }
+}
+
+export async function cancelProfessionalSubscription() {
+  const callable = httpsCallable<
+    Record<string, never>,
+    { status: ProfessionalSubscriptionStatus }
+  >(getFirebaseFunctions(), "cancelPlusSubscription");
+
+  try {
+    return (await callable({})).data;
+  } catch (error) {
+    throw new Error(
+      toFriendlyError(
+        error,
+        "Não foi possível cancelar a assinatura agora."
+      )
+    );
   }
 }
