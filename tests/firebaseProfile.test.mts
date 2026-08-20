@@ -45,6 +45,15 @@ test("normaliza apenas os campos públicos permitidos", () => {
   );
 
 
+test("aceita perfil concluído sem equipe, clube ou projeto", () => {
+  const normalized = normalizePublicProfileDocument(profile.uid, {
+    ...profile,
+    club: ""
+  });
+
+  assert.equal(normalized?.club, "");
+});
+
 test("mantém perfis antigos válidos e limita os interesses públicos", () => {
   const { interestTags: _interestTags, ...legacyProfile } = profile;
   const legacyNormalized = normalizePublicProfileDocument(profile.uid, legacyProfile);

@@ -487,5 +487,8 @@ Tipo: Produto/Frontend/Dados
 - [x] Ampliar os interesses usados no Para você com esportes e e-sports.
 - [x] Preservar a leitura de perfis antigos sem modalidade.
 - [x] Exibir modalidade, função e cidade de forma consistente no perfil, feed, busca e mensagens.
+- [x] Manter cabeçalho, conteúdo rolável e rodapé de ações estáveis entre as etapas.
+- [x] Animar a saída e a entrada lateral do conteúdo ao avançar ou voltar.
+- [x] Tornar equipe, clube ou projeto opcional em todas as camadas de validação.
 - [ ] Criar catálogo administrável de modalidades e funções relacionadas.
 - [ ] Sugerir funções conforme a modalidade selecionada.

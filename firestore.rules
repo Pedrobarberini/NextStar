@@ -80,7 +80,8 @@ service cloud.firestore {
         && data.position is string && data.position.size() >= 2 && data.position.size() <= 40
         && data.sport is string && data.sport.size() >= 2 && data.sport.size() <= 40
         && data.city is string && data.city.size() >= 2 && data.city.size() <= 80
-        && data.club is string && data.club.size() >= 2 && data.club.size() <= 80
+        && data.club is string && data.club.size() <= 80
+        && (data.club.size() == 0 || data.club.size() >= 2)
         && (
           !data.keys().hasAny(['interestTags'])
           || (data.interestTags is list && data.interestTags.size() <= 6)

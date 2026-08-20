@@ -49,14 +49,32 @@ export const accountAvatarSettingsStyles = {
     shadowRadius: 18,
     width: "100%"
   },
-  accountSetupContent: {
-    flexGrow: 1,
-    paddingBottom: 34,
+  accountSetupHeader: {
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingTop: 16
   },
+  accountSetupStepViewport: {
+    flex: 1,
+    minHeight: 0,
+    overflow: "hidden"
+  },
+  accountSetupStepContent: {
+    flexGrow: 1,
+    paddingBottom: 18,
+    paddingHorizontal: 16
+  },
+  accountSetupFooter: {
+    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12
+  },
   accountSetupIntro: {
     marginBottom: 18,
+    minHeight: 92,
     paddingHorizontal: 2
   },
   accountSetupEyebrow: {
@@ -148,14 +166,14 @@ export const accountAvatarSettingsStyles = {
   },
   accountSetupActions: {
     flexDirection: "row",
-    gap: 9,
-    marginTop: 14
+    gap: 9
   },
   accountSetupSecondaryButton: {
     alignItems: "center",
     borderColor: colors.borderStrong,
     borderRadius: 6,
     borderWidth: 1,
+    flex: 1,
     flexDirection: "row",
     gap: 5,
     justifyContent: "center",
@@ -169,7 +187,11 @@ export const accountAvatarSettingsStyles = {
   },
   accountSetupContinueButton: {
     flex: 1,
-    marginTop: 0
+    marginTop: 0,
+    minHeight: 48
+  },
+  accountSetupButtonPlaceholder: {
+    opacity: 0
   },
   accountSetupSection: {
     backgroundColor: colors.surface,

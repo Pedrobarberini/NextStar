@@ -119,7 +119,7 @@ export function normalizePublicProfileDocument(
       normalized.bio.length < 10 ||
       normalized.position.length < 2 ||
       normalized.city.length < 2 ||
-      normalized.club.length < 2)
+      (normalized.club.length > 0 && normalized.club.length < 2))
   ) {
     return null;
   }

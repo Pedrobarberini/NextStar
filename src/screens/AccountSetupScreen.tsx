@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Camera,
@@ -76,8 +76,9 @@ export function AccountSetupScreen({
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const stepOpacity = useRef(new Animated.Value(1)).current;
-  const stepTranslate = useRef(new Animated.Value(0)).current;
+  const stepTranslateX = useRef(new Animated.Value(0)).current;
   const [currentStep, setCurrentStep] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [name, setName] = useState(user.name);
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio);
@@ -128,7 +129,6 @@ export function AccountSetupScreen({
   const activityValid =
     cleanProfile.sport.length >= 2 &&
     cleanProfile.position.length >= 2 &&
-    cleanProfile.club.length >= 2 &&
     cleanProfile.bio.length >= 10 &&
     cleanProfile.bio.length <= 240;
   const interestsValid = cleanProfile.interestTags.length >= 1;
@@ -137,25 +137,58 @@ export function AccountSetupScreen({
   const isNarrow = width < 370;
   const step = SETUP_STEPS[currentStep];
 
-  useEffect(() => {
-    stepOpacity.setValue(0);
-    stepTranslate.setValue(12);
+  function animateToStep(nextStep: number) {
+    if (
+      isTransitioning ||
+      nextStep < 0 ||
+      nextStep >= SETUP_STEPS.length ||
+      nextStep === currentStep
+    ) {
+      return;
+    }
+
+    const direction = nextStep > currentStep ? 1 : -1;
+    setIsTransitioning(true);
     Animated.parallel([
       Animated.timing(stepOpacity, {
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
-        toValue: 1,
-        useNativeDriver: true
-      }),
-      Animated.timing(stepTranslate, {
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
+        duration: 120,
+        easing: Easing.in(Easing.cubic),
         toValue: 0,
         useNativeDriver: true
+      }),
+      Animated.timing(stepTranslateX, {
+        duration: 120,
+        easing: Easing.in(Easing.cubic),
+        toValue: -18 * direction,
+        useNativeDriver: true
       })
-    ]).start();
-    scrollRef.current?.scrollTo({ animated: false, y: 0 });
-  }, [currentStep, stepOpacity, stepTranslate]);
+    ]).start(({ finished }) => {
+      if (!finished) {
+        setIsTransitioning(false);
+        return;
+      }
+
+      setCurrentStep(nextStep);
+      scrollRef.current?.scrollTo({ animated: false, y: 0 });
+      stepTranslateX.setValue(18 * direction);
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.timing(stepOpacity, {
+            duration: 210,
+            easing: Easing.out(Easing.cubic),
+            toValue: 1,
+            useNativeDriver: true
+          }),
+          Animated.timing(stepTranslateX, {
+            duration: 210,
+            easing: Easing.out(Easing.cubic),
+            toValue: 0,
+            useNativeDriver: true
+          })
+        ]).start(() => setIsTransitioning(false));
+      });
+    });
+  }
 
   async function submitProfile() {
     if (!canSave || isSaving) {
@@ -181,12 +214,12 @@ export function AccountSetupScreen({
   }
 
   function goForward() {
-    if (!stepValid || isSaving) {
+    if (!stepValid || isSaving || isTransitioning) {
       return;
     }
     if (currentStep < SETUP_STEPS.length - 1) {
       setSaveError("");
-      setCurrentStep((value) => value + 1);
+      animateToStep(currentStep + 1);
       return;
     }
     void submitProfile();
@@ -195,7 +228,7 @@ export function AccountSetupScreen({
   function goBack() {
     if (currentStep > 0) {
       setSaveError("");
-      setCurrentStep((value) => value - 1);
+      animateToStep(currentStep - 1);
       return;
     }
     onBack?.();
@@ -261,11 +294,7 @@ export function AccountSetupScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.accountSetupRoot}
     >
-      <ScrollView
-        contentContainerStyle={styles.accountSetupContent}
-        keyboardShouldPersistTaps="handled"
-        ref={scrollRef}
-      >
+      <View style={styles.accountSetupHeader}>
         {!isInitialSetup ? (
           <View style={styles.profileSubviewHeader}>
             <BackButton
@@ -310,11 +339,22 @@ export function AccountSetupScreen({
           ))}
         </View>
 
-        <Animated.View
-          style={{
+      </View>
+
+      <Animated.View
+        style={[
+          styles.accountSetupStepViewport,
+          {
             opacity: stepOpacity,
-            transform: [{ translateY: stepTranslate }]
-          }}
+            transform: [{ translateX: stepTranslateX }]
+          }
+        ]}
+      >
+        <ScrollView
+          contentContainerStyle={styles.accountSetupStepContent}
+          keyboardShouldPersistTaps="handled"
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
         >
           <View
             style={[
@@ -443,10 +483,10 @@ export function AccountSetupScreen({
 
                 <LabeledInput
                   autoCapitalize="words"
-                  label="Equipe, clube ou projeto"
+                  label="Equipe, clube ou projeto (opcional)"
                   maxLength={80}
                   onChangeText={setClub}
-                  placeholder="Onde você atua"
+                  placeholder="Ex.: clube, time ou organização"
                   value={club}
                 />
 
@@ -523,28 +563,33 @@ export function AccountSetupScreen({
               </View>
             ) : null}
           </View>
-        </Animated.View>
+        </ScrollView>
+      </Animated.View>
 
+      <View style={styles.accountSetupFooter}>
         <View style={styles.accountSetupActions}>
-          {currentStep > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSaving}
-              onPress={goBack}
-              style={styles.accountSetupSecondaryButton}
-            >
-              <ChevronLeft color={colors.text} size={18} />
-              <Text style={styles.accountSetupSecondaryButtonText}>Voltar</Text>
-            </Pressable>
-          ) : null}
           <Pressable
             accessibilityRole="button"
-            disabled={!stepValid || isSaving}
+            disabled={currentStep === 0 || isSaving || isTransitioning}
+            onPress={goBack}
+            style={[
+              styles.accountSetupSecondaryButton,
+              currentStep === 0 ? styles.accountSetupButtonPlaceholder : null
+            ]}
+          >
+            <ChevronLeft color={colors.text} size={18} />
+            <Text style={styles.accountSetupSecondaryButtonText}>Voltar</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!stepValid || isSaving || isTransitioning}
             onPress={goForward}
             style={[
               styles.primaryButton,
               styles.accountSetupContinueButton,
-              !stepValid || isSaving ? styles.primaryButtonDisabled : null
+              !stepValid || isSaving || isTransitioning
+                ? styles.primaryButtonDisabled
+                : null
             ]}
           >
             {isSaving ? (
@@ -584,7 +629,7 @@ export function AccountSetupScreen({
             <Text style={styles.accountSetupSignOutText}>Sair da conta</Text>
           </Pressable>
         ) : null}
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }

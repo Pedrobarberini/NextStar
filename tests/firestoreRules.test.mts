@@ -71,6 +71,7 @@ test("perfil e username são validados e vinculados atomicamente", () => {
   assert.match(rules, /usernameOwnedAfter/);
   assert.match(rules, /interestTags[\s\S]*data\.interestTags is list[\s\S]*size\(\) <= 6/);
   assert.match(rules, /data\.sport is string[\s\S]*data\.sport\.size\(\) <= 40/);
+  assert.equal(rules.includes("data.club.size() == 0 || data.club.size() >= 2"), true);
   assert.match(rules, /oldUsernameReleasedAfter/);
 });
 

@@ -26,6 +26,10 @@ const accountSetupScreen = readFileSync(
   new URL("../src/screens/AccountSetupScreen.tsx", import.meta.url),
   "utf8",
 );
+const accountSetupStyles = readFileSync(
+  new URL("../src/styles/app/accountAvatarSettingsStyles.ts", import.meta.url),
+  "utf8",
+);
 
 test("conclusao da conta ocorre no servidor para uma identidade verificada", () => {
   assert.match(accountFunction, /requireVerifiedUser\(request\)/);
@@ -81,4 +85,11 @@ test("onboarding divide identidade, atuação e interesses em etapas curtas", ()
   assert.match(accountSetupScreen, /label="Função ou especialidade"/);
   assert.match(accountSetupScreen, /PROFILE_INTEREST_OPTIONS/);
   assert.match(accountSetupScreen, /pickProfilePhoto/);
+  assert.equal(accountSetupScreen.includes('label="Equipe, clube ou projeto (opcional)"'), true);
+  assert.equal(accountSetupScreen.includes("cleanProfile.club.length >= 2"), false);
+  assert.match(accountSetupScreen, /animateToStep/);
+  assert.equal(accountSetupScreen.includes("styles.accountSetupFooter"), true);
+  assert.equal(accountSetupStyles.includes("accountSetupStepViewport:"), true);
+  assert.match(accountSetupStyles, /accountSetupFooter:/);
+  assert.equal(accountSetupStyles.includes("accountSetupButtonPlaceholder:"), true);
 });

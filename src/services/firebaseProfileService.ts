@@ -205,8 +205,9 @@ export async function saveFirebaseProfile(
     normalizedProfile.sport.length > 40 ||
     normalizedProfile.city.length < 2 ||
     normalizedProfile.city.length > 80 ||
-    normalizedProfile.club.length < 2 ||
     normalizedProfile.club.length > 80 ||
+    (normalizedProfile.club.length > 0 &&
+      normalizedProfile.club.length < 2) ||
     normalizedProfile.photoURL.length > 2048
   ) {
     throw new InvalidPublicProfileError();
