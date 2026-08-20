@@ -28,7 +28,7 @@ export function SubmissionMentionPicker({
   const [query, setQuery] = useState("");
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const candidates = useMemo(
-    () => selectMentionCandidates(accounts, currentUserId, query, 5, true),
+    () => selectMentionCandidates(accounts, currentUserId, query, 50, true),
     [accounts, currentUserId, query]
   );
 

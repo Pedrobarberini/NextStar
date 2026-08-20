@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { AtSign, Check } from "lucide-react-native";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
@@ -62,41 +62,48 @@ export function MentionSuggestionsPopover({
       ]}
     >
       {candidates.length > 0 ? (
-        candidates.map((candidate, index) => {
-          const isSelected = selected.has(
-            candidate.username.toLocaleLowerCase("pt-BR")
-          );
-          return (
-            <Pressable
-              accessibilityLabel={`Selecionar @${candidate.username}`}
-              accessibilityRole="button"
-              key={candidate.id}
-              onPress={() => onSelect(candidate)}
-              style={({ pressed }) => [
-                styles.mentionSuggestionRow,
-                index === candidates.length - 1
-                  ? styles.mentionSuggestionRowLast
-                  : null,
-                pressed ? styles.buttonPressed : null
-              ]}
-            >
-              <View style={styles.mentionSuggestionIcon}>
-                <AtSign color={colors.primary} size={16} strokeWidth={2.4} />
-              </View>
-              <View style={styles.mentionSuggestionIdentity}>
-                <Text numberOfLines={1} style={styles.mentionSuggestionUsername}>
-                  @{candidate.username}
-                </Text>
-                <Text numberOfLines={1} style={styles.mentionSuggestionName}>
-                  {candidate.name}
-                </Text>
-              </View>
-              {isSelected ? (
-                <Check color={colors.primary} size={18} strokeWidth={2.7} />
-              ) : null}
-            </Pressable>
-          );
-        })
+        <ScrollView
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          style={styles.mentionSuggestionsScroll}
+        >
+          {candidates.map((candidate, index) => {
+            const isSelected = selected.has(
+              candidate.username.toLocaleLowerCase("pt-BR")
+            );
+            return (
+              <Pressable
+                accessibilityLabel={`Selecionar @${candidate.username}`}
+                accessibilityRole="button"
+                key={candidate.id}
+                onPress={() => onSelect(candidate)}
+                style={({ pressed }) => [
+                  styles.mentionSuggestionRow,
+                  index === candidates.length - 1
+                    ? styles.mentionSuggestionRowLast
+                    : null,
+                  pressed ? styles.buttonPressed : null
+                ]}
+              >
+                <View style={styles.mentionSuggestionIcon}>
+                  <AtSign color={colors.primary} size={16} strokeWidth={2.4} />
+                </View>
+                <View style={styles.mentionSuggestionIdentity}>
+                  <Text numberOfLines={1} style={styles.mentionSuggestionUsername}>
+                    @{candidate.username}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.mentionSuggestionName}>
+                    {candidate.name}
+                  </Text>
+                </View>
+                {isSelected ? (
+                  <Check color={colors.primary} size={18} strokeWidth={2.7} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       ) : (
         <Text style={styles.mentionSuggestionEmpty}>{emptyLabel}</Text>
       )}

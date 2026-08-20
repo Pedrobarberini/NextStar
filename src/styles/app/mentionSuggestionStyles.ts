@@ -18,6 +18,9 @@ export const mentionSuggestionStyles = {
     shadowRadius: 14,
     zIndex: 60
   },
+  mentionSuggestionsScroll: {
+    maxHeight: 280
+  },
   mentionSuggestionsAbove: {
     bottom: 68
   },

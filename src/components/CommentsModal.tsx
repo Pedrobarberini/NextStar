@@ -123,7 +123,7 @@ export function CommentsModal({
             users,
             currentUserId,
             activeMention.query,
-            5,
+            50,
             true
           )
         : [],
