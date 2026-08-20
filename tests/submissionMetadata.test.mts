@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  findActiveMention,
+  insertMentionSuggestion,
   parseSubmissionTokens,
   selectMentionCandidates,
   toggleSubmissionMention
@@ -77,5 +79,38 @@ test("adiciona e remove marcacoes respeitando o limite", () => {
   assert.deepEqual(
     toggleSubmissionMention(["um", "dois"], "tres", 2),
     ["um", "dois"]
+  );
+});
+
+test("pop-up sugere perfis mesmo antes de digitar a busca", () => {
+  const users = [
+    {
+      city: "Santos",
+      id: "user-ana",
+      name: "Ana Vitória",
+      position: "Meia",
+      role: "Usuário" as const,
+      username: "ana.vitoria"
+    }
+  ];
+
+  assert.deepEqual(
+    selectMentionCandidates(users, "user-current", "", 5, true).map(
+      (user) => user.username
+    ),
+    ["ana.vitoria"]
+  );
+});
+
+test("insere a sugestão no @ ativo sem alterar o restante do comentário", () => {
+  const body = "Bom lance @ana hoje";
+  const active = findActiveMention(body, 14);
+  assert.deepEqual(active, { end: 14, query: "ana", start: 10 });
+  assert.deepEqual(
+    active ? insertMentionSuggestion(body, "ana.vitoria", active) : null,
+    {
+      cursor: 23,
+      value: "Bom lance @ana.vitoria hoje"
+    }
   );
 });

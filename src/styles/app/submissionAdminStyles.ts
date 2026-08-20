@@ -245,7 +245,9 @@ export const submissionAdminStyles = {
     marginTop: 10
   },
   submissionMentionPicker: {
-    marginTop: 2
+    marginTop: 2,
+    position: "relative" as const,
+    zIndex: 30
   },
   submissionMentionHint: {
     color: colors.muted,

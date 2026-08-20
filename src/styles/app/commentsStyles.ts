@@ -231,6 +231,10 @@ export const commentsStyles = {
     justifyContent: "center",
     width: 26
   },
+  commentComposerArea: {
+    position: "relative" as const,
+    zIndex: 15
+  },
   commentComposer: {
     alignItems: "flex-end",
     borderTopColor: colors.border,

@@ -606,6 +606,7 @@ export function FeedScreen({
           }
         }}
         profileAvatars={profileAvatars}
+        users={users}
         videoId={commentPlayer?.id ?? ""}
         videoTitle={commentPlayer?.videoTitle ?? ""}
         visible={Boolean(commentPlayer)}

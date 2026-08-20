@@ -252,6 +252,7 @@ Status: Sincronizacao multi-dispositivo, recibos e central de notificacoes no ap
 - [x] Criar comentarios nos reels com contagem, lista, envio e exclusao pelo autor.
 - [x] Persistir comentarios no estado social local durante a fase de testes.
 - [x] Permitir responder comentarios com encadeamento e marcacao do autor.
+- [x] Sugerir perfis em pop-up ao marcar pessoas na publicação ou ao digitar `@` em comentários, com inserção no cursor e acesso ao perfil.
 - [x] Recolher respostas por padrao e permitir ver ou ocultar cada topico.
 - [x] Corrigir a exclusao de comentarios no web com confirmacao interna.
 - [x] Recarregar e retornar ao primeiro reel ao tocar na logo do Inicio.

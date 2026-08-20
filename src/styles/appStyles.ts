@@ -15,6 +15,7 @@ import { commentsStyles } from "./app/commentsStyles";
 import { securityStyles } from "./app/securityStyles";
 import { notificationStyles } from "./app/notificationStyles";
 import { tagPickerStyles } from "./app/tagPickerStyles";
+import { mentionSuggestionStyles } from "./app/mentionSuggestionStyles";
 
 export const styles = createThemedStyles(StyleSheet.create({
   ...baseStyles,
@@ -31,5 +32,6 @@ export const styles = createThemedStyles(StyleSheet.create({
   ...commentsStyles,
   ...securityStyles,
   ...notificationStyles,
-  ...tagPickerStyles
+  ...tagPickerStyles,
+  ...mentionSuggestionStyles
 }));

@@ -43,11 +43,12 @@ export function selectMentionCandidates(
   users: MentionableUser[],
   currentUserId: string,
   query: string,
-  limit = 5
+  limit = 5,
+  includeDefaultSuggestions = false
 ) {
   const normalizedQuery = normalizeMentionSearch(query);
 
-  if (!normalizedQuery) {
+  if (!normalizedQuery && !includeDefaultSuggestions) {
     return [];
   }
 
@@ -56,13 +57,58 @@ export function selectMentionCandidates(
       (user) =>
         user.id !== currentUserId &&
         user.role !== "Admin" &&
-        (normalizeMentionSearch(user.username).includes(normalizedQuery) ||
+        Boolean(user.username.trim()) &&
+        (!normalizedQuery ||
+          normalizeMentionSearch(user.username).includes(normalizedQuery) ||
           normalizeMentionSearch(user.name).includes(normalizedQuery))
     )
     .sort((left, right) =>
       left.username.localeCompare(right.username, "pt-BR")
     )
     .slice(0, limit);
+}
+
+export type ActiveMention = {
+  end: number;
+  query: string;
+  start: number;
+};
+
+export function findActiveMention(
+  value: string,
+  cursorPosition = value.length
+): ActiveMention | null {
+  const end = Math.max(0, Math.min(cursorPosition, value.length));
+  const prefix = value.slice(0, end);
+  const match = prefix.match(/(?:^|[\s([{'"])(?:@)([\p{L}\p{N}._-]*)$/u);
+  if (!match) return null;
+
+  const start = prefix.lastIndexOf("@");
+  return start >= 0 ? { end, query: match[1] ?? "", start } : null;
+}
+
+export function insertMentionSuggestion(
+  value: string,
+  username: string,
+  activeMention: ActiveMention
+) {
+  const normalizedUsername = normalizeMentionSearch(username);
+  if (!normalizedUsername) {
+    return { cursor: activeMention.end, value };
+  }
+
+  const inserted = `@${normalizedUsername} `;
+  const suffixStart = /\s/.test(value[activeMention.end] ?? "")
+    ? activeMention.end + 1
+    : activeMention.end;
+  const nextValue =
+    value.slice(0, activeMention.start) +
+    inserted +
+    value.slice(suffixStart);
+  return {
+    cursor: activeMention.start + inserted.length,
+    value: nextValue
+  };
 }
 
 export function toggleSubmissionMention(

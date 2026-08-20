@@ -18,12 +18,18 @@ import {
 } from "react-native";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import type { PostComment, ProfileAvatarsByProfile } from "../types";
+import type { AppUser, PostComment, ProfileAvatarsByProfile } from "../types";
 import {
   buildPostCommentThreads,
   formatPostCommentAge,
   MAX_POST_COMMENT_LENGTH
 } from "../utils/postComments";
+import {
+  findActiveMention,
+  insertMentionSuggestion,
+  selectMentionCandidates
+} from "../utils/submissionMetadata";
+import { MentionSuggestionsPopover } from "./MentionSuggestionsPopover";
 import { ProfileAvatarImage } from "./ProfileAvatarImage";
 
 function getInitials(name: string) {
@@ -35,6 +41,44 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+function renderMentionedCommentBody(
+  body: string,
+  users: AppUser[],
+  onOpenAuthor: (userId: string) => void
+) {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /(^|[\s([{])@([\p{L}\p{N}._-]+)/gu;
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(body))) {
+    const boundary = match[1] ?? "";
+    const username = match[2] ?? "";
+    const mentionStart = match.index + boundary.length;
+    if (mentionStart > cursor) nodes.push(body.slice(cursor, mentionStart));
+
+    const account = users.find(
+      (user) =>
+        user.username.toLocaleLowerCase("pt-BR") ===
+        username.toLocaleLowerCase("pt-BR")
+    );
+    const token = `@${username}`;
+    nodes.push(
+      <Text
+        key={`${mentionStart}-${username}`}
+        onPress={account ? () => onOpenAuthor(account.id) : undefined}
+        style={account ? styles.commentReplyMention : undefined}
+      >
+        {token}
+      </Text>
+    );
+    cursor = mentionStart + token.length;
+  }
+
+  if (cursor < body.length) nodes.push(body.slice(cursor));
+  return nodes.length > 0 ? nodes : body;
+}
+
 export function CommentsModal({
   comments,
   currentUserId,
@@ -43,6 +87,7 @@ export function CommentsModal({
   onDeleteComment,
   onOpenAuthor,
   profileAvatars,
+  users,
   videoId,
   videoTitle,
   visible
@@ -54,6 +99,7 @@ export function CommentsModal({
   onDeleteComment: (commentId: string) => void;
   onOpenAuthor: (userId: string) => void;
   profileAvatars: ProfileAvatarsByProfile;
+  users: AppUser[];
   videoId: string;
   videoTitle: string;
   visible: boolean;
@@ -63,8 +109,26 @@ export function CommentsModal({
     useState<PostComment | null>(null);
   const [replyTarget, setReplyTarget] = useState<PostComment | null>(null);
   const [expandedThreadIds, setExpandedThreadIds] = useState<string[]>([]);
+  const [selection, setSelection] = useState({ end: 0, start: 0 });
   const inputRef = useRef<TextInput | null>(null);
   const canSubmit = draft.trim().length > 0;
+  const activeMention = useMemo(
+    () => findActiveMention(draft, selection.start),
+    [draft, selection.start]
+  );
+  const mentionCandidates = useMemo(
+    () =>
+      activeMention
+        ? selectMentionCandidates(
+            users,
+            currentUserId,
+            activeMention.query,
+            5,
+            true
+          )
+        : [],
+    [activeMention, currentUserId, users]
+  );
   const commentThreads = useMemo(
     () => buildPostCommentThreads(comments),
     [comments]
@@ -88,6 +152,7 @@ export function CommentsModal({
   useEffect(() => {
     if (!visible) {
       setDraft("");
+      setSelection({ end: 0, start: 0 });
       setPendingDeleteComment(null);
       setReplyTarget(null);
       setExpandedThreadIds([]);
@@ -100,6 +165,7 @@ export function CommentsModal({
 
     if (canSubmit && onAddComment(draft, replyTarget?.id)) {
       setDraft("");
+      setSelection({ end: 0, start: 0 });
       setReplyTarget(null);
       if (replyThreadId) {
         setExpandedThreadIds((current) =>
@@ -114,6 +180,18 @@ export function CommentsModal({
   function startReply(comment: PostComment) {
     setReplyTarget(comment);
     inputRef.current?.focus();
+  }
+
+  function selectMention(account: { username: string }) {
+    if (!activeMention) return;
+    const insertion = insertMentionSuggestion(
+      draft,
+      account.username,
+      activeMention
+    );
+    setDraft(insertion.value);
+    setSelection({ end: insertion.cursor, start: insertion.cursor });
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   function toggleThread(commentId: string) {
@@ -256,7 +334,7 @@ export function CommentsModal({
                               @{comment.replyToUsername}{" "}
                             </Text>
                           ) : null}
-                          {comment.body}
+                          {renderMentionedCommentBody(comment.body, users, onOpenAuthor)}
                         </Text>
                         <Pressable
                           accessibilityLabel={`Responder a ${comment.authorName}`}
@@ -326,12 +404,22 @@ export function CommentsModal({
               </View>
             ) : null}
 
-            <View style={styles.commentComposer}>
+            <View style={styles.commentComposerArea}>
+              <MentionSuggestionsPopover
+                candidates={mentionCandidates}
+                onSelect={selectMention}
+                placement="above"
+                visible={Boolean(activeMention)}
+              />
+              <View style={styles.commentComposer}>
               <TextInput
                 accessibilityLabel="Escrever comentário"
                 maxLength={MAX_POST_COMMENT_LENGTH}
                 multiline
                 onChangeText={setDraft}
+                onSelectionChange={(event) =>
+                  setSelection(event.nativeEvent.selection)
+                }
                 onKeyPress={(event) => {
                   const isShiftPressed =
                     "shiftKey" in event.nativeEvent &&
@@ -349,6 +437,7 @@ export function CommentsModal({
                 onSubmitEditing={submitComment}
                 placeholder={replyTarget ? "Escreva sua resposta..." : "Adicione um comentário..."}
                 ref={inputRef}
+                selection={selection}
                 placeholderTextColor={colors.muted}
                 returnKeyType="send"
                 style={styles.commentInput}
@@ -367,6 +456,7 @@ export function CommentsModal({
               >
                 <Send color={colors.onPrimary} size={18} />
               </Pressable>
+              </View>
             </View>
 
             {pendingDeleteComment ? (
