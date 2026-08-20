@@ -72,6 +72,7 @@ export function createProvisionalFirebaseUser(user: User): AppUser {
     name: user.displayName?.trim() || "Novo perfil",
     photoURL: user.photoURL ?? undefined,
     position: "",
+    sport: "",
     profileCompleted: false,
     role: "Usuário",
     username: createProvisionalUsername(user)
@@ -102,6 +103,7 @@ export function toPublicAppUser(
     photoURL: profile.photoURL || undefined,
     plusActive: profile.plusActive,
     position: profile.position,
+    sport: profile.sport,
     profileCompleted: true,
     role: "Usuário",
     username: profile.username
@@ -182,6 +184,7 @@ export async function saveFirebaseProfile(
     name: profile.name.trim(),
     photoURL: photoURL.trim(),
     position: profile.position.trim(),
+    sport: profile.sport.trim(),
     profileCompleted: true as const,
     uid,
     username
@@ -198,6 +201,8 @@ export async function saveFirebaseProfile(
     normalizedProfile.bio.length > 240 ||
     normalizedProfile.position.length < 2 ||
     normalizedProfile.position.length > 40 ||
+    normalizedProfile.sport.length < 2 ||
+    normalizedProfile.sport.length > 40 ||
     normalizedProfile.city.length < 2 ||
     normalizedProfile.city.length > 80 ||
     normalizedProfile.club.length < 2 ||

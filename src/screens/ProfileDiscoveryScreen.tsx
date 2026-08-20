@@ -10,6 +10,7 @@ import type {
   ProfessionalSettingsByUser,
   ProfileAvatarsByProfile
 } from "../types";
+import { formatProfileActivity } from "../utils/profileActivity";
 import { getProfessionalCategoryLabel } from "../utils/professional";
 import {
   filterFollowedProfiles,
@@ -74,9 +75,9 @@ export function SearchScreen({
       const player = accountPlayers[0];
       const professionalSettings = professionalSettingsByUser[account.id];
       const meta = account.profileCompleted
-        ? `${account.position} | ${account.city}`
+        ? formatProfileActivity(account.sport, account.position, account.city)
         : player
-          ? `${player.position} | ${player.city}`
+          ? formatProfileActivity(player.sport, player.position, player.city)
           : "Usuário Xolot | Sem publicações";
 
       return {
@@ -95,6 +96,7 @@ export function SearchScreen({
           `@${account.username}`,
           account.bio,
           account.position,
+          account.sport,
           account.city,
           account.club,
           ...account.interestTags,

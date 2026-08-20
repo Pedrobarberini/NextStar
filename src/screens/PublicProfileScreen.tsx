@@ -23,6 +23,7 @@ import type {
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
+import { formatProfileActivity } from "../utils/profileActivity";
 import { getProfessionalCategoryLabel } from "../utils/professional";
 
 export function PublicProfileScreen({
@@ -72,9 +73,9 @@ export function PublicProfileScreen({
   const profileUsername = account?.username ?? player?.username;
   const initials = profileName.split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const profileMeta = account?.profileCompleted
-    ? [account.position, account.city].filter(Boolean).join(" | ")
+    ? formatProfileActivity(account.sport, account.position, account.city)
     : player
-      ? [player.position, player.city].filter(Boolean).join(" | ")
+      ? formatProfileActivity(player.sport, player.position, player.city)
       : "Usuário Xolot | Sem publicações";
   const visibleProfileMeta =
     profileMeta || "Informações do perfil ainda não preenchidas";

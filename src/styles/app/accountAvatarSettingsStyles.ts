@@ -78,6 +78,99 @@ export const accountAvatarSettingsStyles = {
     marginTop: 7,
     maxWidth: 420
   },
+  accountSetupProgress: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 18
+  },
+  accountSetupProgressItem: {
+    flex: 1,
+    gap: 6
+  },
+  accountSetupProgressBar: {
+    backgroundColor: colors.border,
+    borderRadius: 999,
+    height: 4
+  },
+  accountSetupProgressBarActive: {
+    backgroundColor: colors.primary
+  },
+  accountSetupProgressLabel: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: "800",
+    textAlign: "center"
+  },
+  accountSetupProgressLabelActive: {
+    color: colors.primary
+  },
+  accountSetupAvatarRow: {
+    alignItems: "center",
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 4,
+    paddingBottom: 14
+  },
+  accountSetupAvatarPreview: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+    borderRadius: 999,
+    borderWidth: 2,
+    height: 78,
+    justifyContent: "center",
+    overflow: "hidden",
+    position: "relative",
+    width: 78
+  },
+  accountSetupAvatarCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0
+  },
+  accountSetupAvatarButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: 6,
+    minHeight: 34,
+    paddingVertical: 6
+  },
+  accountSetupAvatarButtonText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: "900"
+  },
+  accountSetupInterestSectionCompact: {
+    paddingVertical: 2
+  },
+  accountSetupActions: {
+    flexDirection: "row",
+    gap: 9,
+    marginTop: 14
+  },
+  accountSetupSecondaryButton: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 6,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 5,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 14
+  },
+  accountSetupSecondaryButtonText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  accountSetupContinueButton: {
+    flex: 1,
+    marginTop: 0
+  },
   accountSetupSection: {
     backgroundColor: colors.surface,
     borderColor: colors.border,

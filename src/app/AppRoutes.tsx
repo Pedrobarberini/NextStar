@@ -106,6 +106,7 @@ type AppRoutesProps = {
     interestTags: string[];
     name: string;
     position: string;
+    sport: string;
     username: string;
   }) => Promise<boolean>;
   isBrandLaunchVisible: boolean;

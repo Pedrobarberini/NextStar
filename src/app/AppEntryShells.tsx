@@ -7,7 +7,7 @@ import { AuthScreen } from "../screens/AuthScreen";
 import { styles } from "../styles/appStyles";
 import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
-import type { AccountProfile, AppUser } from "../types";
+import type { AccountProfile, AppUser, ProfileAvatar } from "../types";
 
 type BrandLaunchOverlayProps = {
   isVisible: boolean;
@@ -20,7 +20,9 @@ type LoggedOutAppShellProps = BrandLaunchOverlayProps & {
 
 type AccountSetupGateProps = BrandLaunchOverlayProps & {
   accounts: AppUser[];
+  avatar?: ProfileAvatar;
   onSave: (profile: AccountProfile) => Promise<boolean> | boolean;
+  onChangeAvatar: (avatar: ProfileAvatar) => void;
   onSignOut: () => void;
   user: AppUser;
 };
@@ -75,9 +77,11 @@ export function LoggedOutAppShell({
 
 export function AccountSetupGate({
   accounts,
+  avatar,
   isVisible,
   onFinish,
   onSave,
+  onChangeAvatar,
   onSignOut,
   user
 }: AccountSetupGateProps) {
@@ -95,8 +99,10 @@ export function AccountSetupGate({
           />
         </View>
         <AccountSetupModal
+          avatar={avatar}
           accounts={accounts}
           onSave={onSave}
+          onChangeAvatar={onChangeAvatar}
           onSignOut={onSignOut}
           user={user}
           visible

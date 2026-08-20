@@ -474,3 +474,18 @@ O escopo anterior de captação e participação em atletas foi removido em 2026
 - [x] Centralizar o ícone de reprodução exibido enquanto o reel aguarda a ativação do player.
 - [x] Criar visualização limpa ao manter foto, vídeo ou GIF pressionado no Início, com ocultação e retorno animados das sobreposições e do rodapé.
 - [x] Exibir data e horário nas mensagens e persistir os estados enviada, entregue e visualizada entre os dispositivos.
+
+## P1 - Onboarding multiesportivo
+
+Tipo: Produto/Frontend/Dados
+
+- [x] Dividir a conclusão do perfil em identidade, atuação e interesses.
+- [x] Permitir escolher a foto no primeiro passo e salvar somente após criar o perfil.
+- [x] Adicionar modalidade para esportes tradicionais e e-sports.
+- [x] Reapresentar posição como função ou especialidade vinculada à modalidade.
+- [x] Atualizar equipe, clube ou projeto para contemplar diferentes contextos.
+- [x] Ampliar os interesses usados no Para você com esportes e e-sports.
+- [x] Preservar a leitura de perfis antigos sem modalidade.
+- [x] Exibir modalidade, função e cidade de forma consistente no perfil, feed, busca e mensagens.
+- [ ] Criar catálogo administrável de modalidades e funções relacionadas.
+- [ ] Sugerir funções conforme a modalidade selecionada.

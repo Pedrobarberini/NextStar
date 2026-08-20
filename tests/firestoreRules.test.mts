@@ -70,6 +70,7 @@ test("perfil e username são validados e vinculados atomicamente", () => {
   assert.match(rules, /getAfter/);
   assert.match(rules, /usernameOwnedAfter/);
   assert.match(rules, /interestTags[\s\S]*data\.interestTags is list[\s\S]*size\(\) <= 6/);
+  assert.match(rules, /data\.sport is string[\s\S]*data\.sport\.size\(\) <= 40/);
   assert.match(rules, /oldUsernameReleasedAfter/);
 });
 

@@ -12,6 +12,7 @@ const profile = {
   photoURL: "https://example.com/avatar.jpg",
   plusActive: false,
   position: "Criador",
+  sport: "Futebol",
   profileCompleted: true,
   uid: "uid-seguro-1",
   username: "pessoa.criadora"
@@ -37,6 +38,12 @@ test("normaliza apenas os campos públicos permitidos", () => {
 
   assert.equal("passwordHash" in (normalized ?? {}), false);
 });
+  const { sport: _sport, ...profileWithoutSport } = profile;
+  assert.equal(
+    normalizePublicProfileDocument(profile.uid, profileWithoutSport)?.sport,
+    "Modalidade não informada"
+  );
+
 
 test("mantém perfis antigos válidos e limita os interesses públicos", () => {
   const { interestTags: _interestTags, ...legacyProfile } = profile;
@@ -63,6 +70,7 @@ test("recupera identidade publica de um perfil legado incompleto", () => {
   assert.equal(recovered?.name, "Perfil Antigo");
   assert.equal(recovered?.username, "perfil.antigo");
   assert.equal(recovered?.position, "Área não informada");
+  assert.equal(recovered?.sport, "Modalidade não informada");
   assert.equal(recovered?.city, "Local não informado");
   assert.equal(recovered?.age, null);
   assert.equal(

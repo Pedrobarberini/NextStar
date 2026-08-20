@@ -10,6 +10,7 @@ import type {
   ProfessionalSettingsByUser,
   ProfileAvatarsByProfile
 } from "../types";
+import { formatProfileActivity } from "../utils/profileActivity";
 import { getProfessionalCategoryLabel } from "../utils/professional";
 import {
   filterFollowedProfiles,
@@ -57,9 +58,9 @@ export function SearchScreen({
       const player = uniquePlayers.find((item) => item.ownerUserId === account.id);
       const professionalSettings = professionalSettingsByUser[account.id];
       const meta = account.profileCompleted
-        ? `${account.position} | ${account.city}`
+        ? formatProfileActivity(account.sport, account.position, account.city)
         : player
-          ? `${player.position} | ${player.city}`
+          ? formatProfileActivity(player.sport, player.position, player.city)
           : "Usuário Xolot | Sem publicações";
 
       return {
@@ -77,6 +78,7 @@ export function SearchScreen({
           `@${account.username}`,
           account.bio,
           account.position,
+          account.sport,
           account.city,
           account.club,
           professionalSettings?.enabled
@@ -95,7 +97,7 @@ export function SearchScreen({
       .filter((player) => !player.ownerUserId || !userIds.has(player.ownerUserId))
       .map((player) => ({
         id: `player-${player.profileId}`,
-        meta: `${player.position} | ${player.city}`,
+        meta: formatProfileActivity(player.sport, player.position, player.city),
         name: player.name,
         player,
         profileId: player.profileId,

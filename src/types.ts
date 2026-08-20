@@ -21,6 +21,7 @@ export type Player = {
   age: number;
   city: string;
   position: string;
+  sport?: string;
   club: string;
   videoTitle: string;
   videoLength: string;
@@ -202,6 +203,7 @@ export type AccountProfile = {
   club: string;
   interestTags: string[];
   name: string;
+  sport: string;
   position: string;
   username: string;
 };

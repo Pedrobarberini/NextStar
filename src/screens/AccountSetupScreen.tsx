@@ -1,7 +1,18 @@
-import React, { useState } from "react";
-import { Check, LogOut } from "lucide-react-native";
+import React, { useEffect, useRef, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import {
+  Camera,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  UserRound
+} from "lucide-react-native";
 import {
   ActivityIndicator,
+  Alert,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,9 +23,11 @@ import {
   View
 } from "react-native";
 import { BackButton, LabeledInput } from "../components/Navigation";
+import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import { AccountProfile, AppUser } from "../types";
+import type { AccountProfile, AppUser, ProfileAvatar } from "../types";
+import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
 import {
   isUsernameAvailable,
   normalizeUsername
@@ -23,30 +36,68 @@ import { PROFILE_INTEREST_OPTIONS } from "../utils/profileSuggestions";
 
 type AccountSetupProps = {
   accounts: AppUser[];
+  avatar?: ProfileAvatar;
   isInitialSetup?: boolean;
   onBack?: () => void;
+  onChangeAvatar?: (avatar: ProfileAvatar) => void;
   onSave: (profile: AccountProfile) => Promise<boolean> | boolean;
   onSignOut?: () => void;
   user: AppUser;
 };
 
+const SETUP_STEPS = [
+  {
+    label: "Você",
+    title: "Vamos criar seu perfil",
+    subtitle: "Comece com as informações usadas para identificar você na Xolot."
+  },
+  {
+    label: "Atuação",
+    title: "Como você participa",
+    subtitle: "Informe sua modalidade e o papel que melhor descreve sua atuação."
+  },
+  {
+    label: "Interesses",
+    title: "Monte seu Para você",
+    subtitle: "Escolha temas para priorizar conteúdos relevantes desde o primeiro acesso."
+  }
+] as const;
+
 export function AccountSetupScreen({
   accounts,
+  avatar,
   isInitialSetup = false,
   onBack,
+  onChangeAvatar,
   onSave,
   onSignOut,
   user
 }: AccountSetupProps) {
   const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  const stepOpacity = useRef(new Animated.Value(1)).current;
+  const stepTranslate = useRef(new Animated.Value(0)).current;
+  const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState(user.name);
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio);
   const [ageText, setAgeText] = useState(user.age ? String(user.age) : "");
+  const [sport, setSport] = useState(user.sport);
   const [position, setPosition] = useState(user.position);
   const [city, setCity] = useState(user.city);
   const [club, setClub] = useState(user.club);
   const [interestTags, setInterestTags] = useState(user.interestTags);
+  const [selectedAvatar, setSelectedAvatar] = useState<ProfileAvatar | undefined>(
+    avatar ??
+      (user.photoURL
+        ? {
+            cropScale: DEFAULT_AVATAR_CROP_SCALE,
+            focusX: 50,
+            focusY: 50,
+            uri: user.photoURL
+          }
+        : undefined)
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const age = Number(ageText);
@@ -64,20 +115,47 @@ export function AccountSetupScreen({
     interestTags,
     name: name.trim(),
     position: position.trim(),
+    sport: sport.trim(),
     username: cleanUsername
   };
-  const canSave =
+  const identityValid =
     cleanProfile.name.length >= 3 &&
     usernameAvailable &&
-    cleanProfile.bio.length >= 10 &&
-    cleanProfile.bio.length <= 240 &&
     cleanProfile.age !== null &&
     cleanProfile.age >= 5 &&
     cleanProfile.age <= 100 &&
+    cleanProfile.city.length >= 2;
+  const activityValid =
+    cleanProfile.sport.length >= 2 &&
     cleanProfile.position.length >= 2 &&
-    cleanProfile.city.length >= 2 &&
-    cleanProfile.club.length >= 2;
+    cleanProfile.club.length >= 2 &&
+    cleanProfile.bio.length >= 10 &&
+    cleanProfile.bio.length <= 240;
+  const interestsValid = cleanProfile.interestTags.length >= 1;
+  const stepValid = [identityValid, activityValid, interestsValid][currentStep];
+  const canSave = identityValid && activityValid && interestsValid;
   const isNarrow = width < 370;
+  const step = SETUP_STEPS[currentStep];
+
+  useEffect(() => {
+    stepOpacity.setValue(0);
+    stepTranslate.setValue(12);
+    Animated.parallel([
+      Animated.timing(stepOpacity, {
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        toValue: 1,
+        useNativeDriver: true
+      }),
+      Animated.timing(stepTranslate, {
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        toValue: 0,
+        useNativeDriver: true
+      })
+    ]).start();
+    scrollRef.current?.scrollTo({ animated: false, y: 0 });
+  }, [currentStep, stepOpacity, stepTranslate]);
 
   async function submitProfile() {
     if (!canSave || isSaving) {
@@ -90,12 +168,37 @@ export function AccountSetupScreen({
       const saved = await onSave(cleanProfile);
       if (!saved) {
         setSaveError("Revise os dados e tente salvar novamente.");
+        return;
+      }
+      if (selectedAvatar && onChangeAvatar) {
+        onChangeAvatar(selectedAvatar);
       }
     } catch {
       setSaveError("Não foi possível salvar o perfil agora.");
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function goForward() {
+    if (!stepValid || isSaving) {
+      return;
+    }
+    if (currentStep < SETUP_STEPS.length - 1) {
+      setSaveError("");
+      setCurrentStep((value) => value + 1);
+      return;
+    }
+    void submitProfile();
+  }
+
+  function goBack() {
+    if (currentStep > 0) {
+      setSaveError("");
+      setCurrentStep((value) => value - 1);
+      return;
+    }
+    onBack?.();
   }
 
   function toggleInterestTag(tag: string) {
@@ -110,6 +213,49 @@ export function AccountSetupScreen({
     });
   }
 
+  async function pickProfilePhoto() {
+    try {
+      if (Platform.OS !== "web") {
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert(
+            "Permissão necessária",
+            "Autorize o acesso às fotos para escolher uma imagem de perfil."
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: false,
+        base64: true,
+        mediaTypes: ["images"],
+        quality: 0.6
+      });
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      setSelectedAvatar({
+        cropScale: DEFAULT_AVATAR_CROP_SCALE,
+        focusX: 50,
+        focusY: 50,
+        sourceHeight: asset.height,
+        sourceWidth: asset.width,
+        uri: asset.base64
+          ? `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`
+          : asset.uri
+      });
+    } catch {
+      Alert.alert(
+        "Não foi possível abrir a galeria",
+        "Tente novamente ou escolha outra imagem."
+      );
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -118,192 +264,309 @@ export function AccountSetupScreen({
       <ScrollView
         contentContainerStyle={styles.accountSetupContent}
         keyboardShouldPersistTaps="handled"
+        ref={scrollRef}
       >
         {!isInitialSetup ? (
           <View style={styles.profileSubviewHeader}>
             <BackButton
               accessibilityLabel="Voltar para configurações"
-              onPress={() => onBack?.()}
+              onPress={goBack}
             />
             <Text style={styles.profileSubviewTitle}>Editar perfil</Text>
             <View style={styles.profileSubviewSpacer} />
           </View>
-        ) : (
-          <View style={styles.accountSetupIntro}>
-            <Text style={styles.accountSetupEyebrow}>Primeiro acesso</Text>
-            <Text style={styles.accountSetupTitle}>Configure seu perfil</Text>
-            <Text style={styles.accountSetupSubtitle}>
-              Escolha sua identidade pública e complete seus dados.
-            </Text>
-          </View>
-        )}
+        ) : null}
 
-        <View
-          style={[
-            styles.accountSetupSection,
-            isInitialSetup ? styles.accountSetupSectionInitial : null
-          ]}
-        >
-          <View style={styles.accountSetupSectionHeader}>
-            <Text style={styles.settingsSectionTitle}>Perfil público</Text>
-            <Text style={styles.accountSetupRequired}>Obrigatório</Text>
-          </View>
-
-          <LabeledInput
-            autoCapitalize="words"
-            label="Nome do atleta"
-            maxLength={80}
-            onChangeText={setName}
-            placeholder="Nome completo"
-            value={name}
-          />
-
-          <LabeledInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            label="Nome de usuário"
-            maxLength={30}
-            onChangeText={(value) =>
-              setUsername(
-                value.replace(/^@+/, "").replace(/[^a-zA-Z0-9._]/g, "")
-              )
-            }
-            placeholder="seu.username"
-            value={username}
-          />
-          <Text
-            style={
-              cleanUsername.length >= 3 && !usernameAvailable
-                ? styles.accountSetupUsernameError
-                : styles.accountSetupHint
-            }
-          >
-            {cleanUsername.length >= 3 && !usernameAvailable
-              ? "Este nome de usuário já está em uso ou não é válido."
-              : "Identidade única usada no Início, pesquisa e mensagens."}
+        <View style={styles.accountSetupIntro}>
+          <Text style={styles.accountSetupEyebrow}>
+            Etapa {currentStep + 1} de {SETUP_STEPS.length}
           </Text>
-
-          <View
-            style={[
-              styles.accountSetupFieldRow,
-              isNarrow ? styles.accountSetupFieldRowNarrow : null
-            ]}
-          >
-            <View style={styles.accountSetupAgeField}>
-              <LabeledInput
-                keyboardType="number-pad"
-                label="Idade"
-                maxLength={3}
-                onChangeText={(value) => setAgeText(value.replace(/\D/g, ""))}
-                placeholder="17"
-                value={ageText}
-              />
-            </View>
-            <View style={styles.accountSetupPositionField}>
-              <LabeledInput
-                autoCapitalize="words"
-                label="Posição"
-                maxLength={40}
-                onChangeText={setPosition}
-                placeholder="Ponta"
-                value={position}
-              />
-            </View>
-          </View>
-
-          <LabeledInput
-            autoCapitalize="words"
-            label="Cidade"
-            maxLength={80}
-            onChangeText={setCity}
-            placeholder="Cidade, UF"
-            value={city}
-          />
-
-          <LabeledInput
-            autoCapitalize="words"
-            label="Clube ou projeto"
-            maxLength={80}
-            onChangeText={setClub}
-            placeholder="Clube atual ou projeto"
-            value={club}
-          />
-
-          <View style={styles.accountSetupInterestSection}>
-            <View style={styles.accountSetupInterestHeader}>
-              <View style={styles.accountSetupInterestCopy}>
-                <Text style={styles.accountSetupInterestTitle}>
-                  Interesses do perfil
-                </Text>
-                <Text style={styles.accountSetupHint}>
-                  Escolha até seis temas para personalizar suas sugestões.
-                </Text>
-              </View>
-              <Text style={styles.accountSetupCounter}>
-                {interestTags.length}/6
-              </Text>
-            </View>
-            <View style={styles.accountSetupInterestList}>
-              {PROFILE_INTEREST_OPTIONS.map((tag) => {
-                const selected = interestTags.includes(tag);
-                const disabled = !selected && interestTags.length >= 6;
-                return (
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: selected, disabled }}
-                    disabled={disabled}
-                    key={tag}
-                    onPress={() => toggleInterestTag(tag)}
-                    style={[
-                      styles.accountSetupInterestTag,
-                      selected ? styles.accountSetupInterestTagSelected : null,
-                      disabled ? styles.accountSetupInterestTagDisabled : null
-                    ]}
-                  >
-                    <Text style={[
-                      styles.accountSetupInterestTagText,
-                      selected ? styles.accountSetupInterestTagTextSelected : null
-                    ]}>#{tag}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <LabeledInput
-            label="Biografia"
-            maxLength={240}
-            multiline
-            numberOfLines={5}
-            onChangeText={setBio}
-            placeholder="Conte sua história, seus objetivos e seu estilo de jogo."
-            value={bio}
-          />
-          <View style={styles.accountSetupBioMeta}>
-            <Text style={styles.accountSetupHint}>Mínimo de 10 caracteres</Text>
-            <Text style={styles.accountSetupCounter}>{bio.length}/240</Text>
-          </View>
+          <Text style={styles.accountSetupTitle}>{step.title}</Text>
+          <Text style={styles.accountSetupSubtitle}>{step.subtitle}</Text>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canSave || isSaving}
-          onPress={submitProfile}
-          style={[
-            styles.primaryButton,
-            styles.accountSetupSaveButton,
-            !canSave || isSaving ? styles.primaryButtonDisabled : null
-          ]}
+        <View style={styles.accountSetupProgress}>
+          {SETUP_STEPS.map((item, index) => (
+            <View key={item.label} style={styles.accountSetupProgressItem}>
+              <View
+                style={[
+                  styles.accountSetupProgressBar,
+                  index <= currentStep
+                    ? styles.accountSetupProgressBarActive
+                    : null
+                ]}
+              />
+              <Text
+                style={[
+                  styles.accountSetupProgressLabel,
+                  index === currentStep
+                    ? styles.accountSetupProgressLabelActive
+                    : null
+                ]}
+              >
+                {item.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <Animated.View
+          style={{
+            opacity: stepOpacity,
+            transform: [{ translateY: stepTranslate }]
+          }}
         >
-          {isSaving ? (
-            <ActivityIndicator color={colors.onPrimary} size="small" />
-          ) : (
-            <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
-          )}
-          <Text style={styles.primaryButtonText}>
-            {isInitialSetup ? "Concluir perfil" : "Salvar alterações"}
-          </Text>
-        </Pressable>
+          <View
+            style={[
+              styles.accountSetupSection,
+              isInitialSetup ? styles.accountSetupSectionInitial : null
+            ]}
+          >
+            {currentStep === 0 ? (
+              <>
+                <View style={styles.accountSetupAvatarRow}>
+                  <View style={styles.accountSetupAvatarPreview}>
+                    {selectedAvatar ? (
+                      <ProfileAvatarImage avatar={selectedAvatar} />
+                    ) : (
+                      <UserRound color={colors.primary} size={34} />
+                    )}
+                  </View>
+                  <View style={styles.accountSetupAvatarCopy}>
+                    <Text style={styles.accountSetupInterestTitle}>
+                      Foto de perfil
+                    </Text>
+                    <Text style={styles.accountSetupHint}>
+                      Opcional agora. Você poderá ajustar o enquadramento depois.
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={pickProfilePhoto}
+                      style={styles.accountSetupAvatarButton}
+                    >
+                      <Camera color={colors.primary} size={16} />
+                      <Text style={styles.accountSetupAvatarButtonText}>
+                        {selectedAvatar ? "Trocar foto" : "Escolher foto"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <LabeledInput
+                  autoCapitalize="words"
+                  label="Seu nome"
+                  maxLength={80}
+                  onChangeText={setName}
+                  placeholder="Como você quer ser identificado"
+                  value={name}
+                />
+
+                <LabeledInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  label="Nome de usuário"
+                  maxLength={30}
+                  onChangeText={(value) =>
+                    setUsername(
+                      value.replace(/^@+/, "").replace(/[^a-zA-Z0-9._]/g, "")
+                    )
+                  }
+                  placeholder="seu.username"
+                  value={username}
+                />
+                <Text
+                  style={
+                    cleanUsername.length >= 3 && !usernameAvailable
+                      ? styles.accountSetupUsernameError
+                      : styles.accountSetupHint
+                  }
+                >
+                  {cleanUsername.length >= 3 && !usernameAvailable
+                    ? "Este nome de usuário já está em uso ou não é válido."
+                    : "Seu @ único na Xolot."}
+                </Text>
+
+                <View
+                  style={[
+                    styles.accountSetupFieldRow,
+                    isNarrow ? styles.accountSetupFieldRowNarrow : null
+                  ]}
+                >
+                  <View style={styles.accountSetupAgeField}>
+                    <LabeledInput
+                      keyboardType="number-pad"
+                      label="Idade"
+                      maxLength={3}
+                      onChangeText={(value) =>
+                        setAgeText(value.replace(/\D/g, ""))
+                      }
+                      placeholder="18"
+                      value={ageText}
+                    />
+                  </View>
+                  <View style={styles.accountSetupPositionField}>
+                    <LabeledInput
+                      autoCapitalize="words"
+                      label="Cidade"
+                      maxLength={80}
+                      onChangeText={setCity}
+                      placeholder="Cidade, UF"
+                      value={city}
+                    />
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            {currentStep === 1 ? (
+              <>
+                <LabeledInput
+                  autoCapitalize="words"
+                  label="Modalidade"
+                  maxLength={40}
+                  onChangeText={setSport}
+                  placeholder="Futebol, vôlei, Valorant..."
+                  value={sport}
+                />
+                <Text style={styles.accountSetupHint}>
+                  Pode ser um esporte tradicional ou um e-sport.
+                </Text>
+
+                <LabeledInput
+                  autoCapitalize="words"
+                  label="Função ou especialidade"
+                  maxLength={40}
+                  onChangeText={setPosition}
+                  placeholder="Ponta, levantador, duelista..."
+                  value={position}
+                />
+
+                <LabeledInput
+                  autoCapitalize="words"
+                  label="Equipe, clube ou projeto"
+                  maxLength={80}
+                  onChangeText={setClub}
+                  placeholder="Onde você atua"
+                  value={club}
+                />
+
+                <LabeledInput
+                  label="Biografia"
+                  maxLength={240}
+                  multiline
+                  numberOfLines={5}
+                  onChangeText={setBio}
+                  placeholder="Conte brevemente quem você é e o que publica."
+                  value={bio}
+                />
+                <View style={styles.accountSetupBioMeta}>
+                  <Text style={styles.accountSetupHint}>
+                    Mínimo de 10 caracteres
+                  </Text>
+                  <Text style={styles.accountSetupCounter}>
+                    {bio.length}/240
+                  </Text>
+                </View>
+              </>
+            ) : null}
+
+            {currentStep === 2 ? (
+              <View style={styles.accountSetupInterestSectionCompact}>
+                <View style={styles.accountSetupInterestHeader}>
+                  <View style={styles.accountSetupInterestCopy}>
+                    <Text style={styles.accountSetupInterestTitle}>
+                      O que você quer acompanhar?
+                    </Text>
+                    <Text style={styles.accountSetupHint}>
+                      Escolha de um a seis temas. Você poderá mudar isso depois.
+                    </Text>
+                  </View>
+                  <Text style={styles.accountSetupCounter}>
+                    {interestTags.length}/6
+                  </Text>
+                </View>
+                <View style={styles.accountSetupInterestList}>
+                  {PROFILE_INTEREST_OPTIONS.map((tag) => {
+                    const selected = interestTags.includes(tag);
+                    const disabled = !selected && interestTags.length >= 6;
+                    return (
+                      <Pressable
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected, disabled }}
+                        disabled={disabled}
+                        key={tag}
+                        onPress={() => toggleInterestTag(tag)}
+                        style={[
+                          styles.accountSetupInterestTag,
+                          selected
+                            ? styles.accountSetupInterestTagSelected
+                            : null,
+                          disabled
+                            ? styles.accountSetupInterestTagDisabled
+                            : null
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.accountSetupInterestTagText,
+                            selected
+                              ? styles.accountSetupInterestTagTextSelected
+                              : null
+                          ]}
+                        >
+                          #{tag}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </Animated.View>
+
+        <View style={styles.accountSetupActions}>
+          {currentStep > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSaving}
+              onPress={goBack}
+              style={styles.accountSetupSecondaryButton}
+            >
+              <ChevronLeft color={colors.text} size={18} />
+              <Text style={styles.accountSetupSecondaryButtonText}>Voltar</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            disabled={!stepValid || isSaving}
+            onPress={goForward}
+            style={[
+              styles.primaryButton,
+              styles.accountSetupContinueButton,
+              !stepValid || isSaving ? styles.primaryButtonDisabled : null
+            ]}
+          >
+            {isSaving ? (
+              <ActivityIndicator color={colors.onPrimary} size="small" />
+            ) : currentStep === SETUP_STEPS.length - 1 ? (
+              <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
+            ) : (
+              <ChevronRight
+                color={colors.onPrimary}
+                size={19}
+                strokeWidth={2.5}
+              />
+            )}
+            <Text style={styles.primaryButtonText}>
+              {currentStep === SETUP_STEPS.length - 1
+                ? isInitialSetup
+                  ? "Concluir perfil"
+                  : "Salvar alterações"
+                : "Continuar"}
+            </Text>
+          </Pressable>
+        </View>
 
         {saveError ? (
           <Text accessibilityRole="alert" style={styles.authErrorText}>

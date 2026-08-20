@@ -41,6 +41,7 @@ import {
   PostComment,
   SocialSelectionsByUser
 } from "../types";
+import { formatProfileActivity } from "../utils/profileActivity";
 import { buildFollowerUserIdsByProfile } from "../utils/profileFollowers";
 import {
   EMPTY_CONVERSATION_PREFERENCES,
@@ -507,7 +508,7 @@ export function useSocialActions({
           id: contactId,
           name: account.name,
           profileId: player?.profileId ?? `profile-${contactId}`,
-          subtitle: `${account.position} | ${account.city}`,
+          subtitle: formatProfileActivity(account.sport, account.position, account.city),
           username: account.username
         }
       ];
@@ -623,7 +624,7 @@ export function useSocialActions({
       profileId: ownPlayer?.profileId ?? `profile-${user.id}`,
       name: ownPlayer?.name ?? user.name,
       subtitle: ownPlayer
-        ? `${ownPlayer.position} | ${ownPlayer.city}`
+        ? formatProfileActivity(ownPlayer.sport, ownPlayer.position, ownPlayer.city)
         : "Usuário Xolot",
       username: user.username
     };

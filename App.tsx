@@ -280,8 +280,10 @@ export default function App() {
     return (
       <AccountSetupGate
         accounts={registeredUsers}
+        avatar={profileAvatars[`profile-${user.id}`]}
         isVisible={isBrandLaunchVisible}
         onFinish={() => setIsBrandLaunchVisible(false)}
+        onChangeAvatar={(avatar) => setProfileAvatar(`profile-${user.id}`, avatar)}
         onSave={handleUpdateProfile}
         onSignOut={signOutSession}
         user={user}

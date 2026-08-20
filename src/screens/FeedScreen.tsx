@@ -47,6 +47,7 @@ import type {
   ProfileAvatar,
   ProfileAvatarsByProfile
 } from "../types";
+import { formatProfileActivity } from "../utils/profileActivity";
 import { CardPalette } from "../ui/types";
 import {
   getPlayerContentKey,
@@ -206,7 +207,7 @@ export function FeedScreen({
         id: account.id,
         name: account.name,
         subtitle: account.profileCompleted
-          ? account.position + " | " + account.city
+          ? formatProfileActivity(account.sport, account.position, account.city)
           : "Perfil Xolot",
         username: account.username
       })),
@@ -995,7 +996,7 @@ function FeedReel({
               <Pressable accessibilityLabel={`Abrir perfil de ${player.name}`} accessibilityRole="button" hitSlop={4} onPress={onOpen} style={styles.feedProfileTextBlock}>
                 {!isWide ? (
                   <Text numberOfLines={1} style={[styles.feedSponsorLabel, styles.feedSponsorLabelCompact, { color: "rgba(255, 255, 255, 0.82)" }]}>
-                    {player.username ? `${player.name} | ` : ""}{player.position} | {player.city}
+                    {player.username ? `${player.name} | ` : ""}{formatProfileActivity(player.sport, player.position, player.city)}
                   </Text>
                 ) : null}
                 <Text numberOfLines={1} style={[styles.feedProfileName, !isWide ? styles.feedProfileNameCompact : null, { color: isWide ? palette.text : colors.onPrimary }]}>
@@ -1003,7 +1004,7 @@ function FeedReel({
                 </Text>
                 {isWide ? (
                   <Text numberOfLines={1} style={[styles.feedSponsorLabel, { color: palette.muted }]}>
-                    {player.username ? `${player.name} | ` : ""}{player.position} | {player.city}
+                    {player.username ? `${player.name} | ` : ""}{formatProfileActivity(player.sport, player.position, player.city)}
                   </Text>
                 ) : null}
               </Pressable>

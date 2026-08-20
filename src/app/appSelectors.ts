@@ -35,6 +35,7 @@ export function selectApprovedSubmissionPlayers(
         club: account.club,
         name: account.name,
         position: account.position,
+        sport: account.sport,
         username: account.username
       };
     });

@@ -1,9 +1,10 @@
 const GENERIC_TAGS = new Set(["novo", "publicado", "video-aprovado"]);
 
 export const PROFILE_INTEREST_OPTIONS = [
-  "Atletismo", "Basquete", "Categorias de base", "Centroavante", "Corrida",
-  "Futebol", "Futebol feminino", "Futsal", "Goleiro", "Lateral",
-  "Meio-campo", "Ponta", "Preparação física", "Tática", "Técnica", "Treino", "Vôlei"
+  "Atletismo", "Basquete", "Ciclismo", "Corrida", "Counter-Strike 2",
+  "EA Sports FC", "Free Fire", "Futebol", "Futsal", "Handebol",
+  "League of Legends", "Lutas", "Natação", "Skate", "Tênis",
+  "Treino", "Valorant", "Vôlei"
 ] as const;
 
 

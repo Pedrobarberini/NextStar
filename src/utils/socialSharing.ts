@@ -5,6 +5,7 @@ import type {
   Player,
   SharedPostReference
 } from "../types";
+import { formatProfileActivity } from "./profileActivity.ts";
 
 export function createSharedPostReference(
   player: Player,
@@ -116,9 +117,9 @@ export function selectShareContacts({
       name: account?.name ?? player?.name ?? "Perfil Xolot",
       profileId,
       subtitle: account?.profileCompleted
-        ? `${account.position} | ${account.city}`
+        ? formatProfileActivity(account.sport, account.position, account.city)
         : player
-          ? `${player.position} | ${player.city}`
+          ? formatProfileActivity(player.sport, player.position, player.city)
           : "Usuário Xolot",
       username: account?.username ?? player?.username
     });

@@ -13,6 +13,7 @@ export type PublicProfileDocument = {
   name: string;
   photoURL: string;
   plusActive: boolean;
+  sport: string;
   position: string;
   profileCompleted: true;
   uid: string;
@@ -96,6 +97,7 @@ export function normalizePublicProfileDocument(
       normalizeText(data.position, 40) ||
       (allowLegacyFallback ? "Área não informada" : ""),
     profileCompleted: true,
+    sport: normalizeText(data.sport, 40) || "Modalidade não informada",
     uid,
     username
   };

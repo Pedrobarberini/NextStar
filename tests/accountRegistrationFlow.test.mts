@@ -22,6 +22,10 @@ const discoveryScreen = readFileSync(
   new URL("../src/screens/ProfileDiscoveryScreen.tsx", import.meta.url),
   "utf8",
 );
+const accountSetupScreen = readFileSync(
+  new URL("../src/screens/AccountSetupScreen.tsx", import.meta.url),
+  "utf8",
+);
 
 test("conclusao da conta ocorre no servidor para uma identidade verificada", () => {
   assert.match(accountFunction, /requireVerifiedUser\(request\)/);
@@ -66,4 +70,15 @@ test("a sessão Google incompleta permanece ativa para a etapa única de termos"
     accountFunction,
     /if \(!hasValidPendingAccount && !acceptedTerms\)/
   );
+});
+
+test("onboarding divide identidade, atuação e interesses em etapas curtas", () => {
+  assert.match(accountSetupScreen, /Etapa \{currentStep \+ 1\} de/);
+  assert.match(accountSetupScreen, /Vamos criar seu perfil/);
+  assert.match(accountSetupScreen, /Como você participa/);
+  assert.match(accountSetupScreen, /Monte seu Para você/);
+  assert.match(accountSetupScreen, /label="Modalidade"/);
+  assert.match(accountSetupScreen, /label="Função ou especialidade"/);
+  assert.match(accountSetupScreen, /PROFILE_INTEREST_OPTIONS/);
+  assert.match(accountSetupScreen, /pickProfilePhoto/);
 });

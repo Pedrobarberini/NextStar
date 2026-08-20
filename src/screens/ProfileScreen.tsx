@@ -53,6 +53,7 @@ import type {
   PromotionCampaign,
   VideoSubmission
 } from "../types";
+import { formatProfileActivity } from "../utils/profileActivity";
 import {
   cancelProfessionalSubscription,
   createPlusSubscriptionCheckout,
@@ -456,7 +457,9 @@ export function ProfileScreen({
       <ScreenTransition key="edit-profile" style={styles.profileViewScene}>
         <AccountSetupScreen
           accounts={accounts}
+          avatar={avatar}
           onBack={() => setProfileView("settings")}
+          onChangeAvatar={onChangeAvatar}
           onSave={async (profile) => {
             const saved = await onUpdateProfile(profile);
             if (saved) {
@@ -510,7 +513,7 @@ export function ProfileScreen({
                 </Text>
                 <Text style={styles.profileMeta}>
                   {user.role === "Usuário" && user.profileCompleted
-                    ? `${user.position} | ${user.city}`
+                    ? formatProfileActivity(user.sport, user.position, user.city)
                     : `${user.role} | ${user.email}`}
                 </Text>
               </View>
@@ -704,7 +707,7 @@ function toProfileListItem(
     id: account.id,
     name: account.name,
     subtitle: account.profileCompleted
-      ? `${account.position} | ${account.city}`
+      ? formatProfileActivity(account.sport, account.position, account.city)
       : account.role === "Admin"
         ? "Administrador Xolot"
         : "Usuário Xolot",
@@ -904,7 +907,7 @@ function SettingsView({
             <View style={styles.settingsRowBody}>
               <Text style={styles.settingsRowTitle}>Editar perfil</Text>
               <Text style={styles.settingsRowDescription}>
-                Nome, biografia, idade, posição, cidade e clube ou projeto.
+                Nome, biografia, modalidade, função, cidade e equipe.
               </Text>
             </View>
           </Pressable>
