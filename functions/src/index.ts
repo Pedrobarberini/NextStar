@@ -27,6 +27,7 @@ import {
   MAX_VIDEO_SIZE,
   allowedMimeTypes,
   normalizeStringList,
+  normalizeTagList,
   requireInteger,
   requireRecord,
   requireText
@@ -213,7 +214,7 @@ export const finalizeMediaUpload = onCall(callableOptions, async (request) => {
   const height = requireInteger(data.height, "Altura", 0, 10_000);
   const title = requireText(data.title, "Título", 4, 120);
   const description = requireText(data.description, "Descrição", 4, 2000);
-  const tags = normalizeStringList(data.tags, 10, 40);
+  const tags = normalizeTagList(data.tags, 10);
   const mentions = normalizeStringList(data.mentions, 10, 30);
   const client = createR2Client();
   const uploaded = await client
@@ -369,6 +370,7 @@ export {
 } from "./avatar";
 export { finalizeAccountRegistration } from "./account";
 export { recordPostView, sendDirectMessage, setPostLike } from "./social";
+export { ensureTagCatalogEntry, syncPostTagCatalog } from "./tags";
 export { updateDirectMessageReceipts } from "./messageReceipts";
 export {
   markNotificationsRead,

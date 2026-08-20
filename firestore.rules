@@ -63,6 +63,33 @@ service cloud.firestore {
         && username.matches('^[a-z0-9][a-z0-9._]{1,28}[a-z0-9]$');
     }
 
+    function validTagValue(tag) {
+      return tag is string && tag.size() >= 1 && tag.size() <= 40;
+    }
+
+    function validProfileTags(tags) {
+      return tags is list && tags.size() <= 6
+        && (tags.size() < 1 || validTagValue(tags[0]))
+        && (tags.size() < 2 || validTagValue(tags[1]))
+        && (tags.size() < 3 || validTagValue(tags[2]))
+        && (tags.size() < 4 || validTagValue(tags[3]))
+        && (tags.size() < 5 || validTagValue(tags[4]))
+        && (tags.size() < 6 || validTagValue(tags[5]));
+    }
+
+    function validPostTags(tags) {
+      return tags is list && tags.size() <= 10
+        && (tags.size() < 1 || validTagValue(tags[0]))
+        && (tags.size() < 2 || validTagValue(tags[1]))
+        && (tags.size() < 3 || validTagValue(tags[2]))
+        && (tags.size() < 4 || validTagValue(tags[3]))
+        && (tags.size() < 5 || validTagValue(tags[4]))
+        && (tags.size() < 6 || validTagValue(tags[5]))
+        && (tags.size() < 7 || validTagValue(tags[6]))
+        && (tags.size() < 8 || validTagValue(tags[7]))
+        && (tags.size() < 9 || validTagValue(tags[8]))
+        && (tags.size() < 10 || validTagValue(tags[9]));
+    }
     function validProfile(uid, data) {
       return data.keys().hasOnly([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
@@ -84,7 +111,7 @@ service cloud.firestore {
         && (data.club.size() == 0 || data.club.size() >= 2)
         && (
           !data.keys().hasAny(['interestTags'])
-          || (data.interestTags is list && data.interestTags.size() <= 6)
+          || validProfileTags(data.interestTags)
         )
         && data.photoURL is string && data.photoURL.size() <= 2048
         && (!data.keys().hasAny(['plusActive']) || data.plusActive is bool)
@@ -152,7 +179,7 @@ service cloud.firestore {
         )
         && data.width is int && data.width >= 0 && data.width <= 10000
         && data.height is int && data.height >= 0 && data.height <= 10000
-        && data.tags is list && data.tags.size() <= 10
+        && validPostTags(data.tags)
         && data.mentions is list && data.mentions.size() <= 10
         && data.status == 'published'
         && data.createdAt is timestamp
@@ -338,6 +365,11 @@ service cloud.firestore {
             /databases/$(database)/documents/profiles/$(request.auth.uid)
           ).data.username
         );
+    }
+
+    match /tagCatalog/{tagKey} {
+      allow get, list: if registeredVerifiedUser();
+      allow create, update, delete: if false;
     }
 
     match /posts/{postId} {

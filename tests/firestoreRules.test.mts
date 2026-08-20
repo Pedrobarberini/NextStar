@@ -69,7 +69,8 @@ test("perfil e username são validados e vinculados atomicamente", () => {
   assert.match(rules, /existsAfter/);
   assert.match(rules, /getAfter/);
   assert.match(rules, /usernameOwnedAfter/);
-  assert.match(rules, /interestTags[\s\S]*data\.interestTags is list[\s\S]*size\(\) <= 6/);
+  assert.match(rules, /function validProfileTags[\s\S]*tags\.size\(\) <= 6/);
+  assert.match(rules, /validProfileTags\(data\.interestTags\)/);
   assert.match(rules, /data\.sport is string[\s\S]*data\.sport\.size\(\) <= 40/);
   assert.equal(rules.includes("data.club.size() == 0 || data.club.size() >= 2"), true);
   assert.match(rules, /oldUsernameReleasedAfter/);
@@ -77,6 +78,8 @@ test("perfil e username são validados e vinculados atomicamente", () => {
 
 test("posts e avatares remotos exigem propriedade e campos permitidos", () => {
   assert.match(rules, /function validPost/);
+  assert.match(rules, /match \/tagCatalog\/\{tagKey\}/);
+  assert.match(rules, /validPostTags\(data\.tags\)/);
   assert.match(rules, /match \/posts\/\{postId\}/);
   assert.match(rules, /request\.resource\.data\.authorId == request\.auth\.uid/);
   assert.match(rules, /data\.mediaPath == 'posts\/'/);

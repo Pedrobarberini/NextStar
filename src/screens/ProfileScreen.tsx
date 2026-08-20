@@ -51,6 +51,7 @@ import type {
   ProfileAvatar,
   ProfileAvatarsByProfile,
   PromotionCampaign,
+  TagCatalogEntry,
   VideoSubmission
 } from "../types";
 import { formatProfileActivity } from "../utils/profileActivity";
@@ -86,6 +87,7 @@ export function ProfileScreen({
   onChangeAutoplay,
   onChangeAvatar,
   onChangeNotifications,
+  onCreateTag,
   onDeleteVideo,
   onOpenProfile,
   onOpenVideo,
@@ -108,6 +110,7 @@ export function ProfileScreen({
   securityPlayers,
   shareContacts,
   submissions,
+  tagCatalog,
   user,
   viewCountsByPlayer
 }: {
@@ -128,6 +131,7 @@ export function ProfileScreen({
   onChangeAutoplay: (value: boolean) => void;
   onChangeAvatar: (avatar: ProfileAvatar | null) => void;
   onChangeNotifications: (value: boolean) => void;
+  onCreateTag: (label: string) => Promise<unknown> | unknown;
   onDeleteVideo: (video: VideoSubmission) => Promise<boolean>;
   onOpenProfile: (account: AppUser) => void;
   onOpenVideo: (video: VideoSubmission) => void;
@@ -154,6 +158,7 @@ export function ProfileScreen({
   securityPlayers: Player[];
   shareContacts: MessageContact[];
   submissions: VideoSubmission[];
+  tagCatalog: TagCatalogEntry[];
   user: AppUser;
   viewCountsByPlayer: Record<string, number>;
 }) {
@@ -471,6 +476,7 @@ export function ProfileScreen({
           avatar={avatar}
           onBack={() => setProfileView("settings")}
           onChangeAvatar={onChangeAvatar}
+          onCreateTag={onCreateTag}
           onSave={async (profile) => {
             const saved = await onUpdateProfile(profile);
             if (saved) {
@@ -478,6 +484,7 @@ export function ProfileScreen({
             }
             return saved;
           }}
+          tagCatalog={tagCatalog}
           user={user}
         />
       </ScreenTransition>

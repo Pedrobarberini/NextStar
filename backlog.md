@@ -295,7 +295,11 @@ Tipo: Backend/Data/Frontend/Produto
 - [x] Permitir selecionar até seis hashtags de interesse ao concluir o perfil.
 - [x] Permitir editar as hashtags de interesse nas configurações da conta.
 - [ ] Exigir de uma a cinco hashtags normalizadas em cada publicação.
-- [ ] Criar catálogo pesquisável de hashtags e impedir duplicatas ou variações equivalentes.
+- [x] Criar catálogo pesquisável de hashtags e impedir duplicatas ou variações equivalentes.
+- [x] Permitir criar hashtags no onboarding e na publicação usando a mesma chave normalizada.
+- [x] Exibir quantas pessoas e publicações utilizaram cada hashtag sugerida.
+- [x] Manter os contadores do catálogo por Function idempotente, sem escrita direta do cliente.
+- [x] Derivar afinidade com todas as hashtags das publicações curtidas e priorizar interesses declarados.
 - [ ] Armazenar preferências e afinidades em documentos privados do usuário.
 - [x] Armazenar preferências de hashtags em documento privado sincronizado por conta.
 - [x] Criar abas Seguindo e Sugestões na pesquisa, sem misturar descoberta com perfis já seguidos.

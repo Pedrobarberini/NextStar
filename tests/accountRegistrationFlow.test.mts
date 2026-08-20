@@ -83,7 +83,8 @@ test("onboarding divide identidade, atuação e interesses em etapas curtas", ()
   assert.match(accountSetupScreen, /Monte seu Para você/);
   assert.match(accountSetupScreen, /label="Modalidade"/);
   assert.match(accountSetupScreen, /label="Função ou especialidade"/);
-  assert.match(accountSetupScreen, /PROFILE_INTEREST_OPTIONS/);
+  assert.match(accountSetupScreen, /<TagPicker/);
+  assert.match(accountSetupScreen, /onCreateTag=\{onCreateTag\}/);
   assert.match(accountSetupScreen, /getSportSuggestions/);
   assert.match(accountSetupScreen, /getSpecialtySuggestions/);
   assert.match(accountSetupScreen, /pickProfilePhoto/);

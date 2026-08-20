@@ -24,9 +24,10 @@ import {
 } from "react-native";
 import { BackButton, LabeledInput } from "../components/Navigation";
 import { ProfileAvatarImage } from "../components/ProfileAvatarImage";
+import { TagPicker } from "../components/TagPicker";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import type { AccountProfile, AppUser, ProfileAvatar } from "../types";
+import type { AccountProfile, AppUser, ProfileAvatar, TagCatalogEntry } from "../types";
 import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
 import {
   isUsernameAvailable,
@@ -36,7 +37,7 @@ import {
   getSpecialtySuggestions,
   getSportSuggestions
 } from "../utils/profileActivityCatalog";
-import { PROFILE_INTEREST_OPTIONS } from "../utils/profileSuggestions";
+
 
 type AccountSetupProps = {
   accounts: AppUser[];
@@ -44,8 +45,10 @@ type AccountSetupProps = {
   isInitialSetup?: boolean;
   onBack?: () => void;
   onChangeAvatar?: (avatar: ProfileAvatar) => void;
+  onCreateTag?: (label: string) => Promise<unknown> | unknown;
   onSave: (profile: AccountProfile) => Promise<boolean> | boolean;
   onSignOut?: () => void;
+  tagCatalog: TagCatalogEntry[];
   user: AppUser;
 };
 
@@ -73,8 +76,10 @@ export function AccountSetupScreen({
   isInitialSetup = false,
   onBack,
   onChangeAvatar,
+  onCreateTag,
   onSave,
   onSignOut,
+  tagCatalog,
   user
 }: AccountSetupProps) {
   const { width } = useWindowDimensions();
@@ -246,18 +251,6 @@ export function AccountSetupScreen({
       return;
     }
     onBack?.();
-  }
-
-  function toggleInterestTag(tag: string) {
-    setInterestTags((current) => {
-      if (current.includes(tag)) {
-        return current.filter((item) => item !== tag);
-      }
-      if (current.length >= 6) {
-        return current;
-      }
-      return [...current, tag];
-    });
   }
 
   async function pickProfilePhoto() {
@@ -586,54 +579,15 @@ export function AccountSetupScreen({
 
             {currentStep === 2 ? (
               <View style={styles.accountSetupInterestSectionCompact}>
-                <View style={styles.accountSetupInterestHeader}>
-                  <View style={styles.accountSetupInterestCopy}>
-                    <Text style={styles.accountSetupInterestTitle}>
-                      O que você quer acompanhar?
-                    </Text>
-                    <Text style={styles.accountSetupHint}>
-                      Escolha de um a seis temas. Você poderá mudar isso depois.
-                    </Text>
-                  </View>
-                  <Text style={styles.accountSetupCounter}>
-                    {interestTags.length}/6
-                  </Text>
-                </View>
-                <View style={styles.accountSetupInterestList}>
-                  {PROFILE_INTEREST_OPTIONS.map((tag) => {
-                    const selected = interestTags.includes(tag);
-                    const disabled = !selected && interestTags.length >= 6;
-                    return (
-                      <Pressable
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: selected, disabled }}
-                        disabled={disabled}
-                        key={tag}
-                        onPress={() => toggleInterestTag(tag)}
-                        style={[
-                          styles.accountSetupInterestTag,
-                          selected
-                            ? styles.accountSetupInterestTagSelected
-                            : null,
-                          disabled
-                            ? styles.accountSetupInterestTagDisabled
-                            : null
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.accountSetupInterestTagText,
-                            selected
-                              ? styles.accountSetupInterestTagTextSelected
-                              : null
-                          ]}
-                        >
-                          #{tag}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <TagPicker
+                  catalog={tagCatalog}
+                  hint="Escolha de uma a seis hashtags. Se não encontrar um tema, digite e crie o seu."
+                  maxTags={6}
+                  onChange={setInterestTags}
+                  onCreateTag={onCreateTag}
+                  selectedTags={interestTags}
+                  title="O que você quer acompanhar?"
+                />
               </View>
             ) : null}
           </View>

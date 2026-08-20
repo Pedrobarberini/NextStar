@@ -134,7 +134,7 @@ test("preserva foto, tags e marcações da publicação", () => {
   assert.deepEqual(player?.mentions, ["marca.local"]);
 });
 
-test("prioriza campanha ativa, depois perfis seguidos e interesse", () => {
+test("prioriza campanha ativa, hashtags e depois perfis seguidos", () => {
   const players = [
     { ...basePlayer, id: "a", profileId: "profile-a", tags: ["Produto"] },
     { ...basePlayer, id: "b", profileId: "profile-b", tags: ["Serviço"] },
@@ -148,7 +148,7 @@ test("prioriza campanha ativa, depois perfis seguidos e interesse", () => {
       new Set(["tag:produto"]),
       new Set(["promoted"])
     ).map((player) => player.id),
-    ["promoted", "b", "a"]
+    ["promoted", "a", "b"]
   );
 });
 

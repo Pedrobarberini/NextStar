@@ -57,6 +57,37 @@ export function requireInteger(
   return value as number;
 }
 
+function normalizeTagKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/^#+/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+export function normalizeTagList(value: unknown, maximumItems: number) {
+  if (!Array.isArray(value)) return [];
+
+  const tags = new Map<string, string>();
+  value.forEach((item) => {
+    if (typeof item !== "string") return;
+    const label = item
+      .trim()
+      .replace(/^#+/, "")
+      .replace(/[^\p{L}\p{N} ._-]+/gu, "")
+      .replace(/\s+/g, " ")
+      .slice(0, 40)
+      .trim();
+    const key = normalizeTagKey(label);
+    if (key && label && !tags.has(key)) tags.set(key, label);
+  });
+  return [...tags.values()].slice(0, maximumItems);
+}
+
 export function normalizeStringList(
   value: unknown,
   maximumItems: number,

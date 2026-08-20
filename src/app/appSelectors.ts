@@ -7,6 +7,10 @@ import type {
   VideoSubmission
 } from "../types.ts";
 import { getPlayerContentKey } from "../utils/feedEngagement.ts";
+import {
+  buildTagAffinityScores,
+  getPlayerTagAffinityScore
+} from "../utils/tagCatalog.ts";
 
 export function selectApprovedSubmissionPlayers(
   submissions: VideoSubmission[],
@@ -45,35 +49,47 @@ export function selectOrderedFeedPlayers(
   availablePlayers: Player[],
   followingProfileSet: Set<string>,
   interestedContentKeySet = new Set<string>(),
-  activeCampaignPlayerIdSet = new Set<string>()
+  activeCampaignPlayerIdSet = new Set<string>(),
+  declaredInterestTags: string[] = [],
+  likedPlayerIdSet = new Set<string>()
 ) {
+  const affinityScores = buildTagAffinityScores(
+    declaredInterestTags,
+    interestedContentKeySet,
+    likedPlayerIdSet,
+    availablePlayers
+  );
+
   return availablePlayers
     .map((player, index) => ({ index, player }))
     .sort((left, right) => {
       const campaignDifference =
         Number(activeCampaignPlayerIdSet.has(right.player.id)) -
         Number(activeCampaignPlayerIdSet.has(left.player.id));
-      const followDifference =
-        Number(followingProfileSet.has(right.player.profileId)) -
-        Number(followingProfileSet.has(left.player.profileId));
-      const interestDifference =
+      const affinityDifference =
+        getPlayerTagAffinityScore(right.player, affinityScores) -
+        getPlayerTagAffinityScore(left.player, affinityScores);
+      const contentPreferenceDifference =
         Number(
           interestedContentKeySet.has(getPlayerContentKey(right.player))
         ) -
         Number(
           interestedContentKeySet.has(getPlayerContentKey(left.player))
         );
+      const followDifference =
+        Number(followingProfileSet.has(right.player.profileId)) -
+        Number(followingProfileSet.has(left.player.profileId));
 
       return (
         campaignDifference ||
+        affinityDifference ||
+        contentPreferenceDifference ||
         followDifference ||
-        interestDifference ||
         left.index - right.index
       );
     })
     .map(({ player }) => player);
 }
-
 export function selectPendingReviews(submissions: VideoSubmission[]) {
   return submissions.filter((submission) => submission.status === "Em revisão")
     .length;

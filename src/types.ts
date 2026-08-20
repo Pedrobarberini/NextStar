@@ -195,6 +195,13 @@ export type ProfileAvatar = {
 
 export type ProfileAvatarsByProfile = Record<string, ProfileAvatar>;
 
+export type TagCatalogEntry = {
+  creatorCount: number;
+  key: string;
+  label: string;
+  postCount: number;
+};
+
 export type UserRole = "Usuário" | "Admin";
 
 

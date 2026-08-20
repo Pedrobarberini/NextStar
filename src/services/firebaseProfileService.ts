@@ -13,6 +13,7 @@ import { getFirebaseFirestore } from "../config/firebase";
 import { getCurrentFirebaseUser } from "./firebaseAccountService";
 import type { AccountProfile, AppUser, AuthProvider } from "../types";
 import { isValidUsername, normalizeUsername } from "../utils/userIdentity";
+import { MAX_PROFILE_TAGS, normalizeTagList } from "../utils/tagCatalog";
 import {
   type PublicProfileDocument,
   normalizePublicProfileDocument
@@ -174,13 +175,7 @@ export async function saveFirebaseProfile(
     bio: profile.bio.trim(),
     city: profile.city.trim(),
     club: profile.club.trim(),
-    interestTags: Array.from(
-      new Set(
-        profile.interestTags
-          .map((tag) => tag.trim().replace(/^#+/, "").slice(0, 40))
-          .filter(Boolean)
-      )
-    ).slice(0, 6),
+    interestTags: normalizeTagList(profile.interestTags, MAX_PROFILE_TAGS),
     name: profile.name.trim(),
     photoURL: photoURL.trim(),
     position: profile.position.trim(),

@@ -26,6 +26,7 @@ import {
 } from "../components/SubmissionMediaStage";
 import { SubmissionMediaPreview } from "../components/SubmissionComponents";
 import { SubmissionMentionPicker } from "../components/SubmissionMentionPicker";
+import { TagPicker } from "../components/TagPicker";
 import { USE_CENTERED_WEB_LAYOUT } from "../constants/layout";
 import { getSafeFirebasePostMessage } from "../services/firebasePostService";
 import { styles } from "../styles/appStyles";
@@ -33,10 +34,10 @@ import { colors } from "../theme";
 import {
   AppUser,
   PublicationMediaInput,
+  TagCatalogEntry,
   VideoSubmission
 } from "../types";
 import { DIRECT_PUBLICATION_STATUS } from "../utils/publication";
-import { parseSubmissionTokens } from "../utils/submissionMetadata";
 
 type SubmissionStep = "details" | "media";
 
@@ -44,7 +45,7 @@ type SubmissionDraft = {
   hasGuardianConsent: boolean;
   highlight: string;
   mentions: string[];
-  tagsText: string;
+  tags: string[];
   title: string;
 };
 
@@ -52,7 +53,7 @@ const emptySubmissionDraft: SubmissionDraft = {
   hasGuardianConsent: false,
   highlight: "",
   mentions: [],
-  tagsText: "",
+  tags: [],
   title: ""
 };
 
@@ -60,17 +61,21 @@ export function SubmitVideoScreen({
   accounts,
   onBack,
   onPublished,
+  onCreateTag,
   onSubmit,
+  tagCatalog,
   user
 }: {
   accounts: AppUser[];
   onBack: () => void;
   onPublished: (submission: VideoSubmission) => void;
+  onCreateTag?: (label: string) => Promise<unknown> | unknown;
   onSubmit: (
     submission: VideoSubmission,
     media: PublicationMediaInput,
     onProgress: (progress: number) => void
   ) => Promise<VideoSubmission>;
+  tagCatalog: TagCatalogEntry[];
   user: AppUser;
 }) {
   const { width } = useWindowDimensions();
@@ -87,7 +92,7 @@ export function SubmitVideoScreen({
   const submissionToastProgress = useRef(new Animated.Value(0)).current;
   const age = user.age ?? 0;
   const needsGuardianConsent = age > 0 && age < 18;
-  const tags = parseSubmissionTokens(draft.tagsText, "#");
+  const tags = draft.tags;
 
   const submissionIssues = [
     user.profileCompleted ? null : "Complete os dados do perfil antes de enviar.",
@@ -390,12 +395,14 @@ export function SubmitVideoScreen({
               placeholder="Descreva o que acontece nesta publicação"
               value={draft.highlight}
             />
-            <LabeledInput
-              autoCapitalize="none"
-              label="Tags"
-              onChangeText={(value) => updateDraft("tagsText", value)}
-              placeholder="#treino #futebol #oportunidade"
-              value={draft.tagsText}
+            <TagPicker
+              catalog={tagCatalog}
+              hint="Adicione até dez hashtags. Digite e pressione Enter ou vírgula para criar uma nova."
+              maxTags={10}
+              onChange={(tags) => updateDraft("tags", tags)}
+              onCreateTag={onCreateTag}
+              selectedTags={draft.tags}
+              title="Hashtags da publicação"
             />
             <SubmissionMentionPicker
               accounts={accounts}

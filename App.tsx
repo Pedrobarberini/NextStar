@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createAppActions } from "./src/actions/createAppActions";
 import { useFirebaseAccounts } from "./src/actions/useFirebaseAccounts";
 import { useFirebasePosts } from "./src/actions/useFirebasePosts";
+import { useFirebaseTagCatalog } from "./src/actions/useFirebaseTagCatalog";
 import { usePersistentAppState } from "./src/actions/usePersistentAppState";
 import { useProfileActions } from "./src/actions/useProfileActions";
 import { useSocialActions } from "./src/actions/useSocialActions";
@@ -81,6 +82,7 @@ export default function App() {
     setSubmissions,
     isAppStateLoaded
   );
+  const { ensureTag, tagCatalog } = useFirebaseTagCatalog(user, submissions);
 
   useEffect(() => {
     if (!isAppStateLoaded || !isSessionLoaded || hasRestoredInitialRoute.current) return;
@@ -158,13 +160,23 @@ export default function App() {
     [campaigns]
   );
   const orderedFeedPlayers = useMemo(
-    () => selectOrderedFeedPlayers(
-      visibleFeedPlayers,
+    () =>
+      selectOrderedFeedPlayers(
+        visibleFeedPlayers,
+        followingProfileSet,
+        interestedContentKeySet,
+        activeCampaignPlayerIds,
+        user?.interestTags ?? [],
+        likedPlayerIdSet
+      ),
+    [
+      activeCampaignPlayerIds,
       followingProfileSet,
       interestedContentKeySet,
-      activeCampaignPlayerIds
-    ),
-    [activeCampaignPlayerIds, followingProfileSet, interestedContentKeySet, visibleFeedPlayers]
+      likedPlayerIdSet,
+      user?.interestTags,
+      visibleFeedPlayers
+    ]
   );
   const shareContacts = useMemo(
     () => selectShareContacts({
@@ -284,8 +296,10 @@ export default function App() {
         isVisible={isBrandLaunchVisible}
         onFinish={() => setIsBrandLaunchVisible(false)}
         onChangeAvatar={(avatar) => setProfileAvatar(`profile-${user.id}`, avatar)}
+        onCreateTag={ensureTag}
         onSave={handleUpdateProfile}
         onSignOut={signOutSession}
+        tagCatalog={tagCatalog}
         user={user}
       />
     );
@@ -326,6 +340,7 @@ export default function App() {
       handleToggleCampaign={handleToggleCampaign}
       handleUpdateProfessionalSettings={handleUpdateProfessionalSettings}
       handleUpdateProfile={handleUpdateProfile}
+      ensureTag={ensureTag}
       isBrandLaunchVisible={isBrandLaunchVisible}
       likedPlayerIdSet={likedPlayerIdSet}
       likeCountsByPlayer={likeCountsByPlayer}
@@ -372,6 +387,7 @@ export default function App() {
       signOutSession={signOutSession}
       submissions={submissions}
       tab={tab}
+      tagCatalog={tagCatalog}
       toggleBlockedProfile={toggleBlockedProfile}
       toggleFollowProfile={toggleFollowProfile}
       toggleInterestedContent={toggleInterestedContent}

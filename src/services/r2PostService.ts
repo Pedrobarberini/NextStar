@@ -5,6 +5,7 @@ import {
   getR2PublicMediaUrl
 } from "../config/firebase";
 import type { PublicationMediaInput, VideoSubmission } from "../types";
+import { MAX_POST_TAGS, normalizeTagList } from "../utils/tagCatalog";
 import {
   getPublicationMediaValidationMessage,
   normalizeMediaMimeType
@@ -204,7 +205,7 @@ export async function publishR2Post(
     durationMs: media.mediaType === "video" ? Math.round(media.durationMs ?? 0) : 0,
     height: Math.max(0, Math.round(media.height ?? 0)),
     mentions: submission.mentions ?? [],
-    tags: submission.tags ?? [],
+    tags: normalizeTagList(submission.tags ?? [], MAX_POST_TAGS),
     title: submission.videoTitle,
     uploadId: created.data.uploadId,
     width: Math.max(0, Math.round(media.width ?? 0))

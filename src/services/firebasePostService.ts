@@ -28,6 +28,7 @@ import type {
   PublicationMediaInput,
   VideoSubmission
 } from "../types";
+import { MAX_POST_TAGS, normalizeTagList } from "../utils/tagCatalog";
 import {
   firebasePostToSubmission,
   normalizeFirebasePostDocument
@@ -187,7 +188,7 @@ export async function publishFirebasePost(
       mentions: (submission.mentions ?? []).slice(0, 10),
       mimeType,
       status: "published",
-      tags: (submission.tags ?? []).slice(0, 10),
+      tags: normalizeTagList(submission.tags ?? [], MAX_POST_TAGS),
       title: submission.videoTitle.trim(),
       updatedAt: serverTimestamp(),
       width: Math.max(0, Math.round(media.width ?? 0))

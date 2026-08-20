@@ -14,6 +14,7 @@ import { profileDiscoveryStyles } from "./app/profileDiscoveryStyles";
 import { commentsStyles } from "./app/commentsStyles";
 import { securityStyles } from "./app/securityStyles";
 import { notificationStyles } from "./app/notificationStyles";
+import { tagPickerStyles } from "./app/tagPickerStyles";
 
 export const styles = createThemedStyles(StyleSheet.create({
   ...baseStyles,
@@ -29,5 +30,6 @@ export const styles = createThemedStyles(StyleSheet.create({
   ...profileDiscoveryStyles,
   ...commentsStyles,
   ...securityStyles,
-  ...notificationStyles
+  ...notificationStyles,
+  ...tagPickerStyles
 }));

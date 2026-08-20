@@ -37,6 +37,7 @@ import type {
   ProfileAvatar,
   ProfileAvatarsByProfile,
   PromotionCampaign,
+  TagCatalogEntry,
   VideoSubmission,
   VideoSubmissionStatus
 } from "../types";
@@ -98,6 +99,7 @@ type AppRoutesProps = {
   ) => Promise<VideoSubmission>;
   handleToggleCampaign: (campaignId: string) => void;
   handleUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
+  ensureTag: (label: string) => Promise<unknown> | unknown;
   handleUpdateProfile: (profile: {
     age: number | null;
     bio: string;
@@ -153,6 +155,7 @@ type AppRoutesProps = {
   signOutSession: () => void;
   submissions: VideoSubmission[];
   tab: Tab;
+  tagCatalog: TagCatalogEntry[];
   toggleFollowProfile: (profileId: string) => void;
   toggleBlockedProfile: (profileId: string) => void;
   toggleInterestedContent: (contentKey: string) => void;
@@ -203,6 +206,7 @@ export function AppRoutes(props: AppRoutesProps) {
     handleToggleCampaign,
     handleUpdateProfessionalSettings,
     handleUpdateProfile,
+    ensureTag,
     isBrandLaunchVisible,
     likedPlayerIdSet,
     likeCountsByPlayer,
@@ -249,6 +253,7 @@ export function AppRoutes(props: AppRoutesProps) {
     signOutSession,
     submissions,
     tab,
+    tagCatalog,
     toggleFollowProfile,
     toggleBlockedProfile,
     toggleInterestedContent,
@@ -519,7 +524,9 @@ export function AppRoutes(props: AppRoutesProps) {
                     accounts={registeredUsers}
                     onBack={() => openTab("feed")}
                     onPublished={() => openTab("feed")}
+                    onCreateTag={ensureTag}
                     onSubmit={handleSubmitVideo}
+                    tagCatalog={tagCatalog}
                     user={user}
                   />
                 </ScreenFrame>
@@ -550,6 +557,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     notificationsEnabled={notificationsEnabled}
                     onChangeAutoplay={setAutoplayEnabled}
                     onChangeNotifications={setNotificationsEnabled}
+                    onCreateTag={ensureTag}
                     onDeleteVideo={handleDeleteVideo}
                     onOpenProfile={openAccountProfile}
                     onProfessionalOpenRequestHandled={() => setProfessionalOpenRequestId(0)}
@@ -581,6 +589,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     securityPlayers={availablePlayers}
                     shareContacts={shareContacts}
                     submissions={submissions}
+                    tagCatalog={tagCatalog}
                     user={user}
                     viewCountsByPlayer={viewCountsByPlayer}
                   />

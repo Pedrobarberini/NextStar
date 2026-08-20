@@ -7,7 +7,7 @@ import { AuthScreen } from "../screens/AuthScreen";
 import { styles } from "../styles/appStyles";
 import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
-import type { AccountProfile, AppUser, ProfileAvatar } from "../types";
+import type { AccountProfile, AppUser, ProfileAvatar, TagCatalogEntry } from "../types";
 
 type BrandLaunchOverlayProps = {
   isVisible: boolean;
@@ -23,7 +23,9 @@ type AccountSetupGateProps = BrandLaunchOverlayProps & {
   avatar?: ProfileAvatar;
   onSave: (profile: AccountProfile) => Promise<boolean> | boolean;
   onChangeAvatar: (avatar: ProfileAvatar) => void;
+  onCreateTag: (label: string) => Promise<unknown> | unknown;
   onSignOut: () => void;
+  tagCatalog: TagCatalogEntry[];
   user: AppUser;
 };
 
@@ -82,7 +84,9 @@ export function AccountSetupGate({
   onFinish,
   onSave,
   onChangeAvatar,
+  onCreateTag,
   onSignOut,
+  tagCatalog,
   user
 }: AccountSetupGateProps) {
   return (
@@ -103,7 +107,9 @@ export function AccountSetupGate({
           accounts={accounts}
           onSave={onSave}
           onChangeAvatar={onChangeAvatar}
+          onCreateTag={onCreateTag}
           onSignOut={onSignOut}
+          tagCatalog={tagCatalog}
           user={user}
           visible
         />
