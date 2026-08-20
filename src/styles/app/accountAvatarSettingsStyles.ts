@@ -165,8 +165,14 @@ export const accountAvatarSettingsStyles = {
     paddingVertical: 2
   },
   accountSetupActions: {
-    flexDirection: "row",
-    gap: 9
+    flexDirection: "row"
+  },
+  accountSetupActionSlot: {
+    flexBasis: 0,
+    minWidth: 0
+  },
+  accountSetupBackButtonSlot: {
+    overflow: "hidden"
   },
   accountSetupSecondaryButton: {
     alignItems: "center",
@@ -189,9 +195,6 @@ export const accountAvatarSettingsStyles = {
     flex: 1,
     marginTop: 0,
     minHeight: 48
-  },
-  accountSetupButtonPlaceholder: {
-    opacity: 0
   },
   accountSetupSection: {
     backgroundColor: colors.surface,

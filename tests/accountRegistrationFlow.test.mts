@@ -93,5 +93,8 @@ test("onboarding divide identidade, atuação e interesses em etapas curtas", ()
   assert.equal(accountSetupScreen.includes("styles.accountSetupFooter"), true);
   assert.equal(accountSetupStyles.includes("accountSetupStepViewport:"), true);
   assert.match(accountSetupStyles, /accountSetupFooter:/);
-  assert.equal(accountSetupStyles.includes("accountSetupButtonPlaceholder:"), true);
+  assert.match(accountSetupScreen, /backButtonProgress\.interpolate/);
+  assert.match(accountSetupScreen, /outputRange: \[0, 3\]/);
+  assert.match(accountSetupScreen, /outputRange: \[10, 7\]/);
+  assert.equal(accountSetupStyles.includes("accountSetupActionSlot:"), true);
 });

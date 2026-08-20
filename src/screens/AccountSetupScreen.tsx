@@ -81,6 +81,7 @@ export function AccountSetupScreen({
   const scrollRef = useRef<ScrollView>(null);
   const stepOpacity = useRef(new Animated.Value(1)).current;
   const stepTranslateX = useRef(new Animated.Value(0)).current;
+  const backButtonProgress = useRef(new Animated.Value(0)).current;
   const [currentStep, setCurrentStep] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [name, setName] = useState(user.name);
@@ -156,6 +157,12 @@ export function AccountSetupScreen({
     const direction = nextStep > currentStep ? 1 : -1;
     setIsTransitioning(true);
     Animated.parallel([
+      Animated.timing(backButtonProgress, {
+        duration: currentStep === 0 || nextStep === 0 ? 240 : 120,
+        easing: Easing.out(Easing.cubic),
+        toValue: nextStep > 0 ? 1 : 0,
+        useNativeDriver: false
+      }),
       Animated.timing(stepOpacity, {
         duration: 120,
         easing: Easing.in(Easing.cubic),
@@ -179,6 +186,7 @@ export function AccountSetupScreen({
       stepTranslateX.setValue(18 * direction);
       requestAnimationFrame(() => {
         Animated.parallel([
+
           Animated.timing(stepOpacity, {
             duration: 210,
             easing: Easing.out(Easing.cubic),
@@ -634,51 +642,78 @@ export function AccountSetupScreen({
 
       <View style={styles.accountSetupFooter}>
         <View style={styles.accountSetupActions}>
-          <Pressable
-            accessibilityRole="button"
-            disabled={currentStep === 0 || isSaving || isTransitioning}
-            onPress={goBack}
+          <Animated.View
+            pointerEvents={currentStep === 0 ? "none" : "auto"}
             style={[
-              styles.accountSetupSecondaryButton,
-              currentStep === 0 ? styles.accountSetupButtonPlaceholder : null
+              styles.accountSetupActionSlot,
+              styles.accountSetupBackButtonSlot,
+              {
+                flexGrow: backButtonProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 3]
+                }),
+                marginRight: backButtonProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 9]
+                }),
+                opacity: backButtonProgress
+              }
             ]}
           >
-            <ChevronLeft color={colors.text} size={18} />
-            <Text style={styles.accountSetupSecondaryButtonText}>Voltar</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            disabled={!stepValid || isSaving || isTransitioning}
-            onPress={goForward}
+            <Pressable
+              accessibilityRole="button"
+              disabled={currentStep === 0 || isSaving || isTransitioning}
+              onPress={goBack}
+              style={styles.accountSetupSecondaryButton}
+            >
+              <ChevronLeft color={colors.text} size={18} />
+              <Text style={styles.accountSetupSecondaryButtonText}>Voltar</Text>
+            </Pressable>
+          </Animated.View>
+          <Animated.View
             style={[
-              styles.primaryButton,
-              styles.accountSetupContinueButton,
-              !stepValid || isSaving || isTransitioning
-                ? styles.primaryButtonDisabled
-                : null
+              styles.accountSetupActionSlot,
+              {
+                flexGrow: backButtonProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 7]
+                })
+              }
             ]}
           >
-            {isSaving ? (
-              <ActivityIndicator color={colors.onPrimary} size="small" />
-            ) : currentStep === SETUP_STEPS.length - 1 ? (
-              <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
-            ) : (
-              <ChevronRight
-                color={colors.onPrimary}
-                size={19}
-                strokeWidth={2.5}
-              />
-            )}
-            <Text style={styles.primaryButtonText}>
-              {currentStep === SETUP_STEPS.length - 1
-                ? isInitialSetup
-                  ? "Concluir perfil"
-                  : "Salvar alterações"
-                : "Continuar"}
-            </Text>
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={!stepValid || isSaving || isTransitioning}
+              onPress={goForward}
+              style={[
+                styles.primaryButton,
+                styles.accountSetupContinueButton,
+                !stepValid || isSaving || isTransitioning
+                  ? styles.primaryButtonDisabled
+                  : null
+              ]}
+            >
+              {isSaving ? (
+                <ActivityIndicator color={colors.onPrimary} size="small" />
+              ) : currentStep === SETUP_STEPS.length - 1 ? (
+                <Check color={colors.onPrimary} size={19} strokeWidth={2.5} />
+              ) : (
+                <ChevronRight
+                  color={colors.onPrimary}
+                  size={19}
+                  strokeWidth={2.5}
+                />
+              )}
+              <Text style={styles.primaryButtonText}>
+                {currentStep === SETUP_STEPS.length - 1
+                  ? isInitialSetup
+                    ? "Concluir perfil"
+                    : "Salvar alterações"
+                  : "Continuar"}
+              </Text>
+            </Pressable>
+          </Animated.View>
         </View>
-
         {saveError ? (
           <Text accessibilityRole="alert" style={styles.authErrorText}>
             {saveError}
