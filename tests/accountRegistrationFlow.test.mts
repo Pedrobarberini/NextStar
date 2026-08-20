@@ -84,6 +84,8 @@ test("onboarding divide identidade, atuação e interesses em etapas curtas", ()
   assert.match(accountSetupScreen, /label="Modalidade"/);
   assert.match(accountSetupScreen, /label="Função ou especialidade"/);
   assert.match(accountSetupScreen, /PROFILE_INTEREST_OPTIONS/);
+  assert.match(accountSetupScreen, /getSportSuggestions/);
+  assert.match(accountSetupScreen, /getSpecialtySuggestions/);
   assert.match(accountSetupScreen, /pickProfilePhoto/);
   assert.equal(accountSetupScreen.includes('label="Equipe, clube ou projeto (opcional)"'), true);
   assert.equal(accountSetupScreen.includes("cleanProfile.club.length >= 2"), false);

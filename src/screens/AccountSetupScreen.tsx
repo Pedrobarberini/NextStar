@@ -32,6 +32,10 @@ import {
   isUsernameAvailable,
   normalizeUsername
 } from "../utils/userIdentity";
+import {
+  getSpecialtySuggestions,
+  getSportSuggestions
+} from "../utils/profileActivityCatalog";
 import { PROFILE_INTEREST_OPTIONS } from "../utils/profileSuggestions";
 
 type AccountSetupProps = {
@@ -136,6 +140,8 @@ export function AccountSetupScreen({
   const canSave = identityValid && activityValid && interestsValid;
   const isNarrow = width < 370;
   const step = SETUP_STEPS[currentStep];
+  const sportSuggestions = getSportSuggestions(sport);
+  const specialtySuggestions = getSpecialtySuggestions(sport, "");
 
   function animateToStep(nextStep: number) {
     if (
@@ -471,6 +477,27 @@ export function AccountSetupScreen({
                 <Text style={styles.accountSetupHint}>
                   Pode ser um esporte tradicional ou um e-sport.
                 </Text>
+                {sportSuggestions.length > 0 ? (
+                  <View style={styles.accountSetupSuggestionBlock}>
+                    <Text style={styles.accountSetupSuggestionLabel}>
+                      Escolha rápida
+                    </Text>
+                    <View style={styles.accountSetupSuggestionList}>
+                      {sportSuggestions.map((suggestion) => (
+                        <Pressable
+                          accessibilityRole="button"
+                          key={suggestion}
+                          onPress={() => setSport(suggestion)}
+                          style={styles.accountSetupSuggestionChip}
+                        >
+                          <Text style={styles.accountSetupSuggestionChipText}>
+                            {suggestion}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
 
                 <LabeledInput
                   autoCapitalize="words"
@@ -480,6 +507,45 @@ export function AccountSetupScreen({
                   placeholder="Ponta, levantador, duelista..."
                   value={position}
                 />
+                {specialtySuggestions.length > 0 ? (
+                  <View style={styles.accountSetupSuggestionBlock}>
+                    <Text style={styles.accountSetupSuggestionLabel}>
+                      Sugestões para {sport}
+                    </Text>
+                    <View style={styles.accountSetupSuggestionList}>
+                      {specialtySuggestions.map((suggestion) => {
+                        const selected =
+                          suggestion.toLocaleLowerCase("pt-BR") ===
+                          position.trim().toLocaleLowerCase("pt-BR");
+                        return (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityState={{ selected }}
+                            key={suggestion}
+                            onPress={() => setPosition(suggestion)}
+                            style={[
+                              styles.accountSetupSuggestionChip,
+                              selected
+                                ? styles.accountSetupSuggestionChipSelected
+                                : null
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.accountSetupSuggestionChipText,
+                                selected
+                                  ? styles.accountSetupSuggestionChipTextSelected
+                                  : null
+                              ]}
+                            >
+                              {suggestion}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
 
                 <LabeledInput
                   autoCapitalize="words"

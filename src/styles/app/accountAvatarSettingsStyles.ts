@@ -292,6 +292,43 @@ export const accountAvatarSettingsStyles = {
   accountSetupInterestTagTextSelected: {
     color: colors.onPrimary
   },
+  accountSetupSuggestionBlock: {
+    gap: 6,
+    marginBottom: 4,
+    marginTop: 8
+  },
+  accountSetupSuggestionLabel: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  accountSetupSuggestionList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  accountSetupSuggestionChip: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 32,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  accountSetupSuggestionChipSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary
+  },
+  accountSetupSuggestionChipText: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: "800"
+  },
+  accountSetupSuggestionChipTextSelected: {
+    color: colors.primary
+  },
   accountSetupHint: {
     color: colors.muted,
     fontSize: 10,
