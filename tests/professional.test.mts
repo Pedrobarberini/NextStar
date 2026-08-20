@@ -7,6 +7,7 @@ import {
   getCampaignObjectiveLabel,
   getProfessionalCategoryLabel,
   getProfessionalPlanLabel,
+  getProfessionalSubscriptionDetail,
   getProfessionalSubscriptionStatusLabel,
   isProfessionalSubscriptionActive
 } from "../src/utils/professional.ts";
@@ -58,5 +59,13 @@ test("libera o Plus somente para assinatura autorizada pelo servidor", () => {
   assert.equal(
     getProfessionalSubscriptionStatusLabel(pending),
     "Aguardando pagamento"
+  );
+  assert.equal(
+    getProfessionalSubscriptionDetail(pending),
+    "Finalize o pagamento no Mercado Pago"
+  );
+  assert.equal(
+    getProfessionalSubscriptionDetail({ ...pending, status: "canceled" }),
+    "Não haverá nova cobrança"
   );
 });

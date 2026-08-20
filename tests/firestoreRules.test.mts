@@ -146,7 +146,7 @@ test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
   );
   assert.match(profileScreen, /window\.location\.assign\(checkout\.checkoutUrl\)/);
   assert.match(mercadoPagoFunctions, /cancelPlusSubscription/);
-  assert.match(mercadoPagoFunctions, /body: \{ status: "cancelled" \}/);
+  assert.match(mercadoPagoFunctions, /body: \{ status: "canceled" \}/);
   assert.match(mercadoPagoFunctions, /updatedUid !== uid/);
   assert.match(profileScreen, /onCancelSubscription/);
   assert.match(appRoutes, /syncProfessionalSubscription/);

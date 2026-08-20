@@ -386,6 +386,14 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
     fontSize: 18,
     fontWeight: "900"
   },
+  subscriptionDetail: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 18,
+    marginTop: 12,
+    textAlign: "center"
+  },
   secondaryAction: {
     alignItems: "center",
     borderColor: colors.primary,
@@ -408,6 +416,25 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
   },
   cancelActionText: {
     color: colors.danger
+  },
+  checkoutPrice: {
+    color: colors.primary,
+    fontSize: 24,
+    fontWeight: "900",
+    marginTop: 12
+  },
+  checkoutSummary: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 7,
+    gap: 6,
+    marginTop: 14,
+    padding: 12
+  },
+  checkoutSummaryItem: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 18
   },
   modalBackdrop: {
     alignItems: "center",
@@ -438,6 +465,21 @@ export const professionalStyles = createThemedStyles(StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 20
+  },
+  modalPrimaryButton: {
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    borderRadius: 7,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12
+  },
+  modalPrimaryButtonText: {
+    color: colors.onPrimary,
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center"
   },
   modalSecondaryButton: {
     alignItems: "center",

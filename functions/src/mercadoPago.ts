@@ -23,7 +23,7 @@ const CHECKOUT_RETURN_URL = "https://xolot.com.br/?subscription=return";
 const WEBHOOK_URL =
   "https://southamerica-east1-xolot-384e9.cloudfunctions.net/mercadoPagoWebhook?source_news=webhooks";
 
-type SubscriptionStatus = "authorized" | "cancelled" | "paused" | "pending";
+type SubscriptionStatus = "authorized" | "canceled" | "paused" | "pending";
 type MercadoPagoEnvironment = "production" | "test";
 
 type CheckoutContext = {
@@ -111,8 +111,12 @@ function getClient() {
 }
 
 function normalizeStatus(status: string | undefined): SubscriptionStatus {
-  if (status === "authorized" || status === "paused" || status === "cancelled") {
+  if (status === "authorized" || status === "paused" || status === "canceled") {
     return status;
+  }
+
+  if (status === "cancelled") {
+    return "canceled";
   }
 
   return "pending";
@@ -173,6 +177,18 @@ async function saveSubscription(
       status,
       updatedAt: FieldValue.serverTimestamp()
     };
+
+    const previousStatus = snapshot.data()?.status;
+    if (status === "authorized" && previousStatus !== "authorized") {
+      payload.authorizedAt = FieldValue.serverTimestamp();
+    }
+    if (
+      status === "canceled" &&
+      previousStatus !== "canceled" &&
+      previousStatus !== "cancelled"
+    ) {
+      payload.canceledAt = FieldValue.serverTimestamp();
+    }
 
     if (!snapshot.exists) {
       payload.createdAt = FieldValue.serverTimestamp();
@@ -397,13 +413,13 @@ export const cancelPlusSubscription = onCall(callableOptions, async (request) =>
       throw new Error("A assinatura não pertence à conta conectada.");
     }
 
-    if (normalizeStatus(currentSubscription.status) === "cancelled") {
+    if (normalizeStatus(currentSubscription.status) === "canceled") {
       const status = await saveSubscription(uid, currentSubscription);
       return { status };
     }
 
     await getClient().update({
-      body: { status: "cancelled" },
+      body: { status: "canceled" },
       id: subscriptionId
     });
 
@@ -417,7 +433,7 @@ export const cancelPlusSubscription = onCall(callableOptions, async (request) =>
     }
 
     const status = await saveSubscription(uid, updatedSubscription);
-    if (status !== "cancelled") {
+    if (status !== "canceled") {
       throw new Error("O Mercado Pago não confirmou o cancelamento.");
     }
 

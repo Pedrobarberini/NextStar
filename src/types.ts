@@ -39,11 +39,13 @@ export type ProfessionalPlanId = "free" | "pro" | "business";
 
 export type ProfessionalSubscriptionStatus =
   | "authorized"
-  | "cancelled"
+  | "canceled"
   | "paused"
   | "pending";
 
 export type ProfessionalSubscription = {
+  authorizedAt?: string;
+  canceledAt?: string;
   amount: number;
   checkoutUrl?: string;
   currency: "BRL";

@@ -72,9 +72,9 @@ Status: Concluído em modo de pré-lançamento em 2026-07-25.
 - [x] Persistir localmente a seleção de plano.
 - [x] Informar claramente que ainda não existe cobrança.
 - [ ] Integrar produtos reais no Google Play Billing e App Store.
-- [ ] Integrar checkout web recorrente.
-- [ ] Validar recibos e webhooks no backend.
-- [ ] Implementar cancelamento, renovação e restauração de compra.
+- [x] Integrar checkout web recorrente com o Mercado Pago.
+- [x] Validar status da assinatura e webhooks assinados no backend.
+- [x] Implementar cancelamento, renovação e restauração do estado da assinatura web.
 
 ### Task PIVOT-004 - Criar campanhas de publicação promovida
 
@@ -369,6 +369,10 @@ Tipo: Backend/Mobile/Web
 - [x] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
 - [x] Sincronizar automaticamente a assinatura ao retornar do checkout.
 - [x] Permitir cancelamento autenticado, validado no servidor e confirmado no Mercado Pago.
+- [x] Corrigir o cancelamento para o status oficial canceled, mantendo compatibilidade com registros antigos.
+- [x] Confirmar preço, recorrência e benefícios antes de encaminhar ao checkout.
+- [x] Repetir a sincronização no retorno do Mercado Pago e abrir diretamente o painel profissional.
+- [x] Registrar transições de ativação e cancelamento e exibir a próxima renovação no painel.
 - [ ] Ativar credenciais e webhook de produção após a revisão final da conta vendedora.
 - [ ] Emitir recibos e histórico de cobrança.
 - [ ] Tratar trial, falha de pagamento, grace period e reembolso.

@@ -33,6 +33,7 @@ import {
   PROFESSIONAL_PLAN_OPTIONS,
   formatCompactMetric,
   getProfessionalCategoryLabel,
+  getProfessionalSubscriptionDetail,
   getProfessionalSubscriptionStatusLabel,
   isProfessionalSubscriptionActive
 } from "../utils/professional";
@@ -68,6 +69,8 @@ export function ProfessionalDashboardScreen({
   subscriptionLoading: boolean;
 }) {
   const [externalLink, setExternalLink] = useState(settings.externalLink);
+  const [isCheckoutConfirmationVisible, setIsCheckoutConfirmationVisible] =
+    useState(false);
   const [isCancelConfirmationVisible, setIsCancelConfirmationVisible] =
     useState(false);
   const [subscriptionAction, setSubscriptionAction] = useState<
@@ -93,6 +96,7 @@ export function ProfessionalDashboardScreen({
 
   async function startSubscription() {
     if (subscriptionAction || isPro) return;
+    setIsCheckoutConfirmationVisible(false);
     setSubscriptionAction("checkout");
     try {
       await onStartSubscription();
@@ -263,7 +267,7 @@ export function ProfessionalDashboardScreen({
                 <Pressable
                   accessibilityRole="button"
                   disabled={Boolean(subscriptionAction) || isPro}
-                  onPress={() => void startSubscription()}
+                  onPress={() => setIsCheckoutConfirmationVisible(true)}
                   style={[
                     s.actionButton,
                     s.planAction,
@@ -287,6 +291,12 @@ export function ProfessionalDashboardScreen({
             </View>
           );
         })}
+
+        {subscription ? (
+          <Text style={s.subscriptionDetail}>
+            {getProfessionalSubscriptionDetail(subscription)}
+          </Text>
+        ) : null}
 
         {subscription?.status === "pending" || subscription?.status === "paused" ? (
           <Pressable
@@ -371,6 +381,56 @@ export function ProfessionalDashboardScreen({
           />
         )}
       </View>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setIsCheckoutConfirmationVisible(false)}
+        transparent
+        visible={isCheckoutConfirmationVisible}
+      >
+        <Pressable
+          onPress={() => setIsCheckoutConfirmationVisible(false)}
+          style={s.modalBackdrop}
+        >
+          <Pressable onPress={(event) => event.stopPropagation()} style={s.modalCard}>
+            <Text style={s.modalTitle}>
+              {subscription?.status === "pending"
+                ? "Continuar assinatura?"
+                : "Assinar Xolot Plus?"}
+            </Text>
+            <Text style={s.checkoutPrice}>R$ 19,90 por mês</Text>
+            <Text style={s.modalBody}>
+              A cobrança é recorrente e será processada com segurança pelo
+              Mercado Pago. Você pode cancelar quando quiser.
+            </Text>
+            <View style={s.checkoutSummary}>
+              <Text style={s.checkoutSummaryItem}>• Métricas detalhadas do perfil</Text>
+              <Text style={s.checkoutSummaryItem}>• Link profissional destacado</Text>
+              <Text style={s.checkoutSummaryItem}>• Acesso aos próximos recursos profissionais</Text>
+            </View>
+            <View style={s.modalActions}>
+              <Pressable
+                disabled={Boolean(subscriptionAction)}
+                onPress={() => setIsCheckoutConfirmationVisible(false)}
+                style={s.modalSecondaryButton}
+              >
+                <Text style={s.modalSecondaryButtonText}>Agora não</Text>
+              </Pressable>
+              <Pressable
+                disabled={Boolean(subscriptionAction)}
+                onPress={() => void startSubscription()}
+                style={s.modalPrimaryButton}
+              >
+                {subscriptionAction === "checkout" ? (
+                  <ActivityIndicator color={colors.onPrimary} size="small" />
+                ) : (
+                  <Text style={s.modalPrimaryButtonText}>Continuar</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         animationType="fade"

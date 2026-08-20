@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, View } from "react-native";
 import {
   isOwnAccountProfile,
   isOwnPlayerProfile,
@@ -19,7 +19,7 @@ import { PromotePostScreen } from "../screens/PromotePostScreen";
 import { PublicProfileScreen } from "../screens/PublicProfileScreen";
 import { SearchScreen } from "../screens/ProfileDiscoveryScreen";
 import { SubmitVideoScreen } from "../screens/SubmissionScreen";
-import { syncProfessionalSubscription } from "../services/firebaseProfessionalService";
+import { syncProfessionalSubscriptionWithRetry } from "../services/firebaseProfessionalService";
 import { styles } from "../styles/appStyles";
 import { useTheme } from "../ThemeProvider";
 import { colors } from "../theme";
@@ -167,6 +167,7 @@ type AppRoutesProps = {
 export function AppRoutes(props: AppRoutesProps) {
   const { themeMode } = useTheme();
   const [isFeedImmersive, setIsFeedImmersive] = useState(false);
+  const [professionalOpenRequestId, setProfessionalOpenRequestId] = useState(0);
   const subscriptionReturnHandledRef = useRef(false);
   const {
     activeCampaignPlayerIds,
@@ -288,8 +289,39 @@ export function AppRoutes(props: AppRoutesProps) {
       "",
       `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`
     );
+    setProfessionalOpenRequestId(Date.now());
     openTab("profile");
-    void syncProfessionalSubscription().catch(() => undefined);
+    void syncProfessionalSubscriptionWithRetry()
+      .then((result) => {
+        if (result.status === "authorized") {
+          Alert.alert(
+            "Xolot Plus ativado",
+            "O pagamento foi confirmado e os recursos Plus já estão disponíveis."
+          );
+          return;
+        }
+
+        if (result.status === "canceled") {
+          Alert.alert(
+            "Assinatura cancelada",
+            "O Mercado Pago informou que esta assinatura foi cancelada."
+          );
+          return;
+        }
+
+        Alert.alert(
+          "Pagamento em processamento",
+          "Ainda estamos aguardando a confirmação do Mercado Pago. Você pode atualizar o status no painel profissional."
+        );
+      })
+      .catch((error) => {
+        Alert.alert(
+          "Não foi possível confirmar agora",
+          error instanceof Error
+            ? error.message
+            : "Abra o painel profissional e tente atualizar o pagamento."
+        );
+      });
   }, [openTab, user.role]);
 
   const openAccountProfile = (account: AppUser) => {
@@ -520,6 +552,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     onChangeNotifications={setNotificationsEnabled}
                     onDeleteVideo={handleDeleteVideo}
                     onOpenProfile={openAccountProfile}
+                    onProfessionalOpenRequestHandled={() => setProfessionalOpenRequestId(0)}
                     onOpenVideo={(submission) => {
                       const reelPlayer = selectApprovedPlayerForSubmission(approvedSubmissionPlayers, submission.id);
                       if (reelPlayer) openReel(reelPlayer, { type: "own-profile" });
@@ -540,6 +573,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     onToggleCampaign={handleToggleCampaign}
                     onUpdateProfessionalSettings={handleUpdateProfessionalSettings}
                     onUpdateProfile={handleUpdateProfile}
+                    professionalOpenRequestId={professionalOpenRequestId}
                     professionalPosts={ownProfilePlayers}
                     professionalSettings={currentProfessionalSettings}
                     profileAvatars={profileAvatars}

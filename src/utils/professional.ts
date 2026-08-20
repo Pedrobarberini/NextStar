@@ -147,6 +147,26 @@ export function getProfessionalSubscriptionStatusLabel(
   if (!subscription) return "Plano gratuito";
   if (subscription.status === "authorized") return "Assinatura ativa";
   if (subscription.status === "paused") return "Pagamento pendente";
-  if (subscription.status === "cancelled") return "Assinatura cancelada";
+  if (subscription.status === "canceled") return "Assinatura cancelada";
   return "Aguardando pagamento";
+}
+
+export function getProfessionalSubscriptionDetail(
+  subscription: ProfessionalSubscription | null
+) {
+  if (!subscription) return "Sem cobrança ativa";
+
+  if (subscription.status === "authorized" && subscription.nextPaymentAt) {
+    const nextPaymentDate = new Date(subscription.nextPaymentAt);
+    if (!Number.isNaN(nextPaymentDate.getTime())) {
+      return "Próxima renovação em " + new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "long"
+      }).format(nextPaymentDate);
+    }
+  }
+
+  if (subscription.status === "authorized") return "Renovação mensal ativa";
+  if (subscription.status === "paused") return "Aguardando regularização do pagamento";
+  if (subscription.status === "canceled") return "Não haverá nova cobrança";
+  return "Finalize o pagamento no Mercado Pago";
 }

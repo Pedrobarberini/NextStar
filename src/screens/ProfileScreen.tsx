@@ -89,6 +89,7 @@ export function ProfileScreen({
   onDeleteVideo,
   onOpenProfile,
   onOpenVideo,
+  onProfessionalOpenRequestHandled,
   onPromotePost,
   onRestoreMutedContent,
   onSetPlayerReported,
@@ -99,6 +100,7 @@ export function ProfileScreen({
   onToggleCampaign,
   onUpdateProfessionalSettings,
   onUpdateProfile,
+  professionalOpenRequestId = 0,
   professionalPosts,
   professionalSettings,
   profileAvatars,
@@ -129,6 +131,7 @@ export function ProfileScreen({
   onDeleteVideo: (video: VideoSubmission) => Promise<boolean>;
   onOpenProfile: (account: AppUser) => void;
   onOpenVideo: (video: VideoSubmission) => void;
+  onProfessionalOpenRequestHandled?: () => void;
   onPromotePost: (player: Player) => void;
   onRestoreMutedContent: (contentKey: string) => void;
   onSetPlayerReported: (playerId: string, reported: boolean) => void;
@@ -143,6 +146,7 @@ export function ProfileScreen({
   onToggleCampaign: (campaignId: string) => void;
   onUpdateProfessionalSettings: (settings: ProfessionalSettings) => void;
   onUpdateProfile: (profile: AccountProfile) => Promise<boolean>;
+  professionalOpenRequestId?: number;
   professionalPosts: Player[];
   professionalSettings: ProfessionalSettings;
   profileAvatars: ProfileAvatarsByProfile;
@@ -170,6 +174,13 @@ export function ProfileScreen({
   const profileNavigationTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+
+  useEffect(() => {
+    if (professionalOpenRequestId > 0) {
+      setProfileView("professional");
+      onProfessionalOpenRequestHandled?.();
+    }
+  }, [professionalOpenRequestId]);
 
   const mySubmissions = submissions.filter((item) => item.userId === user.id);
   const accountSubmissions = user.role === "Admin" ? submissions : mySubmissions;

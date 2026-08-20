@@ -34,11 +34,13 @@ function readIsoDate(value: unknown) {
 
 function readStatus(value: unknown): ProfessionalSubscriptionStatus | null {
   return value === "authorized" ||
-    value === "cancelled" ||
+    value === "canceled" ||
     value === "paused" ||
     value === "pending"
     ? value
-    : null;
+    : value === "cancelled"
+      ? "canceled"
+      : null;
 }
 
 function readSubscription(
@@ -59,6 +61,8 @@ function readSubscription(
 
   return {
     amount: data.amount,
+    authorizedAt: readIsoDate(data.authorizedAt) || undefined,
+    canceledAt: readIsoDate(data.canceledAt) || undefined,
     checkoutUrl:
       typeof data.checkoutUrl === "string" ? data.checkoutUrl : undefined,
     currency: "BRL",
@@ -134,6 +138,21 @@ export async function syncProfessionalSubscription() {
   } catch (error) {
     throw new Error(toFriendlyError(error));
   }
+}
+
+export async function syncProfessionalSubscriptionWithRetry(
+  options: { attempts?: number; delayMs?: number } = {}
+) {
+  const attempts = Math.max(1, options.attempts ?? 4);
+  const delayMs = Math.max(0, options.delayMs ?? 1200);
+  let latest = await syncProfessionalSubscription();
+
+  for (let attempt = 1; attempt < attempts && latest.status === "pending"; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    latest = await syncProfessionalSubscription();
+  }
+
+  return latest;
 }
 
 export async function cancelProfessionalSubscription() {
