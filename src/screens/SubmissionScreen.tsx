@@ -34,6 +34,7 @@ import { colors } from "../theme";
 import {
   AppUser,
   PublicationMediaInput,
+  ProfileAvatarsByProfile,
   TagCatalogEntry,
   VideoSubmission
 } from "../types";
@@ -63,6 +64,7 @@ export function SubmitVideoScreen({
   onPublished,
   onCreateTag,
   onSubmit,
+  profileAvatars,
   tagCatalog,
   user
 }: {
@@ -75,6 +77,7 @@ export function SubmitVideoScreen({
     media: PublicationMediaInput,
     onProgress: (progress: number) => void
   ) => Promise<VideoSubmission>;
+  profileAvatars: ProfileAvatarsByProfile;
   tagCatalog: TagCatalogEntry[];
   user: AppUser;
 }) {
@@ -408,6 +411,7 @@ export function SubmitVideoScreen({
               accounts={accounts}
               currentUserId={user.id}
               onChange={(mentions) => updateDraft("mentions", mentions)}
+              profileAvatars={profileAvatars}
               value={draft.mentions}
             />
 

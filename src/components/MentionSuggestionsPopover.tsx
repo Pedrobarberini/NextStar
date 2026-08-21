@@ -1,15 +1,18 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, Text, View } from "react-native";
-import { AtSign, Check } from "lucide-react-native";
+import { Check } from "lucide-react-native";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
+import type { ProfileAvatarsByProfile } from "../types";
 import type { MentionableUser } from "../utils/submissionMetadata";
+import { ProfileAvatarImage } from "./ProfileAvatarImage";
 
 export function MentionSuggestionsPopover({
   candidates,
   emptyLabel = "Nenhum perfil encontrado.",
   onSelect,
   placement = "below",
+  profileAvatars,
   selectedUsernames = [],
   visible
 }: {
@@ -17,6 +20,7 @@ export function MentionSuggestionsPopover({
   emptyLabel?: string;
   onSelect: (user: MentionableUser) => void;
   placement?: "above" | "below";
+  profileAvatars: ProfileAvatarsByProfile;
   selectedUsernames?: string[];
   visible: boolean;
 }) {
@@ -72,6 +76,8 @@ export function MentionSuggestionsPopover({
             const isSelected = selected.has(
               candidate.username.toLocaleLowerCase("pt-BR")
             );
+            const avatar = profileAvatars[`profile-${candidate.id}`];
+            const fallbackInitial = (candidate.name.trim()[0] ?? candidate.username.trim()[0] ?? "?").toUpperCase();
             return (
               <Pressable
                 accessibilityLabel={`Selecionar @${candidate.username}`}
@@ -87,7 +93,13 @@ export function MentionSuggestionsPopover({
                 ]}
               >
                 <View style={styles.mentionSuggestionIcon}>
-                  <AtSign color={colors.primary} size={16} strokeWidth={2.4} />
+                  {avatar ? (
+                    <ProfileAvatarImage avatar={avatar} />
+                  ) : (
+                    <Text style={styles.mentionSuggestionInitial}>
+                      {fallbackInitial}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.mentionSuggestionIdentity}>
                   <Text numberOfLines={1} style={styles.mentionSuggestionUsername}>

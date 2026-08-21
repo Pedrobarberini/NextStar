@@ -3,7 +3,7 @@ import { X } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import { styles } from "../styles/appStyles";
 import { colors } from "../theme";
-import type { AppUser } from "../types";
+import type { AppUser, ProfileAvatarsByProfile } from "../types";
 import {
   selectMentionCandidates,
   toggleSubmissionMention
@@ -17,11 +17,13 @@ export function SubmissionMentionPicker({
   accounts,
   currentUserId,
   onChange,
+  profileAvatars,
   value
 }: {
   accounts: AppUser[];
   currentUserId: string;
   onChange: (usernames: string[]) => void;
+  profileAvatars: ProfileAvatarsByProfile;
   value: string[];
 }) {
   const [focused, setFocused] = useState(false);
@@ -65,6 +67,7 @@ export function SubmissionMentionPicker({
       <MentionSuggestionsPopover
         candidates={candidates}
         onSelect={(account) => toggleMention(account.username)}
+        profileAvatars={profileAvatars}
         selectedUsernames={value}
         visible={focused}
       />

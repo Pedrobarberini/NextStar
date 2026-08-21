@@ -409,6 +409,7 @@ export function CommentsModal({
                 candidates={mentionCandidates}
                 onSelect={selectMention}
                 placement="above"
+                profileAvatars={profileAvatars}
                 visible={Boolean(activeMention)}
               />
               <View style={styles.commentComposer}>

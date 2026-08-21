@@ -526,6 +526,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     onPublished={() => openTab("feed")}
                     onCreateTag={ensureTag}
                     onSubmit={handleSubmitVideo}
+                    profileAvatars={profileAvatars}
                     tagCatalog={tagCatalog}
                     user={user}
                   />

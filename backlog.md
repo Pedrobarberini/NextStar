@@ -254,6 +254,7 @@ Status: Sincronizacao multi-dispositivo, recibos e central de notificacoes no ap
 - [x] Permitir responder comentarios com encadeamento e marcacao do autor.
 - [x] Sugerir perfis em pop-up ao marcar pessoas na publicação ou ao digitar `@` em comentários, com inserção no cursor e acesso ao perfil.
 - [x] Permitir rolagem interna e exibir até cinquenta perfis nas sugestões de marcação.
+- [x] Exibir a foto de perfil nas sugestões de marcação de publicações e comentários, com inicial como fallback.
 - [x] Recolher respostas por padrao e permitir ver ou ocultar cada topico.
 - [x] Corrigir a exclusao de comentarios no web com confirmacao interna.
 - [x] Recarregar e retornar ao primeiro reel ao tocar na logo do Inicio.

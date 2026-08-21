@@ -46,7 +46,13 @@ export const mentionSuggestionStyles = {
     borderRadius: 999,
     height: 34,
     justifyContent: "center" as const,
+    overflow: "hidden" as const,
     width: 34
+  },
+  mentionSuggestionInitial: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "900" as const
   },
   mentionSuggestionIdentity: {
     flex: 1,
