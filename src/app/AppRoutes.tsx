@@ -64,6 +64,7 @@ type AppRoutesProps = {
     body: string,
     replyToCommentId?: string
   ) => boolean;
+  deleteAccountSession: () => Promise<boolean>;
   deleteConversation: (contactId: string) => void;
   directMessages: DirectMessage[];
   markDirectMessagesRead: (messageIds: string[]) => void;
@@ -187,6 +188,7 @@ export function AppRoutes(props: AppRoutesProps) {
     currentProfessionalSettings,
     currentUserCampaigns,
     addPostComment,
+    deleteAccountSession,
     deleteConversation,
     deletePostComment,
     directMessages,
@@ -558,6 +560,7 @@ export function AppRoutes(props: AppRoutesProps) {
                     notificationsEnabled={notificationsEnabled}
                     onChangeAutoplay={setAutoplayEnabled}
                     onChangeNotifications={setNotificationsEnabled}
+                    onDeleteAccount={deleteAccountSession}
                     onCreateTag={ensureTag}
                     onDeleteVideo={handleDeleteVideo}
                     onOpenProfile={openAccountProfile}

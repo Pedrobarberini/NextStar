@@ -369,6 +369,7 @@ export {
   updateAvatarCrop
 } from "./avatar";
 export { finalizeAccountRegistration } from "./account";
+export { cleanupDeletedAccount, deleteOwnAccount } from "./accountDeletion";
 export { recordPostView, sendDirectMessage, setPostLike } from "./social";
 export { ensureTagCatalogEntry, syncPostTagCatalog } from "./tags";
 export { updateDirectMessageReceipts } from "./messageReceipts";

@@ -1,7 +1,11 @@
 import { Dispatch, SetStateAction } from "react";
 import { Alert } from "react-native";
 import { isFirebaseMediaEnabled } from "../config/firebase";
-import { signOutFirebaseSession } from "../services/firebaseAccountService";
+import {
+  deleteCurrentFirebaseAccount,
+  getSafeFirebaseAccountDeletionMessage,
+  signOutFirebaseSession
+} from "../services/firebaseAccountService";
 import {
   InvalidPublicProfileError,
   UsernameAlreadyInUseError,
@@ -186,6 +190,41 @@ export function createAppActions({
     );
   }
 
+  async function handleDeleteAccount() {
+    if (!user) return false;
+
+    try {
+      await deleteCurrentFirebaseAccount();
+    } catch (error) {
+      Alert.alert(
+        "Conta não excluída",
+        getSafeFirebaseAccountDeletionMessage(error)
+      );
+      return false;
+    }
+
+    const userId = user.id;
+    setCampaigns((current) =>
+      current.filter((campaign) => campaign.ownerUserId !== userId)
+    );
+    setProfessionalSettingsByUser((current) => {
+      const next = { ...current };
+      delete next[userId];
+      return next;
+    });
+    setRegisteredUsers((current) =>
+      current.filter((account) => account.id !== userId)
+    );
+    setSubmissions((current) =>
+      current.filter((submission) => submission.userId !== userId)
+    );
+    setSelectedAccount(null);
+    setSelectedPlayer(null);
+    setUser(null);
+    setTab("feed");
+    return true;
+  }
+
   function handleSignOut() {
     void signOutFirebaseSession();
     setSelectedAccount(null);
@@ -287,6 +326,7 @@ export function createAppActions({
   return {
     handleAuth,
     handleCreateCampaign,
+    handleDeleteAccount,
     handleDeleteVideo,
     handleReviewSubmission,
     handleSignOut,

@@ -249,6 +249,7 @@ export default function App() {
   const {
     handleAuth,
     handleCreateCampaign,
+    handleDeleteAccount,
     handleDeleteVideo,
     handleReviewSubmission,
     handleSignOut,
@@ -268,6 +269,12 @@ export default function App() {
     setUser,
     user
   });
+
+  async function deleteAccountSession() {
+    const deleted = await handleDeleteAccount();
+    if (deleted) resetSessionNavigation();
+    return deleted;
+  }
 
   function signOutSession() {
     resetSessionNavigation();
@@ -321,6 +328,7 @@ export default function App() {
       currentProfessionalSettings={currentProfessionalSettings}
       currentUserCampaigns={currentUserCampaigns}
       addPostComment={addPostComment}
+      deleteAccountSession={deleteAccountSession}
       deleteConversation={deleteConversation}
       directMessages={directMessages}
       deletePostComment={deletePostComment}

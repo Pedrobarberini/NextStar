@@ -6,12 +6,20 @@ const accountFunction = readFileSync(
   new URL("../functions/src/account.ts", import.meta.url),
   "utf8",
 );
+const accountDeletionFunction = readFileSync(
+  new URL("../functions/src/accountDeletion.ts", import.meta.url),
+  "utf8",
+);
 const accountService = readFileSync(
   new URL("../src/services/firebaseAccountService.ts", import.meta.url),
   "utf8",
 );
 const authScreen = readFileSync(
   new URL("../src/screens/AuthScreen.tsx", import.meta.url),
+  "utf8",
+);
+const profileScreen = readFileSync(
+  new URL("../src/screens/ProfileScreen.tsx", import.meta.url),
   "utf8",
 );
 const accountObserver = readFileSync(
@@ -37,6 +45,20 @@ test("conclusao da conta ocorre no servidor para uma identidade verificada", () 
   assert.match(accountFunction, /request\.data\?\.acceptedTerms === true/);
   assert.match(accountFunction, /transaction\.create\(accountReference/);
   assert.match(accountFunction, /transaction\.delete\(pendingReference\)/);
+});
+
+test("exclusao da conta remove identidade e agenda limpeza autoritativa", () => {
+  assert.match(accountDeletionFunction, /deleteOwnAccount/);
+  assert.ok(accountDeletionFunction.includes("getAuth().deleteUser(uid)"));
+  assert.ok(accountDeletionFunction.includes(".auth.user()"));
+  assert.ok(accountDeletionFunction.includes(".onDelete(async (user)"));
+  assert.match(accountDeletionFunction, /cancelPlusSubscriptionForAccountDeletion/);
+  assert.equal(accountDeletionFunction.includes('database.collection("posts").where("authorId"'), true);
+  assert.match(accountDeletionFunction, /DeleteObjectsCommand/);
+  assert.match(accountDeletionFunction, /recursiveDelete/);
+  assert.match(accountService, /deleteCurrentFirebaseAccount/);
+  assert.match(profileScreen, /Excluir minha conta/);
+  assert.match(profileScreen, /DeleteAccountModal/);
 });
 
 test("login recupera cadastro incompleto pela Function autenticada", () => {

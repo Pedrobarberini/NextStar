@@ -11,6 +11,7 @@ import {
   Play,
   ShieldCheck,
   Settings,
+  Trash2,
   UserRoundPen
 } from "lucide-react-native";
 import {
@@ -25,6 +26,7 @@ import {
   View
 } from "react-native";
 import { AvatarPositionModal } from "../components/AvatarPositionModal";
+import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import { DeleteVideoModal } from "../components/DeleteVideoModal";
 import { BackButton } from "../components/Navigation";
 import { ProfileAvatarPreviewModal } from "../components/ProfileAvatarPreviewModal";
@@ -87,6 +89,7 @@ export function ProfileScreen({
   onChangeAutoplay,
   onChangeAvatar,
   onChangeNotifications,
+  onDeleteAccount,
   onCreateTag,
   onDeleteVideo,
   onOpenProfile,
@@ -131,6 +134,7 @@ export function ProfileScreen({
   onChangeAutoplay: (value: boolean) => void;
   onChangeAvatar: (avatar: ProfileAvatar | null) => void;
   onChangeNotifications: (value: boolean) => void;
+  onDeleteAccount: () => Promise<boolean>;
   onCreateTag: (label: string) => Promise<unknown> | unknown;
   onDeleteVideo: (video: VideoSubmission) => Promise<boolean>;
   onOpenProfile: (account: AppUser) => void;
@@ -166,6 +170,8 @@ export function ProfileScreen({
   const [isFollowingVisible, setIsFollowingVisible] = useState(false);
   const [isAvatarPreviewVisible, setIsAvatarPreviewVisible] = useState(false);
   const [isAvatarPositionVisible, setIsAvatarPositionVisible] = useState(false);
+  const [isDeleteAccountVisible, setIsDeleteAccountVisible] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
   const [videosPendingDeletion, setVideosPendingDeletion] = useState<
@@ -307,6 +313,19 @@ export function ProfileScreen({
     }
   }
 
+  async function confirmAccountDeletion() {
+    if (isDeletingAccount) return;
+
+    setIsDeletingAccount(true);
+    const deleted = await onDeleteAccount();
+
+    if (!deleted) {
+      setIsDeletingAccount(false);
+      return;
+    }
+
+    setIsDeleteAccountVisible(false);
+  }
   const avatarPositionModal = (
     <AvatarPositionModal
       avatar={avatar}
@@ -458,12 +477,19 @@ export function ProfileScreen({
             onChangeAvatar={onChangeAvatar}
             onChangeAutoplay={onChangeAutoplay}
             onChangeNotifications={onChangeNotifications}
+            onRequestAccountDeletion={() => setIsDeleteAccountVisible(true)}
             onRequestAvatarPosition={() => setIsAvatarPositionVisible(true)}
             onOpenEditProfile={() => setProfileView("edit-profile")}
             user={user}
           />
         </ScreenTransition>
         {avatarPositionModal}
+        <DeleteAccountModal
+          isDeleting={isDeletingAccount}
+          onClose={() => setIsDeleteAccountVisible(false)}
+          onConfirm={confirmAccountDeletion}
+          visible={isDeleteAccountVisible}
+        />
       </>
     );
   }
@@ -821,6 +847,7 @@ function SettingsView({
   onChangeAvatar,
   onChangeAutoplay,
   onChangeNotifications,
+  onRequestAccountDeletion,
   onRequestAvatarPosition,
   onOpenEditProfile,
   user
@@ -833,6 +860,7 @@ function SettingsView({
   onChangeAvatar: (avatar: ProfileAvatar | null) => void;
   onChangeAutoplay: (value: boolean) => void;
   onChangeNotifications: (value: boolean) => void;
+  onRequestAccountDeletion: () => void;
   onRequestAvatarPosition: () => void;
   onOpenEditProfile: () => void;
   user: AppUser;
@@ -1059,6 +1087,24 @@ function SettingsView({
         </View>
       </View>
 
+      <View style={[styles.settingsSection, styles.settingsDangerSection]}>
+        <Text style={styles.settingsSectionTitle}>Excluir conta</Text>
+        <Text style={styles.settingsDangerDescription}>
+          Remove permanentemente seu perfil, suas publicações e seus dados da
+          Xolot. Uma assinatura ativa será cancelada.
+        </Text>
+        <Pressable
+          accessibilityLabel="Excluir minha conta"
+          accessibilityRole="button"
+          onPress={onRequestAccountDeletion}
+          style={styles.settingsDeleteAccountButton}
+        >
+          <Trash2 color={colors.danger} size={18} />
+          <Text style={styles.settingsDeleteAccountButtonText}>
+            Excluir minha conta
+          </Text>
+        </Pressable>
+      </View>
       {user.role === "Admin" ? (
         <View style={styles.settingsSection}>
           <Text style={styles.settingsSectionTitle}>Conta administrativa</Text>

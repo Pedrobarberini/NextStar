@@ -158,6 +158,7 @@ Status: Fase 1 implementada; Hosting e Firestore publicados em 2026-07-28. Email
 - [ ] Registrar App Check e ativar enforcement após monitorar clientes legítimos.
 - [ ] Implementar custom claims e backend confiável para funções administrativas.
 - [ ] Implementar exclusão/exportação de conta e dados conforme LGPD.
+- [x] Implementar exclusão autoritativa de conta, perfil, publicações, dados sociais e mídias com gatilho do Firebase Auth.
 - [ ] Criar trilha de auditoria para ações administrativas.
 
 Coleções desta fase:

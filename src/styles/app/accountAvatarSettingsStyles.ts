@@ -379,6 +379,33 @@ export const accountAvatarSettingsStyles = {
     fontWeight: "900",
     marginBottom: 4
   },
+  settingsDangerSection: {
+    borderColor: colors.danger
+  },
+  settingsDangerDescription: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 5
+  },
+  settingsDeleteAccountButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: colors.danger,
+    borderRadius: 6,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 7,
+    justifyContent: "center",
+    marginTop: 14,
+    minHeight: 42,
+    paddingHorizontal: 14
+  },
+  settingsDeleteAccountButtonText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: "900"
+  },
   settingsAvatarRow: {
     alignItems: "center",
     borderTopColor: colors.border,

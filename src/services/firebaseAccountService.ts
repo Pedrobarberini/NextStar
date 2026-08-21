@@ -231,6 +231,46 @@ export function getCurrentFirebaseUser() {
   return isFirebaseConfigured() ? getFirebaseAuth().currentUser : null;
 }
 
+export async function deleteCurrentFirebaseAccount() {
+  assertFirebaseAvailable();
+  const auth = getFirebaseAuth();
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("Entre novamente para excluir sua conta.");
+  }
+
+  const deleteAccount = httpsCallable<
+    void,
+    { deleted: boolean }
+  >(getFirebaseFunctions(), "deleteOwnAccount");
+
+  const result = await deleteAccount();
+  if (result.data.deleted !== true) {
+    throw new Error("O servidor não confirmou a exclusão da conta.");
+  }
+
+  await signOut(auth).catch(() => undefined);
+}
+
+export function getSafeFirebaseAccountDeletionMessage(error: unknown) {
+  if (error instanceof FirebaseError) {
+    if (error.code === "functions/failed-precondition") {
+      return "Por segurança, saia e entre novamente antes de excluir a conta.";
+    }
+    if (error.code === "functions/unauthenticated") {
+      return "Sua sessão expirou. Entre novamente antes de excluir a conta.";
+    }
+    if (error.code === "functions/unavailable") {
+      return "O serviço de exclusão está indisponível. Tente novamente em instantes.";
+    }
+  }
+
+  return error instanceof Error && error.message
+    ? error.message
+    : "Não foi possível excluir a conta agora. Tente novamente.";
+}
+
 export async function signOutFirebaseSession() {
   if (!isFirebaseConfigured()) {
     return;

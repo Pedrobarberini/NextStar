@@ -218,6 +218,43 @@ async function loadProviderSubscription(subscriptionId: string) {
   return (await getClient().get({ id: subscriptionId })) as MercadoPagoSubscription;
 }
 
+export async function cancelPlusSubscriptionForAccountDeletion(uid: string) {
+  const reference = getFirestore().doc(`subscriptions/${uid}`);
+  const snapshot = await reference.get();
+  const subscriptionId = snapshot.data()?.providerSubscriptionId;
+
+  if (typeof subscriptionId !== "string" || !subscriptionId) {
+    return false;
+  }
+
+  const currentSubscription = await loadProviderSubscription(subscriptionId);
+  const externalUid = getUidFromExternalReference(
+    currentSubscription.external_reference
+  );
+
+  if (externalUid !== uid) {
+    throw new Error("A assinatura não pertence à conta excluída.");
+  }
+
+  if (normalizeStatus(currentSubscription.status) !== "canceled") {
+    await getClient().update({
+      body: { status: "canceled" },
+      id: subscriptionId
+    });
+
+    const updatedSubscription = await loadProviderSubscription(subscriptionId);
+    if (
+      getUidFromExternalReference(updatedSubscription.external_reference) !==
+        uid ||
+      normalizeStatus(updatedSubscription.status) !== "canceled"
+    ) {
+      throw new Error("O Mercado Pago não confirmou o cancelamento da conta.");
+    }
+  }
+
+  return true;
+}
+
 function getPaymentEnvironment(): MercadoPagoEnvironment {
   const value = mercadoPagoEnvironment.value().trim().toLowerCase();
   if (value === "test" || value === "production") {
