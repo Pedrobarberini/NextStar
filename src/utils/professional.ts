@@ -14,28 +14,20 @@ export const PROFESSIONAL_PLAN_OPTIONS: Array<{
   priceLabel: string;
 }> = [
   {
-    description: "Para criar presença, publicar e acompanhar o básico.",
-    features: ["Perfil profissional", "Métricas essenciais", "Contato por mensagem"],
+    description: "Ferramentas profissionais e publicidade disponíveis para todos.",
+    features: ["Métricas detalhadas", "Link profissional", "Gestão de campanhas"],
     id: "free",
     label: "Grátis",
     priceLabel: "R$ 0"
   },
   {
-    description: "Para criadores e talentos que querem crescer com consistência.",
-    features: ["Métricas detalhadas", "Link profissional", "Status de assinante"],
+    description: "Assinatura dedicada ao selo de identidade verificada.",
+    features: ["Identidade aprovada", "Selo no perfil", "Selo nas publicações"],
     id: "pro",
     label: "Xolot Plus",
-    priceLabel: "R$ 19,90/mês"
-  },
-  {
-    description: "Para marcas, projetos e negócios que anunciam em equipe.",
-    features: ["Painel de campanhas", "Relatórios", "Prioridade no suporte"],
-    id: "business",
-    label: "Xolot Negócios",
-    priceLabel: "R$ 99/mês"
+    priceLabel: "R$ 9,90/mês"
   }
 ];
-
 export const PROFESSIONAL_CATEGORY_OPTIONS: Array<{
   id: ProfessionalCategory;
   label: string;
@@ -98,20 +90,6 @@ export function getCampaignObjectiveLabel(objective: CampaignObjective) {
   return (
     CAMPAIGN_OBJECTIVE_OPTIONS.find((option) => option.id === objective)?.label ??
     "Mais alcance"
-  );
-}
-
-export function estimateCampaignReach(
-  budget: number,
-  durationDays: number,
-  objective: CampaignObjective
-) {
-  const objectiveMultiplier =
-    objective === "reach" ? 1 : objective === "profile_visits" ? 0.78 : 0.62;
-
-  return Math.max(
-    250,
-    Math.round((budget * 68 + durationDays * 110) * objectiveMultiplier)
   );
 }
 

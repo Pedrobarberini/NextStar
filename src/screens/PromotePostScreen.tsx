@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Megaphone, Play } from "lucide-react-native";
+import React, { useState } from "react";
+import { CreditCard, Megaphone, Play } from "lucide-react-native";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { useResolvedVideoSource } from "../actions/useResolvedVideoSource";
 import { BackButton } from "../components/Navigation";
@@ -8,8 +8,6 @@ import { colors } from "../theme";
 import type { CampaignObjective, Player } from "../types";
 import {
   CAMPAIGN_OBJECTIVE_OPTIONS,
-  estimateCampaignReach,
-  formatCompactMetric,
   formatCurrency
 } from "../utils/professional";
 
@@ -18,7 +16,6 @@ const BUDGET_OPTIONS = [20, 50, 100];
 
 export function PromotePostScreen({
   onBack,
-  onCreate,
   player
 }: {
   onBack: () => void;
@@ -33,16 +30,6 @@ export function PromotePostScreen({
   const [durationDays, setDurationDays] = useState(7);
   const [budget, setBudget] = useState(50);
   const resolvedMedia = useResolvedVideoSource(player.videoUri);
-  const estimatedReach = useMemo(
-    () => estimateCampaignReach(budget, durationDays, objective),
-    [budget, durationDays, objective]
-  );
-
-  function createCampaign() {
-    if (onCreate({ budget, durationDays, objective })) {
-      onBack();
-    }
-  }
 
   return (
     <ScrollView contentContainerStyle={s.content}>
@@ -119,19 +106,21 @@ export function PromotePostScreen({
         </View>
       </View>
 
-      <View style={s.section}>
-        <Text style={s.label}>Estimativa</Text>
-        <Text style={s.reachValue}>{formatCompactMetric(estimatedReach)}</Text>
-        <Text style={s.sectionDescription}>pessoas alcançadas durante a campanha</Text>
-      </View>
-
       <View style={s.notice}>
-        <Text style={s.noticeText}>Esta etapa prepara a experiência de publicidade. Nenhuma cobrança será feita enquanto os pagamentos e a entrega de anúncios não estiverem conectados ao backend.</Text>
+        <Text style={s.noticeText}>
+          O impulsionamento será uma compra separada do Xolot Plus. Alcance,
+          pagamento e entrega só serão exibidos depois da confirmação do backend
+          de anúncios. Nenhuma cobrança foi realizada nesta tela.
+        </Text>
       </View>
 
-      <Pressable accessibilityRole="button" onPress={createCampaign} style={s.actionButton}>
-        <Megaphone color={colors.onPrimary} size={19} />
-        <Text style={s.actionButtonText}>Criar campanha</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled
+        style={[s.actionButton, s.actionButtonDisabled]}
+      >
+        <CreditCard color={colors.onPrimary} size={19} />
+        <Text style={s.actionButtonText}>Pagamento por campanha em preparação</Text>
       </Pressable>
     </ScrollView>
   );

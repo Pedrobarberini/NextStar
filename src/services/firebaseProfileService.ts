@@ -238,10 +238,14 @@ export async function saveFirebaseProfile(
     }
 
     const currentProfileData = profileSnapshot.data();
-    const serverManagedProfileFields =
-      typeof currentProfileData?.plusActive === "boolean"
+    const serverManagedProfileFields = {
+      ...(typeof currentProfileData?.identityVerified === "boolean"
+        ? { identityVerified: currentProfileData.identityVerified }
+        : {}),
+      ...(typeof currentProfileData?.plusActive === "boolean"
         ? { plusActive: currentProfileData.plusActive }
-        : {};
+        : {})
+    };
 
     transaction.set(profileReference, {
       ...normalizedProfile,

@@ -46,6 +46,7 @@ import { colors } from "../theme";
 import type {
   AccountProfile,
   AppUser,
+  IdentityVerification,
   MessageContact,
   Player,
   ProfessionalSettings,
@@ -64,12 +65,20 @@ import {
   syncProfessionalSubscription
 } from "../services/firebaseProfessionalService";
 import { DEFAULT_AVATAR_CROP_SCALE } from "../utils/avatarFocus";
+import { subscribeToIdentityVerification } from "../services/firebaseIdentityVerificationService";
 import { getProfileVideoVisibilityIds } from "../utils/profileVideoSelection";
 import { AccountSetupScreen } from "./AccountSetupScreen";
 import { ProfessionalDashboardScreen } from "./ProfessionalDashboardScreen";
+import { IdentityVerificationScreen } from "./IdentityVerificationScreen";
 import { SecurityScreen } from "./SecurityScreen";
 
-type ProfileView = "edit-profile" | "overview" | "professional" | "security" | "settings";
+type ProfileView =
+  | "edit-profile"
+  | "identity-verification"
+  | "overview"
+  | "professional"
+  | "security"
+  | "settings";
 
 export function ProfileScreen({
   accounts,
@@ -180,6 +189,8 @@ export function ProfileScreen({
   const [profileView, setProfileView] = useState<ProfileView>("overview");
   const [professionalSubscription, setProfessionalSubscription] =
     useState<ProfessionalSubscription | null>(null);
+  const [identityVerification, setIdentityVerification] =
+    useState<IdentityVerification | null>(null);
   const [isProfessionalSubscriptionLoading, setIsProfessionalSubscriptionLoading] =
     useState(user.role === "Usuário");
   const profileNavigationTimer = useRef<ReturnType<typeof setTimeout> | null>(
@@ -214,7 +225,8 @@ export function ProfileScreen({
     0
   );
   const isPlusSubscriber =
-    professionalSubscription?.status === "authorized" || user.plusActive === true;
+    (identityVerification?.status === "approved" || user.identityVerified === true) &&
+    (professionalSubscription?.status === "authorized" || user.plusActive === true);
   const profileInitials = user.name
     .split(" ")
     .slice(0, 2)
@@ -252,6 +264,19 @@ export function ProfileScreen({
       }
     );
   }, [user.id, user.role]);
+
+  useEffect(() => {
+    if (user.role !== "Usuário") {
+      setIdentityVerification(null);
+      return;
+    }
+    return subscribeToIdentityVerification(
+      user.id,
+      setIdentityVerification,
+      () => setIdentityVerification(null)
+    );
+  }, [user.id, user.role]);
+
   useEffect(
     () => () => {
       if (profileNavigationTimer.current) {
@@ -339,6 +364,11 @@ export function ProfileScreen({
   );
 
   async function startPlusSubscription() {
+    if (identityVerification?.status !== "approved") {
+      setProfileView("identity-verification");
+      return;
+    }
+
     try {
       const checkout = await createPlusSubscriptionCheckout();
 
@@ -402,11 +432,25 @@ export function ProfileScreen({
       );
     }
   }
+  if (profileView === "identity-verification") {
+    return (
+      <ScreenTransition key="identity-verification" style={styles.profileViewScene}>
+        <IdentityVerificationScreen
+          age={user.age}
+          onBack={() => setProfileView("professional")}
+          onContinue={() => setProfileView("professional")}
+          verification={identityVerification}
+        />
+      </ScreenTransition>
+    );
+  }
+
   if (profileView === "professional") {
     return (
       <ScreenTransition key="professional" style={styles.profileViewScene}>
         <ProfessionalDashboardScreen
           campaigns={campaigns}
+          identityVerification={identityVerification}
           metrics={{
             likes: totalProfileLikes,
             messages: messagesCount,
@@ -416,6 +460,7 @@ export function ProfileScreen({
           onBack={() => setProfileView("overview")}
           onPromotePost={onPromotePost}
           onCancelSubscription={cancelPlusSubscription}
+          onOpenIdentityVerification={() => setProfileView("identity-verification")}
           onStartSubscription={startPlusSubscription}
           onSyncSubscription={refreshPlusSubscription}
           onToggleCampaign={onToggleCampaign}

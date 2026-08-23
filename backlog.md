@@ -66,11 +66,11 @@ Tipo: Produto/Frontend
 Status: Concluído em modo de pré-lançamento em 2026-07-25.
 
 - [x] Definir plano Gratuito.
-- [x] Definir Xolot Plus por R$ 19,90/mês.
-- [x] Definir Xolot Negócios por R$ 99/mês.
+- [x] Redefinir Xolot Plus por R$ 9,90/mês exclusivamente para o selo de identidade verificada (2026-08-23).
+- [x] Retirar o plano Negócios da oferta atual até existir uma proposta real de benefícios.
 - [x] Exibir comparação resumida de benefícios no painel.
-- [x] Persistir localmente a seleção de plano.
-- [x] Informar claramente que ainda não existe cobrança.
+- [x] Manter assinatura e selo como estados autoritativos do backend, sem entitlement financeiro local.
+- [x] Informar que o Plus é recorrente e que impulsionamentos terão cobrança individual separada.
 - [ ] Integrar produtos reais no Google Play Billing e App Store.
 - [x] Integrar checkout web recorrente com o Mercado Pago.
 - [x] Validar status da assinatura e webhooks assinados no backend.
@@ -80,17 +80,17 @@ Status: Concluído em modo de pré-lançamento em 2026-07-25.
 
 Tipo: Frontend/Produto/Dados
 
-Status: Concluído em modo de pré-lançamento em 2026-07-25.
+Status: Protótipo antigo arquivado; checkout de impulsionamento real pendente.
 
 - [x] Criar página dedicada para promover uma publicação própria.
 - [x] Oferecer objetivos de alcance, visitas ao perfil e mensagens.
 - [x] Oferecer duração de 3, 7 ou 14 dias.
 - [x] Oferecer orçamentos de teste de R$ 20, R$ 50 ou R$ 100.
-- [x] Calcular estimativa de alcance de forma determinística.
-- [x] Criar, pausar e retomar campanhas locais.
+- [x] Remover a estimativa determinística que exibia alcance sem dados reais.
+- [x] Impedir criação local de campanha sem pagamento confirmado.
 - [x] Relacionar campanha, publicação, perfil e conta proprietária.
 - [x] Remover campanhas relacionadas quando a publicação é excluída.
-- [x] Priorizar campanhas ativas no Início.
+- [ ] Priorizar no Início somente campanhas pagas, aprovadas e ativas no backend.
 - [x] Identificar conteúdo promovido de forma explícita.
 - [x] Cobrir regras de campanha e ordenação com testes automatizados.
 
@@ -372,7 +372,15 @@ Tipo: Backend/Mobile/Web
 - [x] Separar checkout de teste e produção e vincular o sandbox ao comprador de teste sem persistir seu e-mail em texto aberto.
 - [x] Abrir o checkout do Mercado Pago na mesma aba no navegador para evitar bloqueio de popup após a chamada assíncrona.
 - [x] Publicar no perfil o selo Xolot Plus somente quando a assinatura estiver autorizada pelo backend.
-- [ ] Exigir verificação documental aprovada para manter o selo junto à assinatura Xolot Plus.
+- [x] Exigir status documental aprovado pelo backend para iniciar o checkout e manter o selo junto à assinatura Xolot Plus.
+- [x] Proteger `identityVerified` e `plusActive` contra escrita do cliente e recalcular ambos por gatilhos do backend.
+- [x] Criar tela de status da identidade antes do pagamento, sem coletar RG/CPF no armazenamento próprio.
+- [ ] Selecionar e contratar provedor especializado de KYC para validar RG, CPF, prova de vida e fraude.
+- [ ] Integrar criação de sessão KYC no backend, callback assinado do provedor e política de retenção mínima.
+- [ ] Criar fluxo de consentimento do responsável legal para menores de 18 anos.
+- [x] Alterar novas assinaturas web para R$ 9,90/mês.
+- [x] Manter assinaturas antigas de R$ 19,90 reconhecidas sem alterar automaticamente a cobrança recorrente.
+- [ ] Definir migração consentida das assinaturas antigas para R$ 9,90.
 - [x] Publicar checkout, sincronização, webhook e regras privadas no Firebase.
 - [x] Exibir no checkout o motivo seguro e específico quando as contas de teste do vendedor e comprador forem incompatíveis.
 - [x] Validar o fluxo completo no sandbox antes de habilitar credenciais de produção.
@@ -393,8 +401,12 @@ Tipo: Frontend/Produto
 - [x] Criar painel local com métricas agregadas.
 - [x] Criar seleção de categoria, plano e link profissional.
 - [x] Listar campanhas e permitir pausar ou retomar.
-- [x] Bloquear métricas detalhadas e link profissional sem assinatura ativa confirmada pelo servidor.
+- [x] Liberar métricas detalhadas, categoria, link profissional e acesso ao painel sem exigir assinatura.
 - [x] Remover campanhas e estimativas de alcance simuladas do painel profissional.
+- [x] Separar o Xolot Plus das ferramentas profissionais: assinatura mantém apenas o selo verificado.
+- [x] Desabilitar a ativação de impulsionamento até existir confirmação de pagamento por campanha.
+- [ ] Implementar checkout avulso de impulsionamento com idempotência, webhook assinado e status server-side.
+- [ ] Definir inventário real, segmentação, orçamento, pacing e limites antes de estimar alcance.
 - [ ] Adicionar filtros por período.
 - [ ] Criar gráficos acessíveis de crescimento e conversão.
 - [ ] Exibir origem das visitas e melhores publicações.

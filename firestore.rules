@@ -93,7 +93,7 @@ service cloud.firestore {
     function validProfile(uid, data) {
       return data.keys().hasOnly([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
-          'interestTags', 'plusActive', 'position', 'profileCompleted', 'sport', 'uid', 'updatedAt', 'username'
+          'identityVerified', 'interestTags', 'plusActive', 'position', 'profileCompleted', 'sport', 'uid', 'updatedAt', 'username'
         ])
         && data.keys().hasAll([
           'age', 'bio', 'city', 'club', 'createdAt', 'name', 'photoURL',
@@ -115,6 +115,7 @@ service cloud.firestore {
         )
         && data.photoURL is string && data.photoURL.size() <= 2048
         && (!data.keys().hasAny(['plusActive']) || data.plusActive is bool)
+        && (!data.keys().hasAny(['identityVerified']) || data.identityVerified is bool)
         && data.profileCompleted == true
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -328,12 +329,14 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && (!request.resource.data.keys().hasAny(['plusActive'])
           || request.resource.data.plusActive == false)
+        && (!request.resource.data.keys().hasAny(['identityVerified'])
+          || request.resource.data.identityVerified == false)
         && usernameOwnedAfter(uid, request.resource.data.username);
       allow update: if owns(uid)
         && validProfile(uid, request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plusActive'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['identityVerified', 'plusActive'])
         && usernameOwnedAfter(uid, request.resource.data.username)
         && oldUsernameReleasedAfter(uid);
       allow delete: if false;
@@ -449,6 +452,12 @@ service cloud.firestore {
       allow list: if false;
       allow create, update, delete: if false;
     }
+    match /identityVerifications/{uid} {
+      allow get: if owns(uid);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
     match /postComments/{commentId} {
       allow get, list: if registeredVerifiedUser();
       allow create: if registeredVerifiedUser()

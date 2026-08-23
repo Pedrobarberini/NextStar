@@ -16,7 +16,8 @@ import {
   mercadoPagoWebhookSecret
 } from "./config";
 
-const PLUS_AMOUNT = 19.9;
+const PLUS_AMOUNT = 9.9;
+const LEGACY_PLUS_AMOUNTS = [19.9];
 const PLUS_CURRENCY = "BRL";
 const PLUS_REASON = "Xolot Plus";
 const CHECKOUT_RETURN_URL = "https://xolot.com.br/?subscription=return";
@@ -137,7 +138,9 @@ function assertExpectedSubscription(subscription: MercadoPagoSubscription) {
 
   if (
     typeof amount !== "number" ||
-    Math.abs(amount - PLUS_AMOUNT) > 0.001 ||
+    ![PLUS_AMOUNT, ...LEGACY_PLUS_AMOUNTS].some(
+      (expected) => Math.abs(amount - expected) <= 0.001
+    ) ||
     currency !== PLUS_CURRENCY
   ) {
     throw new Error("A assinatura recebida não corresponde ao plano Xolot Plus.");
@@ -158,15 +161,17 @@ async function saveSubscription(
   const database = getFirestore();
   const reference = database.doc(`subscriptions/${uid}`);
   const profileReference = database.doc(`profiles/${uid}`);
+  const identityReference = database.doc(`identityVerifications/${uid}`);
   const status = normalizeStatus(subscription.status);
 
   await database.runTransaction(async (transaction) => {
-    const [snapshot, profileSnapshot] = await Promise.all([
+    const [snapshot, profileSnapshot, identitySnapshot] = await Promise.all([
       transaction.get(reference),
-      transaction.get(profileReference)
+      transaction.get(profileReference),
+      transaction.get(identityReference)
     ]);
     const payload: Record<string, unknown> = {
-      amount: PLUS_AMOUNT,
+      amount: subscription.auto_recurring?.transaction_amount ?? PLUS_AMOUNT,
       checkoutUrl: subscription.init_point ?? null,
       currency: PLUS_CURRENCY,
       nextPaymentAt: subscription.next_payment_date ?? null,
@@ -206,7 +211,10 @@ async function saveSubscription(
     transaction.set(reference, payload, { merge: true });
     if (profileSnapshot.exists) {
       transaction.update(profileReference, {
-        plusActive: status === "authorized"
+        identityVerified: identitySnapshot.data()?.status === "approved",
+        plusActive:
+          status === "authorized" &&
+          identitySnapshot.data()?.status === "approved"
       });
     }
   });
@@ -299,6 +307,14 @@ const createSubscriptionOptions = {
 export const createPlusSubscription = onCall(createSubscriptionOptions, async (request) => {
   const uid = requireVerifiedUser(request);
   await verifyRegisteredUser(uid);
+
+  const identity = await getFirestore().doc(`identityVerifications/${uid}`).get();
+  if (identity.data()?.status !== "approved") {
+    throw new HttpsError(
+      "failed-precondition",
+      "Conclua a verificação de identidade antes de assinar o selo Xolot Plus."
+    );
+  }
 
   const accountEmail =
     typeof request.auth?.token.email === "string"

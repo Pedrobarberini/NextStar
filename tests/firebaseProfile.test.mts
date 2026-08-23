@@ -7,6 +7,7 @@ const profile = {
   bio: "Criador de conteúdo esportivo e campanhas locais.",
   city: "São Paulo, SP",
   interestTags: ["Futebol", "Ponta"],
+  identityVerified: false,
   club: "Projeto Xolot",
   name: "Pessoa Criadora",
   photoURL: "https://example.com/avatar.jpg",
@@ -30,6 +31,12 @@ test("normaliza apenas os campos públicos permitidos", () => {
   assert.equal("email" in (normalized ?? {}), false);
   assert.equal("role" in (normalized ?? {}), false);
   assert.equal(normalized?.plusActive, false);
+  assert.equal(normalized?.identityVerified, false);
+  assert.equal(
+    normalizePublicProfileDocument(profile.uid, { ...profile, identityVerified: true })
+      ?.identityVerified,
+    true
+  );
   assert.equal(
     normalizePublicProfileDocument(profile.uid, { ...profile, plusActive: true })
       ?.plusActive,

@@ -82,7 +82,8 @@ export function PublicProfileScreen({
   const profileBio = account?.bio ?? "";
   const profileClub = account?.club ?? player?.club ?? "";
   const isProfessional = professionalSettings?.enabled === true;
-  const isPlusSubscriber = account?.plusActive === true;
+  const isPlusSubscriber =
+    account?.identityVerified === true && account.plusActive === true;
   const totalViews = videos.reduce(
     (total, video) => total + (viewCountsByPlayer[video.id] ?? 0),
     0

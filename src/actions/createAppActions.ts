@@ -34,7 +34,6 @@ import {
   persistPickedVideo
 } from "../services/videoStorage";
 import { removeOwnedVideoSubmission } from "../utils/videoSubmission";
-import { estimateCampaignReach } from "../utils/professional";
 
 type CreateCampaignInput = {
   budget: number;
@@ -135,7 +134,7 @@ export function createAppActions({
     }));
   }
 
-  function handleCreateCampaign(player: Player, input: CreateCampaignInput) {
+  function handleCreateCampaign(player: Player, _input: CreateCampaignInput) {
     if (!user || player.ownerUserId !== user.id) {
       Alert.alert(
         "Publicação indisponível",
@@ -144,35 +143,12 @@ export function createAppActions({
       return false;
     }
 
-    const campaign: PromotionCampaign = {
-      budget: input.budget,
-      clicks: 0,
-      createdAt: new Date().toISOString(),
-      durationDays: input.durationDays,
-      estimatedReach: estimateCampaignReach(
-        input.budget,
-        input.durationDays,
-        input.objective
-      ),
-      id: `campaign-${Date.now()}`,
-      impressions: 0,
-      messages: 0,
-      objective: input.objective,
-      ownerUserId: user.id,
-      playerId: player.id,
-      profileId: player.profileId,
-      status: "active",
-      title: player.videoTitle
-    };
-
-    setCampaigns((current) => [campaign, ...current]);
     Alert.alert(
-      "Campanha criada",
-      "A promoção foi adicionada ao painel. Nenhuma cobrança será feita nesta fase."
+      "Impulsionamento em preparação",
+      "A campanha só poderá ser ativada depois da confirmação individual do pagamento. Nenhuma cobrança foi realizada."
     );
-    return true;
+    return false;
   }
-
   function handleToggleCampaign(campaignId: string) {
     if (!user) {
       return;

@@ -303,7 +303,7 @@ export function AppRoutes(props: AppRoutesProps) {
         if (result.status === "authorized") {
           Alert.alert(
             "Xolot Plus ativado",
-            "O pagamento foi confirmado e os recursos Plus já estão disponíveis."
+            "O pagamento foi confirmado e o selo de identidade verificada está ativo."
           );
           return;
         }

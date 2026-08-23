@@ -12,6 +12,7 @@ export type PublicProfileDocument = {
   interestTags: string[];
   name: string;
   photoURL: string;
+  identityVerified: boolean;
   plusActive: boolean;
   sport: string;
   position: string;
@@ -91,6 +92,7 @@ export function normalizePublicProfileDocument(
     club: normalizeText(data.club, 80),
     name,
     interestTags: normalizeInterestTags(data.interestTags),
+    identityVerified: data.identityVerified === true,
     photoURL: normalizeText(data.photoURL, 2048),
     plusActive: data.plusActive === true,
     position:

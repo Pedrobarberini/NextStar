@@ -385,3 +385,5 @@ export {
   mercadoPagoWebhook,
   syncPlusSubscription
 } from "./mercadoPago";
+
+export { syncIdentityVerificationBadge } from "./identityVerification";

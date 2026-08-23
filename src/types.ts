@@ -56,6 +56,20 @@ export type ProfessionalSubscription = {
   updatedAt: string;
 };
 
+export type IdentityVerificationStatus =
+  | "approved"
+  | "expired"
+  | "pending"
+  | "rejected";
+
+export type IdentityVerification = {
+  provider?: string;
+  reviewNote?: string;
+  status: IdentityVerificationStatus;
+  submittedAt?: string;
+  updatedAt: string;
+};
+
 export type ProfessionalCategory =
   | "talent"
   | "creator"
@@ -228,6 +242,7 @@ export type AppUser = AccountProfile & {
   authProvider?: AuthProvider;
   googleUid?: string;
   photoURL?: string;
+  identityVerified?: boolean;
   plusActive?: boolean;
   profileCompleted: boolean;
 };

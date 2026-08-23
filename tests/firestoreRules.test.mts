@@ -123,15 +123,21 @@ test("IDs visuais do feed sao convertidos para o documento real do post", () => 
   assert.match(socialService, /postId: getPostDocumentId\(comment\.playerId\)/);
   assert.match(rules, /data\.playerId == 'approved-' \+ data\.postId/);
 });
-test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
+test("assinaturas e identidade são autoritativas no servidor", () => {
   assert.match(rules, /match \/subscriptions\/\{uid\}/);
+  assert.match(rules, /match \/identityVerifications\/\{uid\}/);
   assert.match(rules, /allow get: if owns\(uid\)/);
   assert.match(
     rules,
     /match \/subscriptions\/\{uid\}[\s\S]*allow create, update, delete: if false/
   );
+  assert.match(
+    rules,
+    /match \/identityVerifications\/\{uid\}[\s\S]*allow create, update, delete: if false/
+  );
   assert.match(mercadoPagoFunctions, /MERCADO_PAGO_ACCESS_TOKEN|mercadoPagoAccessToken/);
   assert.match(mercadoPagoFunctions, /WebhookSignatureValidator\.validate/);
+  assert.match(mercadoPagoFunctions, /const PLUS_AMOUNT = 9\.9/);
   assert.match(mercadoPagoFunctions, /transaction_amount: PLUS_AMOUNT/);
   assert.match(mercadoPagoFunctions, /currency_id: PLUS_CURRENCY/);
   assert.match(mercadoPagoFunctions, /externalUid !== uid/);
@@ -142,10 +148,14 @@ test("assinaturas sao autoritativas no servidor e privadas por usuario", () => {
   assert.match(mercadoPagoFunctions, /environment === "production"/);
   assert.match(mercadoPagoFunctions, /testuser/);
   assert.match(mercadoPagoFunctions, /payerEmailHash === payerEmailHash/);
-  assert.match(mercadoPagoFunctions, /plusActive: status === "authorized"/);
+  assert.match(mercadoPagoFunctions, /identityVerifications\/\$\{uid\}/);
+  assert.match(
+    mercadoPagoFunctions,
+    /status === "authorized" &&[\s\S]*status === "approved"/
+  );
   assert.match(
     rules,
-    /affectedKeys\(\)\.hasAny\(\['plusActive'\]\)/
+    /affectedKeys\(\)\.hasAny\(\['identityVerified', 'plusActive'\]\)/
   );
   assert.match(profileScreen, /window\.location\.assign\(checkout\.checkoutUrl\)/);
   assert.match(mercadoPagoFunctions, /cancelPlusSubscription/);
